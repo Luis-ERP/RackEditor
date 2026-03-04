@@ -1,0 +1,27 @@
+# macOS
+.DS_Store
+
+# Python
+__pycache__/
+*.py[cod]
+*.sqlite3
+.venv/
+venv/
+.pytest_cache/
+.mypy_cache/
+
+# Env files
+.env
+.env.*
+!.env.example
+
+# Node
+node_modules/
+.npm/
+
+# Next.js
+apps/web/.next/
+apps/web/out/
+
+# Logs
+*.log
