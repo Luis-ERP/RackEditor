@@ -39,6 +39,7 @@ export default function CADCanvas({
   const rafId      = useRef(null);
   const needsInit  = useRef(true);
   const sizeRef    = useRef({ w: 0, h: 0 });
+  const baseZoom   = useRef(1);   // zoom that equals 100 % (set on first resize)
   const darkRef    = useRef(darkMode);
 
   const [zoomPercent, setZoomPercent] = useState(100);
@@ -85,7 +86,7 @@ export default function CADCanvas({
     rafId.current = requestAnimationFrame(() => {
       rafId.current = null;
       draw();
-      setZoomPercent(Math.round(camera.current.zoom * 100));
+      setZoomPercent(Math.round((camera.current.zoom / baseZoom.current) * 100));
     });
   }, [draw]);
 
@@ -109,7 +110,8 @@ export default function CADCanvas({
     const { w, h } = sizeRef.current;
     camera.current.x    = w / 2;
     camera.current.y    = h / 2;
-    camera.current.zoom = 1;
+    // Reset to the same ±30 m default view
+    camera.current.zoom = Math.min(w - RULER_SIZE, h - RULER_SIZE) / 60;
     scheduleRedraw();
   }, [scheduleRedraw]);
 
@@ -133,9 +135,12 @@ export default function CADCanvas({
       canvas.getContext('2d').scale(dpr, dpr);
 
       if (needsInit.current) {
-        camera.current.x  = w / 2;
-        camera.current.y  = h / 2;
-        needsInit.current = false;
+        camera.current.x    = w / 2;
+        camera.current.y    = h / 2;
+        // Default zoom: show ±30 m from the origin in the tightest axis
+        camera.current.zoom = Math.min(w - RULER_SIZE, h - RULER_SIZE) / 60;
+        baseZoom.current    = camera.current.zoom;
+        needsInit.current   = false;
       }
       scheduleRedraw();
     };
@@ -301,8 +306,8 @@ export default function CADCanvas({
       if (hit) {
         if (e.shiftKey) {
           layoutStore.toggleSelect(hit.id);
-        } else if (!layoutStore.isSelected(hit.id)) {
-          layoutStore.select(hit.id);
+        } else {
+          layoutStore.select(hit.id, true);
         }
         // Start entity move drag
         moveDragRef.current = { startWX: world.x, startWY: world.y };
@@ -310,8 +315,7 @@ export default function CADCanvas({
         return;
       }
 
-      // No entity hit → start rectangle selection
-      if (!e.shiftKey) layoutStore.deselectAll();
+      // No entity hit → start rectangle selection (keep existing selection)
       selDragRef.current = { sx, sy, ex: sx, ey: sy };
       selRectRef.current = null;
     };
@@ -367,7 +371,7 @@ export default function CADCanvas({
 
       layoutStore.selectByRect({
         minX: wA.x, minY: wA.y, maxX: wB.x, maxY: wB.y,
-      });
+      }, true);
 
       scheduleRedraw();
     };
