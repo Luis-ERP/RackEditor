@@ -17,13 +17,21 @@ import { drawTopRuler, drawLeftRuler, drawCornerPatch }  from '../services/ruler
 
 import {
   createRackModuleEntity,
-  worldToCell,
-  cellToWorld,
   bresenhamLine,
-  CELL_SIZE,
   paintAllEntities,
   paintSelectionRect as paintSelRect,
 } from '../services/layout';
+
+import { buildRackModule } from '../services/rack';
+
+import {
+  DEFAULT_FRAME_SPEC,
+  DEFAULT_BEAM_SPEC,
+  DEFAULT_HOLE_INDICES,
+  DEFAULT_BAY_WIDTH_M,
+  DEFAULT_FRAME_DEPTH_M,
+  BAY_STEP_M,
+} from '../services/rack/catalog.js';
 
 // ─────────────────────────────────────────────────────────────────────────────
 export default function CADCanvas({
@@ -56,6 +64,10 @@ export default function CADCanvas({
   // ── move-drag refs ────────────────────────────────────────────
   const moveDragRef = useRef(null);   // { startWX, startWY } world coords
 
+  // ── rack domain registry ──────────────────────────────────────
+  // Maps domainId → RackModule (domain object) for every placed entity
+  const rackDomainRef = useRef(new Map());
+
   // ── draw (reads entities from the store) ─────────────────────
   const draw = useCallback(() => {
     const canvas = canvasRef.current;
@@ -69,6 +81,41 @@ export default function CADCanvas({
 
     // paint all layout entities via the central store + renderers
     if (layoutStore) {
+      const entities = layoutStore.getAll();
+      console.log(
+        '[CADCanvas] painting %d entit%s',
+        entities.length,
+        entities.length === 1 ? 'y' : 'ies',
+        entities.map((ent) => {
+          const domain = rackDomainRef.current.get(ent.domainId);
+          if (!domain) return { id: ent.id, type: ent.type, domainId: ent.domainId ?? null };
+          const frame = domain.frameSpec;
+          const beam  = domain.bays[0]?.beamSpec;
+          return {
+            entityId:   ent.id,
+            domainId:   ent.domainId,
+            position:   { x: +ent.transform.x.toFixed(3), y: +ent.transform.y.toFixed(3) },
+            size:       { widthM: +ent.widthM.toFixed(3), depthM: +ent.depthM.toFixed(3) },
+            frame: frame ? {
+              id:       frame.id,
+              gauge:    frame.gauge,
+              heightIn: frame.heightIn,
+              depthIn:  frame.depthIn,
+            } : null,
+            beam: beam ? {
+              id:       beam.id,
+              lengthIn: beam.lengthIn,
+              heightIn: beam.verticalEnvelopeIn,
+            } : null,
+            bayCount:   domain.bays.length,
+            levels:     domain.levelUnion.map((l) => ({
+              index:       l.levelIndex,
+              holeIndex:   l.holeIndex,
+              elevationIn: l.elevationIn,
+            })),
+          };
+        }),
+      );
       paintAllEntities(ctx, layoutStore, cam, dk);
     }
 
@@ -223,6 +270,16 @@ export default function CADCanvas({
     const canvas = canvasRef.current;
     if (!canvas || !layoutStore) return;
 
+    // Snap world coords to bay-dimension grid cells.
+    // Adjacent bays share one frame, so their origins are BAY_STEP_M apart
+    // (= bay width − one frame width = 96" − 3" = 93").  The entity widthM
+    // stays at DEFAULT_BAY_WIDTH_M (96") so the shared upright of bay N+1
+    // overlaps exactly with the right-frame position of bay N.
+    const BAY_W = DEFAULT_BAY_WIDTH_M;
+    const BAY_D = DEFAULT_FRAME_DEPTH_M;
+    const toBayCell    = (wx, wy) => ({ x: Math.floor(wx / BAY_STEP_M), y: Math.floor(wy / BAY_D) });
+    const bayCellWorld = (cx, cy) => ({ x: cx * BAY_STEP_M, y: cy * BAY_D });
+
     // Track placed cells per drag session to avoid duplicate adds
     const placedCells = new Set();
     const cellKey = (cx, cy) => `${cx},${cy}`;
@@ -230,18 +287,28 @@ export default function CADCanvas({
     const placeCell = (cx, cy) => {
       const key = cellKey(cx, cy);
       if (placedCells.has(key)) return false;
-      // Check if already occupied by an existing entity
-      const w = cellToWorld(cx, cy);
-      const hit = layoutStore.hitTest(w.x + CELL_SIZE / 2, w.y + CELL_SIZE / 2);
-      if (hit) return false;
+      const w = bayCellWorld(cx, cy);
+      // Check if the bay footprint centre is already occupied
+      if (layoutStore.hitTest(w.x + BAY_W / 2, w.y + BAY_D / 2)) return false;
       placedCells.add(key);
+
+      // Create domain RackModule (1 bay, default industry-standard specs)
+      const rackModule = buildRackModule({
+        frameSpec:   DEFAULT_FRAME_SPEC,
+        beamSpec:    DEFAULT_BEAM_SPEC,
+        bayCount:    1,
+        holeIndices: DEFAULT_HOLE_INDICES,
+      });
+      rackDomainRef.current.set(rackModule.id, rackModule);
+
+      // Create layout entity linked to the domain object
       layoutStore.add(createRackModuleEntity({
-        x: w.x,
-        y: w.y,
-        domainId: '',       // no domain binding yet
-        widthM: CELL_SIZE,
-        depthM: CELL_SIZE,
-        label: '',
+        x:       w.x,
+        y:       w.y,
+        domainId: rackModule.id,
+        widthM:  BAY_W,
+        depthM:  BAY_D,
+        label:   '96" × 42"',
       }));
       return true;
     };
@@ -251,7 +318,7 @@ export default function CADCanvas({
       const world = worldAt(e);
       if (!world) return;
       e.preventDefault();
-      const cell = worldToCell(world.x, world.y);
+      const cell = toBayCell(world.x, world.y);
       placeCell(cell.x, cell.y);
       dragRef.current = { active: true, lastCell: cell };
     };
@@ -260,7 +327,7 @@ export default function CADCanvas({
       if (!dragRef.current.active) return;
       const world = worldAt(e);
       if (!world) return;
-      const cell = worldToCell(world.x, world.y);
+      const cell = toBayCell(world.x, world.y);
       const last = dragRef.current.lastCell;
       if (cell.x === last.x && cell.y === last.y) return;
       const cells = bresenhamLine(last.x, last.y, cell.x, cell.y);
