@@ -9,7 +9,7 @@
 //  component simply reads it and paints.
 // ─────────────────────────────────────────────────────────────────────────────
 
-import { entityAABB } from './entities.js';
+import { entityAABB, nextEntityId } from './entities.js';
 
 /**
  * Create a new LayoutStore instance.
@@ -92,6 +92,44 @@ export function createLayoutStore() {
     _selection.clear();
     _notify();
     return removed;
+  }
+
+  /**
+   * Duplicate all currently selected entities.
+   * Each clone gets a new unique ID and is offset slightly (+0.5 m on both axes)
+   * so it doesn't sit exactly on top of the original.
+   * The new clones become the active selection.
+   *
+   * @param {number} [offsetX=0.5] — world-space X offset for duplicates
+   * @param {number} [offsetY=0.5] — world-space Y offset for duplicates
+   * @returns {Object[]} the newly created entities
+   */
+  function duplicateSelected(offsetX = 0.5, offsetY = 0.5) {
+    const sources = getSelectedEntities();
+    if (sources.length === 0) return [];
+
+    const clones = [];
+    for (const src of sources) {
+      // Deep-clone the entity, assign a fresh ID and offset position
+      const clone = {
+        ...src,
+        id: nextEntityId(src.type.toLowerCase().slice(0, 3)),
+        transform: {
+          ...src.transform,
+          x: src.transform.x + offsetX,
+          y: src.transform.y + offsetY,
+        },
+      };
+      _entities.set(clone.id, clone);
+      clones.push(clone);
+    }
+
+    // Select only the new clones
+    _selection.clear();
+    for (const c of clones) _selection.add(c.id);
+
+    _notify();
+    return clones;
   }
 
   /**
@@ -410,6 +448,7 @@ export function createLayoutStore() {
     add,
     remove,
     removeSelected,
+    duplicateSelected,
     get,
     getAll,
     getAllByType,

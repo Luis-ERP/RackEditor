@@ -1,7 +1,7 @@
 'use client';
 
 import { useRef, useEffect, useCallback, useState } from 'react';
-import { ZoomIn, ZoomOut, Maximize, XCircle, Trash2, Moon, Sun, ArrowUp, ArrowDown, ArrowLeft, ArrowRight } from 'lucide-react';
+import { ZoomIn, ZoomOut, Maximize, XCircle, Trash2, Copy, Moon, Sun, ArrowUp, ArrowDown, ArrowLeft, ArrowRight } from 'lucide-react';
 
 import {
   MIN_ZOOM,
@@ -282,12 +282,19 @@ export default function CADCanvas({
     }
   }, [drawingMode, scheduleRedraw, layoutStore]);
 
-  // ── ESC to deselect (canvas-level) ────────────────────────────
+  // ── ESC to deselect & Cmd/Ctrl+D to duplicate (canvas-level) ──
   useEffect(() => {
     const onKey = (e) => {
       if (e.key === 'Escape' && !drawingModeRef.current && layoutStore) {
         if (layoutStore.selectionCount() > 0) {
           layoutStore.deselectAll();
+        }
+      }
+      // Cmd+D (macOS) / Ctrl+D (Windows/Linux) → duplicate selection
+      if (e.key === 'd' && (e.metaKey || e.ctrlKey) && !e.shiftKey && !e.altKey) {
+        e.preventDefault(); // prevent browser bookmark dialog
+        if (layoutStore && layoutStore.selectionCount() > 0) {
+          layoutStore.duplicateSelected();
         }
       }
     };
@@ -623,6 +630,13 @@ export default function CADCanvas({
     if (layoutStore) layoutStore.removeSelected();
   }, [layoutStore]);
 
+  const handleDuplicateSelected = useCallback(() => {
+    if (layoutStore && layoutStore.selectionCount() > 0) {
+      layoutStore.duplicateSelected();
+      scheduleRedraw();
+    }
+  }, [layoutStore, scheduleRedraw]);
+
   const handleMoveUp = useCallback(() => {
     if (layoutStore) { layoutStore.moveSelectedBy(0, -DEFAULT_FRAME_DEPTH_M); scheduleRedraw(); }
   }, [layoutStore, scheduleRedraw]);
@@ -704,6 +718,13 @@ export default function CADCanvas({
               <ArrowRight size={16} />
             </button>
             <div style={{ ...actionDividerStyle, background: overlayBorder }} />
+            <button
+              onClick={handleDuplicateSelected}
+              style={{ ...actionBtnStyle, color: overlayText }}
+              title="Duplicate selected (⌘D / Ctrl+D)"
+            >
+              <Copy size={16} />
+            </button>
             <button
               onClick={handleDeleteSelected}
               style={{ ...actionBtnStyle, color: overlayAccent }}
