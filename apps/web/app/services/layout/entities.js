@@ -216,13 +216,31 @@ export function entityAABB(entity) {
     case EntityType.RACK_LINE:
       return { minX: x, minY: y, maxX: x + entity.widthM, maxY: y + entity.depthM };
 
-    case EntityType.WALL:
-      return {
-        minX: x,
-        minY: y - entity.thicknessM / 2,
-        maxX: x + entity.lengthM,
-        maxY: y + entity.thicknessM / 2,
-      };
+    case EntityType.WALL: {
+      const len = entity.lengthM;
+      const ht  = entity.thicknessM / 2;
+      const rot = entity.transform.rotation;
+      if (rot === 0) {
+        return { minX: x, minY: y - ht, maxX: x + len, maxY: y + ht };
+      }
+      // General rotation — compute rotated corners of the wall rectangle
+      const rad = (rot * Math.PI) / 180;
+      const cos = Math.cos(rad);
+      const sin = Math.sin(rad);
+      const corners = [
+        [0, -ht], [len, -ht], [len, ht], [0, ht],
+      ];
+      let mnX = Infinity, mnY = Infinity, mxX = -Infinity, mxY = -Infinity;
+      for (const [lx, ly] of corners) {
+        const wx = x + lx * cos - ly * sin;
+        const wy = y + lx * sin + ly * cos;
+        mnX = Math.min(mnX, wx);
+        mnY = Math.min(mnY, wy);
+        mxX = Math.max(mxX, wx);
+        mxY = Math.max(mxY, wy);
+      }
+      return { minX: mnX, minY: mnY, maxX: mxX, maxY: mxY };
+    }
 
     case EntityType.COLUMN:
       return {

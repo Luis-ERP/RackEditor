@@ -1,16 +1,28 @@
 'use client';
 
+import { useState, useEffect, useCallback } from 'react';
+
 /**
  * EditorPanel – left sidebar with two sections:
  *   1. Object Picker  – top, scrollable list of objects the user can place
  *   2. Object Editor  – bottom, properties/settings for the selected object
- *
- * Neither section has content yet; they're empty placeholders
- * ready to receive child components.
  */
 export const PANEL_WIDTH = 320; // px – fixed width
 
-export default function EditorPanel({ drawingMode, onToggleDrawingMode, darkMode = false, children }) {
+export default function EditorPanel({
+  drawingMode,
+  onToggleDrawingMode,
+  darkMode = false,
+  layoutStore,
+  layoutVersion,
+  rackOrientation = 'horizontal',
+  onToggleOrientation,
+  wallMode = null,
+  onSetWallMode,
+  wallStore = null,
+  wallStoreVersion,
+  children,
+}) {
   const dk = darkMode;
   return (
     <aside style={{
@@ -52,6 +64,114 @@ export default function EditorPanel({ drawingMode, onToggleDrawingMode, darkMode
             <span style={{ flex: 1 }}>Rack</span>
             {drawingMode && <span style={badgeStyle}>ACTIVE</span>}
           </button>
+
+          {/* ── Orientation toggle ── */}
+          <div style={{ marginTop: 8 }}>
+            <div style={{
+              fontSize: 10,
+              fontWeight: 600,
+              textTransform: 'uppercase',
+              letterSpacing: '0.06em',
+              color: dk ? '#6b7280' : '#9ca3af',
+              marginBottom: 5,
+              userSelect: 'none',
+            }}>
+              Orientation
+            </div>
+            <div style={{
+              display: 'flex',
+              border: `1px solid ${dk ? '#4b5563' : '#e5e7eb'}`,
+              borderRadius: 7,
+              overflow: 'hidden',
+            }}>
+              {['horizontal', 'vertical'].map((opt) => {
+                const active = rackOrientation === opt;
+                return (
+                  <button
+                    key={opt}
+                    onClick={() => { if (!active) onToggleOrientation(); }}
+                    title={opt === 'horizontal' ? 'Bays extend left–right' : 'Bays extend top–bottom'}
+                    style={{
+                      flex: 1,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: 5,
+                      padding: '5px 6px',
+                      border: 'none',
+                      borderRight: opt === 'horizontal' ? `1px solid ${dk ? '#4b5563' : '#e5e7eb'}` : 'none',
+                      background: active
+                        ? (dk ? '#1e3a5f' : '#eff6ff')
+                        : (dk ? '#2d2f34' : '#ffffff'),
+                      color: active
+                        ? (dk ? '#93c5fd' : '#1d4ed8')
+                        : (dk ? '#9ca3af' : '#6b7280'),
+                      cursor: active ? 'default' : 'pointer',
+                      fontSize: 11,
+                      fontWeight: active ? 600 : 400,
+                      transition: 'all 0.12s',
+                      userSelect: 'none',
+                    }}
+                  >
+                    {opt === 'horizontal'
+                      ? <HorizontalRackIcon size={16} />
+                      : <VerticalRackIcon size={16} />
+                    }
+                    {opt === 'horizontal' ? 'H' : 'V'}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* ── Wall tools ── */}
+          <div style={{ marginTop: 14 }}>
+            <div style={{
+              fontSize: 10,
+              fontWeight: 600,
+              textTransform: 'uppercase',
+              letterSpacing: '0.06em',
+              color: dk ? '#6b7280' : '#9ca3af',
+              marginBottom: 5,
+              userSelect: 'none',
+            }}>
+              Walls
+            </div>
+            <div style={{ display: 'flex', gap: 6 }}>
+              {['rect', 'line'].map((mode) => {
+                const active = wallMode === mode;
+                const label = mode === 'rect' ? 'Rectangle' : 'Line';
+                return (
+                  <button
+                    key={mode}
+                    onClick={() => onSetWallMode?.(mode)}
+                    style={{
+                      ...wallBtnStyle,
+                      background: active
+                        ? (dk ? '#1e3a5f' : '#eff6ff')
+                        : (dk ? '#2d2f34' : '#ffffff'),
+                      borderColor: active
+                        ? '#3b82f6'
+                        : (dk ? '#4b5563' : '#e5e7eb'),
+                      color: active
+                        ? (dk ? '#93c5fd' : '#1d4ed8')
+                        : (dk ? '#d1d5db' : '#374151'),
+                      ...(active ? { boxShadow: '0 0 0 2px rgba(59,130,246,0.2)' } : {}),
+                    }}
+                    title={`Draw walls in ${label.toLowerCase()} mode`}
+                  >
+                    {mode === 'rect'
+                      ? <WallRectIcon size={16} />
+                      : <WallLineIcon size={16} />
+                    }
+                    <span style={{ flex: 1, textAlign: 'left' }}>{label}</span>
+                    {active && <span style={badgeStyle}>ACTIVE</span>}
+                  </button>
+                );
+              })}
+            </div>
+
+          </div>
         </div>
       </div>
 
@@ -66,13 +186,211 @@ export default function EditorPanel({ drawingMode, onToggleDrawingMode, darkMode
           borderBottomColor: dk ? '#2d2f34' : '#f3f4f6',
         }}>Editor</div>
         <div style={sectionBodyStyle}>
-          {/* object editor content will go here */}
+          <TransformPanel
+            layoutStore={layoutStore}
+            layoutVersion={layoutVersion}
+            darkMode={dk}
+          />
+          {wallMode && (
+            <WallThicknessControl
+              wallStore={wallStore}
+              wallStoreVersion={wallStoreVersion}
+              darkMode={dk}
+            />
+          )}
         </div>
       </div>
 
       {children}
     </aside>
   );
+}
+
+// ── TransformPanel ──────────────────────────────────────────────
+function TransformPanel({ layoutStore, layoutVersion, darkMode }) {
+  const dk = darkMode;
+
+  const selCount   = layoutStore ? layoutStore.selectionCount() : 0;
+  const selected   = layoutStore ? layoutStore.getSelectedEntities() : [];
+  const singleEnt  = selCount === 1 ? selected[0] : null;
+  const multiSel   = selCount > 1;
+  const noSel      = selCount === 0;
+
+  // Local edit state for the inputs (string while typing)
+  const [xVal, setXVal] = useState('');
+  const [yVal, setYVal] = useState('');
+
+  // Sync input values when selection or entity transform changes
+  useEffect(() => {
+    if (singleEnt) {
+      setXVal(fmt(singleEnt.transform.x));
+      setYVal(fmt(singleEnt.transform.y));
+    } else {
+      setXVal('');
+      setYVal('');
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [singleEnt?.id, singleEnt?.transform.x, singleEnt?.transform.y, layoutVersion]);
+
+  const commitX = useCallback(() => {
+    if (!singleEnt || !layoutStore) return;
+    const num = parseFloat(xVal);
+    if (!isNaN(num)) {
+      layoutStore.moveTo(singleEnt.id, num, singleEnt.transform.y);
+    } else {
+      setXVal(fmt(singleEnt.transform.x));
+    }
+  }, [singleEnt, layoutStore, xVal]);
+
+  const commitY = useCallback(() => {
+    if (!singleEnt || !layoutStore) return;
+    const num = parseFloat(yVal);
+    if (!isNaN(num)) {
+      layoutStore.moveTo(singleEnt.id, singleEnt.transform.x, num);
+    } else {
+      setYVal(fmt(singleEnt.transform.y));
+    }
+  }, [singleEnt, layoutStore, yVal]);
+
+  const onXKeyDown = (e) => { if (e.key === 'Enter') { commitX(); e.target.blur(); } };
+  const onYKeyDown = (e) => { if (e.key === 'Enter') { commitY(); e.target.blur(); } };
+
+  const textMuted = dk ? '#6b7280' : '#9ca3af';
+  const textMain  = dk ? '#e5e7eb' : '#111827';
+  const border    = dk ? '#374151' : '#e5e7eb';
+  const inputBg   = dk ? '#2d2f34' : '#f9fafb';
+  const disabledBg = dk ? '#1e1f22' : '#f3f4f6';
+  const disabledTx = dk ? '#4b5563' : '#9ca3af';
+
+  if (noSel) {
+    return (
+      <div style={{ color: textMuted, fontSize: 12, padding: '4px 0' }}>
+        No selection
+      </div>
+    );
+  }
+
+  const disabled = multiSel;
+
+  return (
+    <div>
+      {/* Section label */}
+      <div style={{
+        fontSize: 11,
+        fontWeight: 600,
+        textTransform: 'uppercase',
+        letterSpacing: '0.05em',
+        color: textMuted,
+        marginBottom: 8,
+      }}>
+        Transform
+      </div>
+
+      {/* X / Y row */}
+      <div style={{ display: 'flex', gap: 8 }}>
+        <CoordInput
+          label="X"
+          value={disabled ? '—' : xVal}
+          disabled={disabled}
+          onChange={setXVal}
+          onBlur={commitX}
+          onKeyDown={onXKeyDown}
+          inputBg={disabled ? disabledBg : inputBg}
+          inputColor={disabled ? disabledTx : textMain}
+          border={border}
+          labelColor={textMuted}
+        />
+        <CoordInput
+          label="Y"
+          value={disabled ? '—' : yVal}
+          disabled={disabled}
+          onChange={setYVal}
+          onBlur={commitY}
+          onKeyDown={onYKeyDown}
+          inputBg={disabled ? disabledBg : inputBg}
+          inputColor={disabled ? disabledTx : textMain}
+          border={border}
+          labelColor={textMuted}
+        />
+      </div>
+
+      {disabled && (
+        <div style={{ fontSize: 11, color: textMuted, marginTop: 8 }}>
+          Multiple objects selected — transform editing disabled
+        </div>
+      )}
+    </div>
+  );
+}
+
+function CoordInput({
+  label,
+  value,
+  disabled,
+  onChange,
+  onBlur,
+  onKeyDown,
+  inputBg,
+  inputColor,
+  border,
+  labelColor,
+}) {
+  return (
+    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 3 }}>
+      <label style={{
+        fontSize: 10,
+        fontWeight: 600,
+        textTransform: 'uppercase',
+        letterSpacing: '0.06em',
+        color: labelColor,
+        userSelect: 'none',
+      }}>
+        {label}
+      </label>
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        border: `1px solid ${border}`,
+        borderRadius: 6,
+        overflow: 'hidden',
+        background: inputBg,
+      }}>
+        <input
+          type="text"
+          value={value}
+          disabled={disabled}
+          onChange={(e) => onChange(e.target.value)}
+          onBlur={onBlur}
+          onKeyDown={onKeyDown}
+          style={{
+            flex: 1,
+            border: 'none',
+            outline: 'none',
+            background: 'transparent',
+            color: inputColor,
+            fontSize: 12,
+            fontFamily: 'monospace',
+            fontWeight: 500,
+            padding: '5px 8px',
+            width: 0,
+            cursor: disabled ? 'default' : 'text',
+          }}
+        />
+        <span style={{
+          fontSize: 10,
+          color: labelColor,
+          paddingRight: 6,
+          userSelect: 'none',
+          flexShrink: 0,
+        }}>m</span>
+      </div>
+    </div>
+  );
+}
+
+/** Format a world-space value (meters) for display */
+function fmt(v) {
+  return Number(v.toFixed(4)).toString();
 }
 
 // ── styles ─────────────────────────────────────────────────────
@@ -142,12 +460,43 @@ const rackBtnStyle = {
   userSelect: 'none',
 };
 
-const rackBtnActiveStyle = {
-  background: '#eff6ff',
-  borderColor: '#3b82f6',
-  color: '#1d4ed8',
-  boxShadow: '0 0 0 2px rgba(59,130,246,0.2)',
+const wallBtnStyle = {
+  display: 'flex',
+  alignItems: 'center',
+  gap: 6,
+  flex: 1,
+  padding: '7px 8px',
+  border: '1px solid #e5e7eb',
+  borderRadius: 8,
+  background: '#ffffff',
+  fontSize: 12,
+  fontWeight: 500,
+  color: '#374151',
+  cursor: 'pointer',
+  transition: 'all 0.15s',
+  userSelect: 'none',
 };
+
+// ── Orientation icons ──────────────────────────────────────────
+function HorizontalRackIcon({ size = 16 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 16 16" fill="none">
+      <rect x="1" y="4" width="14" height="8" rx="1.5" stroke="currentColor" strokeWidth="1.2" />
+      <line x1="1" y1="7" x2="15" y2="7" stroke="currentColor" strokeWidth="1" />
+      <line x1="1" y1="10" x2="15" y2="10" stroke="currentColor" strokeWidth="1" />
+    </svg>
+  );
+}
+
+function VerticalRackIcon({ size = 16 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 16 16" fill="none">
+      <rect x="4" y="1" width="8" height="14" rx="1.5" stroke="currentColor" strokeWidth="1.2" />
+      <line x1="7" y1="1" x2="7" y2="15" stroke="currentColor" strokeWidth="1" />
+      <line x1="10" y1="1" x2="10" y2="15" stroke="currentColor" strokeWidth="1" />
+    </svg>
+  );
+}
 
 const badgeStyle = {
   fontSize: 9,
@@ -158,3 +507,102 @@ const badgeStyle = {
   borderRadius: 4,
   padding: '1px 5px',
 };
+
+// ── Wall icons ─────────────────────────────────────────────────
+function WallRectIcon({ size = 16 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 16 16" fill="none">
+      <rect x="2" y="2" width="12" height="12" rx="1" stroke="currentColor" strokeWidth="2" />
+    </svg>
+  );
+}
+
+function WallLineIcon({ size = 16 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 16 16" fill="none">
+      <line x1="2" y1="14" x2="14" y2="2" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+// ── WallThicknessControl ───────────────────────────────────────
+function WallThicknessControl({ wallStore, wallStoreVersion, darkMode }) {
+  const dk = darkMode;
+  const current = wallStore ? wallStore.getDefaultThickness() : 0.2;
+  const [localVal, setLocalVal] = useState(String(current));
+
+  useEffect(() => {
+    if (wallStore) setLocalVal(String(wallStore.getDefaultThickness()));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [wallStoreVersion, wallStore]);
+
+  const commit = useCallback(() => {
+    if (!wallStore) return;
+    const num = parseFloat(localVal);
+    if (!isNaN(num) && num > 0 && num <= 5) {
+      wallStore.setDefaultThickness(num);
+    } else {
+      setLocalVal(String(wallStore.getDefaultThickness()));
+    }
+  }, [wallStore, localVal]);
+
+  const textMuted = dk ? '#6b7280' : '#9ca3af';
+  const inputBg   = dk ? '#2d2f34' : '#f9fafb';
+  const inputColor = dk ? '#e5e7eb' : '#111827';
+  const border    = dk ? '#374151' : '#e5e7eb';
+
+  return (
+    <div style={{ marginTop: 8 }}>
+      <div style={{
+        fontSize: 10,
+        fontWeight: 600,
+        textTransform: 'uppercase',
+        letterSpacing: '0.06em',
+        color: textMuted,
+        marginBottom: 4,
+        userSelect: 'none',
+      }}>
+        Thickness
+      </div>
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        border: `1px solid ${border}`,
+        borderRadius: 6,
+        overflow: 'hidden',
+        background: inputBg,
+        maxWidth: 140,
+      }}>
+        <input
+          type="number"
+          step="0.05"
+          min="0.05"
+          max="5"
+          value={localVal}
+          onChange={(e) => setLocalVal(e.target.value)}
+          onBlur={commit}
+          onKeyDown={(e) => { if (e.key === 'Enter') { commit(); e.target.blur(); } }}
+          style={{
+            flex: 1,
+            border: 'none',
+            outline: 'none',
+            background: 'transparent',
+            color: inputColor,
+            fontSize: 12,
+            fontFamily: 'monospace',
+            fontWeight: 500,
+            padding: '5px 8px',
+            width: 0,
+          }}
+        />
+        <span style={{
+          fontSize: 10,
+          color: textMuted,
+          paddingRight: 8,
+          userSelect: 'none',
+          flexShrink: 0,
+        }}>m</span>
+      </div>
+    </div>
+  );
+}

@@ -1,7 +1,7 @@
 'use client';
 
 import { useRef, useEffect, useCallback, useState } from 'react';
-import { ZoomIn, ZoomOut, Maximize, XCircle, Trash2, Moon, Sun } from 'lucide-react';
+import { ZoomIn, ZoomOut, Maximize, XCircle, Trash2, Moon, Sun, ArrowUp, ArrowDown, ArrowLeft, ArrowRight } from 'lucide-react';
 
 import {
   MIN_ZOOM,
@@ -17,9 +17,12 @@ import { drawTopRuler, drawLeftRuler, drawCornerPatch }  from '../services/ruler
 
 import {
   createRackModuleEntity,
+  createWallEntity,
   bresenhamLine,
   paintAllEntities,
   paintSelectionRect as paintSelRect,
+  paintWallPreview,
+  snapPointToGrid,
 } from '../services/layout';
 
 import { buildRackModule } from '../services/rack';
@@ -38,8 +41,11 @@ export default function CADCanvas({
   drawingMode = false,
   darkMode = false,
   onToggleDarkMode,
-  layoutStore,        // LayoutStore instance (from useLayoutStore)
-  layoutVersion,      // numeric tick — triggers re-render on store changes
+  layoutStore,          // LayoutStore instance (from useLayoutStore)
+  layoutVersion,        // numeric tick — triggers re-render on store changes
+  rackOrientation = 'horizontal',
+  wallMode = null,      // null | 'line' | 'rect'
+  wallStore = null,     // WallStore instance (from useWallStore)
 }) {
   const wrapperRef = useRef(null);
   const canvasRef  = useRef(null);
@@ -54,8 +60,14 @@ export default function CADCanvas({
   const [cursorCoord, setCursorCoord] = useState({ x: '0 m', y: '0 m' });
 
   // ── drawing-mode refs (perf / no stale closures) ──────────────
-  const drawingModeRef = useRef(drawingMode);
+  const drawingModeRef    = useRef(drawingMode);
+  const rackOrientationRef = useRef(rackOrientation);
   const dragRef        = useRef({ active: false, lastCell: null });
+
+  // ── wall mode refs ────────────────────────────────────────────
+  const wallModeRef     = useRef(wallMode);
+  const wallStoreRef    = useRef(wallStore);
+  const wallPreviewRef  = useRef(null);
 
   // ── selection-drag refs ───────────────────────────────────────
   const selDragRef = useRef(null);    // { sx, sy, ex, ey } screen coords
@@ -87,6 +99,10 @@ export default function CADCanvas({
         entities.length,
         entities.length === 1 ? 'y' : 'ies',
         entities.map((ent) => {
+          // wall entities don't have a rack domain object
+          if (ent.type === 'WALL') {
+            return { id: ent.id, type: ent.type, lengthM: +ent.lengthM.toFixed(3), thicknessM: ent.thicknessM };
+          }
           const domain = rackDomainRef.current.get(ent.domainId);
           if (!domain) return { id: ent.id, type: ent.type, domainId: ent.domainId ?? null };
           const frame = domain.frameSpec;
@@ -118,6 +134,9 @@ export default function CADCanvas({
       );
       paintAllEntities(ctx, layoutStore, cam, dk);
     }
+
+    // wall-drawing preview (ghost shape during drag)
+    paintWallPreview(ctx, wallPreviewRef.current, cam, dk);
 
     // selection rectangle overlay
     paintSelRect(ctx, selRectRef.current, dk);
@@ -228,6 +247,26 @@ export default function CADCanvas({
     scheduleRedraw();
   }, [darkMode, scheduleRedraw]);
 
+  // ── sync rackOrientation ref ──────────────────────────────────
+  useEffect(() => { rackOrientationRef.current = rackOrientation; }, [rackOrientation]);
+
+  // ── sync wallMode / wallStore refs ────────────────────────────
+  useEffect(() => { wallStoreRef.current = wallStore; }, [wallStore]);
+  useEffect(() => {
+    wallModeRef.current = wallMode;
+    if (!wallMode) {
+      wallPreviewRef.current = null;
+      scheduleRedraw();
+    }
+    // entering wall mode clears selection
+    if (wallMode && layoutStore) {
+      layoutStore.deselectAll();
+      selDragRef.current = null;
+      selRectRef.current = null;
+      scheduleRedraw();
+    }
+  }, [wallMode, scheduleRedraw, layoutStore]);
+
   // ── sync drawingMode ref & cancel drag when mode turns off ─
   useEffect(() => {
     drawingModeRef.current = drawingMode;
@@ -271,14 +310,23 @@ export default function CADCanvas({
     if (!canvas || !layoutStore) return;
 
     // Snap world coords to bay-dimension grid cells.
-    // Adjacent bays share one frame, so their origins are BAY_STEP_M apart
-    // (= bay width − one frame width = 96" − 3" = 93").  The entity widthM
-    // stays at DEFAULT_BAY_WIDTH_M (96") so the shared upright of bay N+1
-    // overlaps exactly with the right-frame position of bay N.
+    // Horizontal: bays extend along X, step = BAY_STEP_M on X, FRAME_DEPTH on Y.
+    // Vertical:   bays extend along Y, step = BAY_STEP_M on Y, FRAME_DEPTH on X.
     const BAY_W = DEFAULT_BAY_WIDTH_M;
     const BAY_D = DEFAULT_FRAME_DEPTH_M;
-    const toBayCell    = (wx, wy) => ({ x: Math.floor(wx / BAY_STEP_M), y: Math.floor(wy / BAY_D) });
-    const bayCellWorld = (cx, cy) => ({ x: cx * BAY_STEP_M, y: cy * BAY_D });
+
+    const toBayCell = (wx, wy) => {
+      const vert = rackOrientationRef.current === 'vertical';
+      return vert
+        ? { x: Math.floor(wx / BAY_D), y: Math.floor(wy / BAY_STEP_M) }
+        : { x: Math.floor(wx / BAY_STEP_M), y: Math.floor(wy / BAY_D) };
+    };
+    const bayCellWorld = (cx, cy) => {
+      const vert = rackOrientationRef.current === 'vertical';
+      return vert
+        ? { x: cx * BAY_D, y: cy * BAY_STEP_M }
+        : { x: cx * BAY_STEP_M, y: cy * BAY_D };
+    };
 
     // Track placed cells per drag session to avoid duplicate adds
     const placedCells = new Set();
@@ -288,8 +336,11 @@ export default function CADCanvas({
       const key = cellKey(cx, cy);
       if (placedCells.has(key)) return false;
       const w = bayCellWorld(cx, cy);
+      const vert = rackOrientationRef.current === 'vertical';
+      const entW = vert ? BAY_D : BAY_W;
+      const entD = vert ? BAY_W : BAY_D;
       // Check if the bay footprint centre is already occupied
-      if (layoutStore.hitTest(w.x + BAY_W / 2, w.y + BAY_D / 2)) return false;
+      if (layoutStore.hitTest(w.x + entW / 2, w.y + entD / 2)) return false;
       placedCells.add(key);
 
       // Create domain RackModule (1 bay, default industry-standard specs)
@@ -303,12 +354,13 @@ export default function CADCanvas({
 
       // Create layout entity linked to the domain object
       layoutStore.add(createRackModuleEntity({
-        x:       w.x,
-        y:       w.y,
+        x:        w.x,
+        y:        w.y,
+        rotation: vert ? 90 : 0,
         domainId: rackModule.id,
-        widthM:  BAY_W,
-        depthM:  BAY_D,
-        label:   '96" × 42"',
+        widthM:   entW,
+        depthM:   entD,
+        label:    vert ? '42" × 96"' : '96" × 42"',
       }));
       return true;
     };
@@ -351,6 +403,95 @@ export default function CADCanvas({
     };
   }, [layoutStore, worldAt]);
 
+  // ── wall drawing interactions (mousedown / move / up) ────────
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas || !layoutStore) return;
+
+    let wallDragStart = null; // { x, y } snapped world coords
+
+    const onDown = (e) => {
+      if (!wallModeRef.current || e.button !== 0) return;
+      const world = worldAt(e);
+      if (!world) return;
+      e.preventDefault();
+      const snapped = snapPointToGrid(world.x, world.y);
+      wallDragStart = snapped;
+      wallPreviewRef.current = {
+        mode:       wallModeRef.current,
+        startX:     snapped.x,
+        startY:     snapped.y,
+        endX:       snapped.x,
+        endY:       snapped.y,
+        thicknessM: wallStoreRef.current?.getDefaultThickness() ?? 0.2,
+      };
+      scheduleRedraw();
+    };
+
+    const onMove = (e) => {
+      if (!wallDragStart) return;
+      const world = worldAt(e);
+      if (!world) return;
+      const snapped = snapPointToGrid(world.x, world.y);
+      wallPreviewRef.current = {
+        ...wallPreviewRef.current,
+        endX: snapped.x,
+        endY: snapped.y,
+      };
+      scheduleRedraw();
+    };
+
+    const onUp = () => {
+      if (!wallDragStart || !wallPreviewRef.current) return;
+
+      const { startX, startY, endX, endY, thicknessM, mode } = wallPreviewRef.current;
+      wallDragStart = null;
+      wallPreviewRef.current = null;
+
+      if (mode === 'line') {
+        const dx  = endX - startX;
+        const dy  = endY - startY;
+        const len = Math.sqrt(dx * dx + dy * dy);
+        if (len < 0.1) { scheduleRedraw(); return; }
+        const rotation = (Math.atan2(dy, dx) * 180) / Math.PI;
+        layoutStore.add(createWallEntity({
+          x: startX,
+          y: startY,
+          rotation,
+          lengthM:    len,
+          thicknessM,
+        }));
+      } else if (mode === 'rect') {
+        const minX = Math.min(startX, endX);
+        const minY = Math.min(startY, endY);
+        const maxX = Math.max(startX, endX);
+        const maxY = Math.max(startY, endY);
+        const w = maxX - minX;
+        const h = maxY - minY;
+        if (w < 0.1 && h < 0.1) { scheduleRedraw(); return; }
+        // Create up to 4 walls forming a rectangle
+        if (w >= 0.1) {
+          layoutStore.add(createWallEntity({ x: minX, y: minY, rotation: 0, lengthM: w, thicknessM }));
+          layoutStore.add(createWallEntity({ x: minX, y: maxY, rotation: 0, lengthM: w, thicknessM }));
+        }
+        if (h >= 0.1) {
+          layoutStore.add(createWallEntity({ x: minX, y: minY, rotation: 90, lengthM: h, thicknessM }));
+          layoutStore.add(createWallEntity({ x: maxX, y: minY, rotation: 90, lengthM: h, thicknessM }));
+        }
+      }
+      scheduleRedraw();
+    };
+
+    canvas.addEventListener('mousedown',  onDown);
+    window.addEventListener('mousemove',  onMove);
+    window.addEventListener('mouseup',    onUp);
+    return () => {
+      canvas.removeEventListener('mousedown', onDown);
+      window.removeEventListener('mousemove', onMove);
+      window.removeEventListener('mouseup',   onUp);
+    };
+  }, [layoutStore, worldAt, scheduleRedraw]);
+
   // ── select mode: click-to-select, rectangle-select, move ──────
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -359,7 +500,7 @@ export default function CADCanvas({
     let didMove = false;
 
     const onDown = (e) => {
-      if (drawingModeRef.current || e.button !== 0) return;
+      if (drawingModeRef.current || wallModeRef.current || e.button !== 0) return;
       const rect = canvas.getBoundingClientRect();
       const sx = e.clientX - rect.left;
       const sy = e.clientY - rect.top;
@@ -482,6 +623,22 @@ export default function CADCanvas({
     if (layoutStore) layoutStore.removeSelected();
   }, [layoutStore]);
 
+  const handleMoveUp = useCallback(() => {
+    if (layoutStore) { layoutStore.moveSelectedBy(0, -DEFAULT_FRAME_DEPTH_M); scheduleRedraw(); }
+  }, [layoutStore, scheduleRedraw]);
+
+  const handleMoveDown = useCallback(() => {
+    if (layoutStore) { layoutStore.moveSelectedBy(0, DEFAULT_FRAME_DEPTH_M); scheduleRedraw(); }
+  }, [layoutStore, scheduleRedraw]);
+
+  const handleMoveLeft = useCallback(() => {
+    if (layoutStore) { layoutStore.moveSelectedBy(-BAY_STEP_M, 0); scheduleRedraw(); }
+  }, [layoutStore, scheduleRedraw]);
+
+  const handleMoveRight = useCallback(() => {
+    if (layoutStore) { layoutStore.moveSelectedBy(BAY_STEP_M, 0); scheduleRedraw(); }
+  }, [layoutStore, scheduleRedraw]);
+
   const hasSelection = layoutStore ? layoutStore.selectionCount() > 0 : false;
   // ── dark-mode-aware style helpers ─────────────────────────
   const dk = darkMode;
@@ -501,7 +658,7 @@ export default function CADCanvas({
         ref={canvasRef}
         style={{
           display: 'block',
-          cursor: drawingMode ? 'cell' : 'crosshair',
+          cursor: (drawingMode || wallMode) ? 'cell' : 'crosshair',
           touchAction: 'none',
         }}
       />
@@ -517,6 +674,35 @@ export default function CADCanvas({
         </button>
         {hasSelection && (
           <>
+            <div style={{ ...actionDividerStyle, background: overlayBorder }} />
+            <button
+              onClick={handleMoveUp}
+              style={{ ...actionBtnStyle, color: overlayText }}
+              title="Move up one grid unit"
+            >
+              <ArrowUp size={16} />
+            </button>
+            <button
+              onClick={handleMoveDown}
+              style={{ ...actionBtnStyle, color: overlayText }}
+              title="Move down one grid unit"
+            >
+              <ArrowDown size={16} />
+            </button>
+            <button
+              onClick={handleMoveLeft}
+              style={{ ...actionBtnStyle, color: overlayText }}
+              title="Move left one grid unit"
+            >
+              <ArrowLeft size={16} />
+            </button>
+            <button
+              onClick={handleMoveRight}
+              style={{ ...actionBtnStyle, color: overlayText }}
+              title="Move right one grid unit"
+            >
+              <ArrowRight size={16} />
+            </button>
             <div style={{ ...actionDividerStyle, background: overlayBorder }} />
             <button
               onClick={handleDeleteSelected}
@@ -538,6 +724,17 @@ export default function CADCanvas({
           color: overlayBanner.color,
         }}>
           Drawing: Rack — click &amp; drag to place · Esc to cancel
+        </div>
+      )}
+      {wallMode && (
+        <div style={{
+          ...drawBannerStyle,
+          background: overlayBanner.bg,
+          borderColor: overlayBanner.border,
+          color: overlayBanner.color,
+        }}>
+          Drawing: Wall ({wallMode === 'rect' ? 'Rectangle' : 'Line'})
+          {' '}— click &amp; drag to draw · Esc to cancel
         </div>
       )}
 

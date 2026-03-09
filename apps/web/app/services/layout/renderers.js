@@ -64,16 +64,16 @@ const RACK_TYPES = new Set([EntityType.RACK_MODULE, EntityType.RACK_LINE]);
 const ADJ_EPS = 0.001; // 1 mm tolerance for floating-point position comparison
 
 /**
- * For each rack entity, determine whether it has a directly adjacent rack
- * to its right (same Y, touching right edge).  Returns a Map<id, flags>.
+ * For each rack entity, determine adjacency flags for shared-frame rendering.
+ * Horizontal: check for adjacent rack to the right (skipRightFrame).
+ * Vertical:   check for adjacent rack below (skipBottomFrame).
  *
  * @param {Object[]} entities
- * @returns {Map<string, { skipRightFrame: boolean }>}
+ * @returns {Map<string, { skipRightFrame: boolean, skipBottomFrame: boolean }>}
  */
 function buildRackAdjacencyFlags(entities) {
   const racks = entities.filter((e) => RACK_TYPES.has(e.type) && e.visible);
 
-  // Index racks by their top-left position (rounded to 1 mm) for O(1) lookup
   const byPos = new Map();
   for (const rack of racks) {
     const key = `${Math.round(rack.transform.x / ADJ_EPS)},${Math.round(rack.transform.y / ADJ_EPS)}`;
@@ -82,70 +82,125 @@ function buildRackAdjacencyFlags(entities) {
 
   const flags = new Map();
   for (const rack of racks) {
-    // Adjacent bay starts at x + widthM - frameWidth (one frame width closer than a non-adjacent bay).
-    // FRAME_COL_FRAC = 3/96, so frameWidth = widthM * FRAME_COL_FRAC.
-    const frameW = rack.widthM * FRAME_COL_FRAC;
-    const rightX = rack.transform.x + rack.widthM - frameW;
-    const y      = rack.transform.y;
-    const key    = `${Math.round(rightX / ADJ_EPS)},${Math.round(y / ADJ_EPS)}`;
-    flags.set(rack.id, { skipRightFrame: byPos.has(key) });
+    if (rack.transform.rotation === 90) {
+      // Vertical: adjacent bay below shares the bottom upright.
+      // depthM is the Y extent; frame strip = depthM * FRAME_COL_FRAC.
+      const frameH  = rack.depthM * FRAME_COL_FRAC;
+      const bottomY = rack.transform.y + rack.depthM - frameH;
+      const key     = `${Math.round(rack.transform.x / ADJ_EPS)},${Math.round(bottomY / ADJ_EPS)}`;
+      flags.set(rack.id, { skipRightFrame: false, skipBottomFrame: byPos.has(key) });
+    } else {
+      // Horizontal: adjacent bay to the right shares the right upright.
+      const frameW = rack.widthM * FRAME_COL_FRAC;
+      const rightX = rack.transform.x + rack.widthM - frameW;
+      const key    = `${Math.round(rightX / ADJ_EPS)},${Math.round(rack.transform.y / ADJ_EPS)}`;
+      flags.set(rack.id, { skipRightFrame: byPos.has(key), skipBottomFrame: false });
+    }
   }
   return flags;
 }
 
 // ── Rack Module / Rack Line ─────────────────────────────────────────────────
 
-function paintRackBox(ctx, entity, cam, selected, dk, { skipRightFrame = false } = {}) {
+function paintRackBox(ctx, entity, cam, selected, dk, { skipRightFrame = false, skipBottomFrame = false } = {}) {
   const p = pal(dk).rack;
   const { x, y } = entity.transform;
   const sx = cam.x + x * cam.zoom;
   const sy = cam.y + y * cam.zoom;
-  const sw = entity.widthM * cam.zoom;
-  const sh = entity.depthM * cam.zoom;
+  const sw = entity.widthM * cam.zoom;   // visual width  in screen px
+  const sh = entity.depthM * cam.zoom;   // visual height in screen px
   if (sw < 0.5 || sh < 0.5) return;
 
-  // Frame column width and beam strip height (screen pixels, minimum 2 px for visibility)
-  const fcw = Math.max(2, sw * FRAME_COL_FRAC);
-  const bsh = Math.max(2, sh * BEAM_H_FRAC);
+  const isVertical = entity.transform.rotation === 90;
 
   ctx.save();
 
-  // ── Beams (top & bottom orange strips) ───────────────────────
-  ctx.fillStyle = selected ? p.selBeamColor : p.beamColor;
-  ctx.fillRect(sx + fcw, sy,            sw - 2 * fcw, bsh);   // top beam
-  ctx.fillRect(sx + fcw, sy + sh - bsh, sw - 2 * fcw, bsh);   // bottom beam
-
-  // ── Frame uprights (left & right blue columns) ────────────────
-  ctx.fillStyle = selected ? p.selFrameColor : p.frameColor;
-  ctx.fillRect(sx, sy, fcw, sh);   // left frame — always drawn
-  if (!skipRightFrame) {
-    ctx.fillRect(sx + sw - fcw, sy, fcw, sh);   // right frame
+  // For vertical racks, rotate the canvas 90° CW around the visual top-right corner
+  // (sx+sw, sy).  Under this transform a local point (lx, ly) maps to screen:
+  //   screen_x = sx+sw − ly,  screen_y = sy + lx
+  // So local (0, 0)  → visual top-left  (sx, sy)    after offset ✓  [actually →(sx+sw,sy)]
+  //    local (sh,  0) → visual bottom-right           ✓
+  //    local (0,  sw) → visual top-left    (sx, sy)   ✓
+  // We then draw a "horizontal" rack with draw width = sh and draw height = sw,
+  // which makes the local left/right uprights appear as visual top/bottom uprights,
+  // and the local top/bottom beams appear as visual right/left beams.
+  let lw = sw, lh = sh, skipRight = skipRightFrame;
+  if (isVertical) {
+    // Rotate 90° CW around (sx+sw, sy): local(lx,ly) → screen(sx+sw−ly, sy+lx)
+    ctx.translate(sx + sw, sy);
+    ctx.rotate(Math.PI / 2);
+    lw = sh;             // draw width  = visual height (96" in screen)
+    lh = sw;             // draw height = visual width  (42" in screen)
+    skipRight = skipBottomFrame;  // local "right frame" = visual "bottom frame"
+  } else {
+    ctx.translate(sx, sy);
   }
 
-  // Frame upright borders
+  // ── Single horizontal drawing path ───────────────────────────
+  const fcw = Math.max(2, lw * FRAME_COL_FRAC);   // upright column width
+  const bsh = Math.max(2, lh * BEAM_H_FRAC);       // beam strip height
+
+  // Beams (top & bottom)
+  ctx.fillStyle = selected ? p.selBeamColor : p.beamColor;
+  ctx.fillRect(fcw, 0,        lw - 2 * fcw, bsh);
+  ctx.fillRect(fcw, lh - bsh, lw - 2 * fcw, bsh);
+
+  // Frame uprights (left & right)
+  ctx.fillStyle = selected ? p.selFrameColor : p.frameColor;
+  ctx.fillRect(0, 0, fcw, lh);                     // left — always drawn
+  if (!skipRight) {
+    ctx.fillRect(lw - fcw, 0, fcw, lh);             // right
+  }
+
+  // Upright borders
   ctx.strokeStyle = selected ? p.selBorder : p.frameStroke;
   ctx.lineWidth = 1;
-  ctx.strokeRect(sx, sy, fcw, sh);
-  if (!skipRightFrame) {
-    ctx.strokeRect(sx + sw - fcw, sy, fcw, sh);
+  ctx.strokeRect(0, 0, fcw, lh);
+  if (!skipRight) {
+    ctx.strokeRect(lw - fcw, 0, fcw, lh);
   }
 
-  // ── Label (centre of bay interior) ───────────────────────────
-  const innerW = sw - 2 * fcw;
-  const innerH = sh - 2 * bsh;
+  // Label
+  const innerW = lw - 2 * fcw;
+  const innerH = lh - 2 * bsh;
   if (innerW > 30 && innerH > 12 && entity.label) {
     ctx.globalAlpha = 0.75;
     ctx.fillStyle = selected ? p.selLabel : p.labelColor;
     ctx.font = `${Math.max(8, Math.min(11, innerW * 0.07))}px sans-serif`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.fillText(entity.label, sx + fcw + innerW / 2, sy + bsh + innerH / 2, innerW - 4);
+    ctx.fillText(entity.label, fcw + innerW / 2, bsh + innerH / 2, innerW - 4);
   }
 
   ctx.restore();
 }
 
 // ── Wall ────────────────────────────────────────────────────────────────────
+
+/**
+ * Draw a stipple-dot texture over a rectangular area (screen-space).
+ * Creates the "solid fill with dotted texture" look for walls.
+ */
+function drawDotTexture(ctx, rx, ry, rw, rh, dk) {
+  if (rw < 4 || rh < 4) return;
+  const spacing = 6;
+  const dotR = 0.7;
+  const cols = Math.floor(rw / spacing);
+  const rows = Math.floor(rh / spacing);
+  if (cols * rows > 5000) return; // perf guard
+
+  ctx.fillStyle = dk ? 'rgba(200,200,200,0.25)' : 'rgba(0,0,0,0.15)';
+  for (let c = 1; c <= cols; c++) {
+    for (let r = 1; r <= rows; r++) {
+      ctx.fillRect(
+        rx + c * spacing - dotR,
+        ry + r * spacing - dotR,
+        dotR * 2,
+        dotR * 2,
+      );
+    }
+  }
+}
 
 function paintWall(ctx, entity, cam, selected, dk) {
   const p = pal(dk).wall;
@@ -164,9 +219,14 @@ function paintWall(ctx, entity, cam, selected, dk) {
     ctx.translate(-sx, -sy);
   }
 
+  // Solid fill
   ctx.fillStyle = selected ? p.selFill : p.fill;
   ctx.fillRect(sx, sy - sh / 2, sw, sh);
 
+  // Dotted texture overlay
+  drawDotTexture(ctx, sx, sy - sh / 2, sw, sh, dk);
+
+  // Outline
   ctx.strokeStyle = selected ? p.selStroke : p.stroke;
   ctx.lineWidth = Math.min(2, sh * 0.15) || 1;
   ctx.strokeRect(sx, sy - sh / 2, sw, sh);
@@ -262,6 +322,83 @@ export function paintSelectionRect(ctx, rect, dk = false) {
   ctx.setLineDash([4, 3]);
   ctx.fillRect(x, y, w, h);
   ctx.strokeRect(x, y, w, h);
+  ctx.restore();
+}
+
+// ── Dispatch ────────────────────────────────────────────────────────────────
+
+/**
+ * Paint a wall-drawing preview (semi-transparent ghost shape during drag).
+ *
+ * @param {CanvasRenderingContext2D} ctx
+ * @param {{ mode: 'line'|'rect', startX: number, startY: number, endX: number, endY: number, thicknessM: number }|null} preview
+ * @param {{ x: number, y: number, zoom: number }} cam
+ * @param {boolean} dk  dark mode
+ */
+export function paintWallPreview(ctx, preview, cam, dk) {
+  if (!preview) return;
+  const { mode, startX, startY, endX, endY, thicknessM } = preview;
+  const p = pal(dk).wall;
+
+  ctx.save();
+  ctx.globalAlpha = 0.45;
+  ctx.setLineDash([6, 4]);
+  ctx.lineWidth = 1;
+  ctx.fillStyle = p.fill;
+  ctx.strokeStyle = p.stroke;
+
+  if (mode === 'line') {
+    const dx  = endX - startX;
+    const dy  = endY - startY;
+    const len = Math.sqrt(dx * dx + dy * dy);
+    if (len < 0.01) { ctx.restore(); return; }
+    const angle = Math.atan2(dy, dx);
+    const sx = cam.x + startX * cam.zoom;
+    const sy = cam.y + startY * cam.zoom;
+    const sw = len * cam.zoom;
+    const sh = thicknessM * cam.zoom;
+
+    ctx.translate(sx, sy);
+    ctx.rotate(angle);
+    ctx.fillRect(0, -sh / 2, sw, sh);
+    ctx.strokeRect(0, -sh / 2, sw, sh);
+  } else if (mode === 'rect') {
+    const minX = Math.min(startX, endX);
+    const minY = Math.min(startY, endY);
+    const maxX = Math.max(startX, endX);
+    const maxY = Math.max(startY, endY);
+    const w = maxX - minX;
+    const h = maxY - minY;
+    if (w < 0.01 && h < 0.01) { ctx.restore(); return; }
+
+    const t    = thicknessM * cam.zoom;
+    const sMinX = cam.x + minX * cam.zoom;
+    const sMinY = cam.y + minY * cam.zoom;
+    const sW    = w * cam.zoom;
+    const sH    = h * cam.zoom;
+
+    // Top wall
+    if (w >= 0.01) {
+      ctx.fillRect(sMinX, sMinY - t / 2, sW, t);
+      ctx.strokeRect(sMinX, sMinY - t / 2, sW, t);
+    }
+    // Bottom wall
+    if (w >= 0.01) {
+      ctx.fillRect(sMinX, sMinY + sH - t / 2, sW, t);
+      ctx.strokeRect(sMinX, sMinY + sH - t / 2, sW, t);
+    }
+    // Left wall
+    if (h >= 0.01) {
+      ctx.fillRect(sMinX - t / 2, sMinY, t, sH);
+      ctx.strokeRect(sMinX - t / 2, sMinY, t, sH);
+    }
+    // Right wall
+    if (h >= 0.01) {
+      ctx.fillRect(sMinX + sW - t / 2, sMinY, t, sH);
+      ctx.strokeRect(sMinX + sW - t / 2, sMinY, t, sH);
+    }
+  }
+
   ctx.restore();
 }
 
