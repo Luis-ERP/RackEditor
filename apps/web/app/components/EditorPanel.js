@@ -25,6 +25,7 @@ export default function EditorPanel({
   onToggleColumnMode,
   columnStore = null,
   columnStoreVersion,
+  onExportDXF,
   children,
 }) {
   const dk = darkMode;
@@ -154,6 +155,35 @@ export default function EditorPanel({
               {columnMode && <span style={badgeStyle}>ACTIVE</span>}
             </button>
           </div>
+
+          {/* ── Export ── */}
+          {/* <div style={{ marginTop: 20, paddingTop: 14, borderTop: `1px solid ${dk ? '#2d2f34' : '#f3f4f6'}` }}>
+            <div style={{
+              fontSize: 10,
+              fontWeight: 600,
+              textTransform: 'uppercase',
+              letterSpacing: '0.06em',
+              color: dk ? '#6b7280' : '#9ca3af',
+              marginBottom: 5,
+              userSelect: 'none',
+            }}>
+              Export
+            </div>
+            <button
+              onClick={onExportDXF}
+              style={{
+                ...wallBtnStyle,
+                width: '100%',
+                background: dk ? '#2d2f34' : '#ffffff',
+                borderColor: dk ? '#4b5563' : '#e5e7eb',
+                color: dk ? '#d1d5db' : '#374151',
+              }}
+              title="Export layout as AutoCAD DXF file"
+            >
+              <DXFIcon size={16} />
+              <span style={{ flex: 1, textAlign: 'left' }}>Export DXF</span>
+            </button>
+          </div> */}
         </div>
       </div>
 
@@ -669,6 +699,20 @@ function WallThicknessControl({ wallStore, wallStoreVersion, darkMode }) {
         }}>m</span>
       </div>
     </div>
+  );
+}
+
+// ── DXFIcon ────────────────────────────────────────────────────
+function DXFIcon({ size = 16 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 16 16" fill="none">
+      <rect x="2" y="1" width="9" height="12" rx="1" stroke="currentColor" strokeWidth="1.2" />
+      <path d="M8 1v4h4" stroke="currentColor" strokeWidth="1.2" strokeLinejoin="round" />
+      <line x1="4" y1="7"  x2="9"  y2="7"  stroke="currentColor" strokeWidth="1" />
+      <line x1="4" y1="9"  x2="9"  y2="9"  stroke="currentColor" strokeWidth="1" />
+      <line x1="4" y1="11" x2="7"  y2="11" stroke="currentColor" strokeWidth="1" />
+      <path d="M10 11l2 2-2 2" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
   );
 }
 

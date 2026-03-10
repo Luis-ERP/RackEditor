@@ -6,6 +6,7 @@ import CADCanvas from './components/CADCanvas';
 import useLayoutStore from './hooks/useLayoutStore';
 import useWallStore from './hooks/useWallStore';
 import useColumnStore from './hooks/useColumnStore';
+import { downloadDXF } from './services/export/dxfExporter';
 
 export default function HomePage() {
   const [drawingMode, setDrawingMode] = useState(false);
@@ -30,6 +31,10 @@ export default function HomePage() {
   const toggleDarkMode = useCallback(() => {
     setDarkMode((prev) => !prev);
   }, []);
+
+  const handleExportDXF = useCallback(() => {
+    downloadDXF(store, 'rack-layout.dxf');
+  }, [store]);
 
   /** Toggle wall mode (rect or line). Clicking the active mode deactivates it. */
   const handleSetWallMode = useCallback((mode) => {
@@ -83,6 +88,7 @@ export default function HomePage() {
         onToggleColumnMode={handleToggleColumnMode}
         columnStore={colSt}
         columnStoreVersion={colVer}
+        onExportDXF={handleExportDXF}
       />
       <CADCanvas
         drawingMode={drawingMode}
