@@ -38,18 +38,20 @@ import {
 } from '../services/rack/catalog.js';
 
 // ─────────────────────────────────────────────────────────────────────────────
-export default function CADCanvas({
-  drawingMode = false,
-  darkMode = false,
-  onToggleDarkMode,
-  layoutStore,          // LayoutStore instance (from useLayoutStore)
-  layoutVersion,        // numeric tick — triggers re-render on store changes
-  rackOrientation = 'horizontal',
-  wallMode = null,      // null | 'line' | 'rect'
-  wallStore = null,     // WallStore instance (from useWallStore)
-  columnMode = false,   // true when placing columns
-  columnStore = null,   // ColumnStore instance (from useColumnStore)
-}) {
+export default function CADCanvas(props) {
+  const {
+    drawingMode = false,
+    darkMode = false,
+    onToggleDarkMode,
+    layoutStore,          // LayoutStore instance (from useLayoutStore)
+    layoutVersion,        // numeric tick — triggers re-render on store changes
+    rackOrientation = 'horizontal',
+    wallMode = null,      // null | 'line' | 'rect'
+    wallStore = null,     // WallStore instance (from useWallStore)
+    columnMode = false,   // true when placing columns
+    columnStore = null,   // ColumnStore instance (from useColumnStore)
+    // rackDomainRef is accessed via props below
+  } = props;
   const wrapperRef = useRef(null);
   const canvasRef  = useRef(null);
   const camera     = useRef({ x: 0, y: 0, zoom: 1 });
@@ -83,9 +85,20 @@ export default function CADCanvas({
   // ── move-drag refs ────────────────────────────────────────────
   const moveDragRef = useRef(null);   // { startWX, startWY } world coords
 
+  // ── cell → entity tracking (for adjacent-bay merging) ─────────
+  const cellMapRef = useRef(new Map()); // cellKey → { entityId, domainId }
+
   // ── rack domain registry ──────────────────────────────────────
-  // Maps domainId → RackModule (domain object) for every placed entity
-  const rackDomainRef = useRef(new Map());
+  // Passed from parent; maps domainId → RackModule (domain object)
+  // (if not provided, create a local fallback)
+  const localDomainRef = useRef(new Map());
+  const rackDomainRef = props.rackDomainRef || localDomainRef;
+
+  // ── sub-selection: double-click a multi-bay module to target one bay ──
+  const subSelRef        = useRef(null);   // { entityId, bayIndex, bayCount, vert }
+  const [subSel, setSubSel] = useState(null);
+  const lastClickInfoRef = useRef(null);   // { entityId, time } for double-click detection
+  const onSubSelChangeRef = useRef(props.onSubSelChange);
 
   // ── draw (reads entities from the store) ─────────────────────
   const draw = useCallback(() => {
@@ -100,46 +113,7 @@ export default function CADCanvas({
 
     // paint all layout entities via the central store + renderers
     if (layoutStore) {
-      const entities = layoutStore.getAll();
-      console.log(
-        '[CADCanvas] painting %d entit%s',
-        entities.length,
-        entities.length === 1 ? 'y' : 'ies',
-        entities.map((ent) => {
-          // wall entities don't have a rack domain object
-          if (ent.type === 'WALL') {
-            return { id: ent.id, type: ent.type, lengthM: +ent.lengthM.toFixed(3), thicknessM: ent.thicknessM };
-          }
-          const domain = rackDomainRef.current.get(ent.domainId);
-          if (!domain) return { id: ent.id, type: ent.type, domainId: ent.domainId ?? null };
-          const frame = domain.frameSpec;
-          const beam  = domain.bays[0]?.beamSpec;
-          return {
-            entityId:   ent.id,
-            domainId:   ent.domainId,
-            position:   { x: +ent.transform.x.toFixed(3), y: +ent.transform.y.toFixed(3) },
-            size:       { widthM: +ent.widthM.toFixed(3), depthM: +ent.depthM.toFixed(3) },
-            frame: frame ? {
-              id:       frame.id,
-              gauge:    frame.gauge,
-              heightIn: frame.heightIn,
-              depthIn:  frame.depthIn,
-            } : null,
-            beam: beam ? {
-              id:       beam.id,
-              lengthIn: beam.lengthIn,
-              heightIn: beam.verticalEnvelopeIn,
-            } : null,
-            bayCount:   domain.bays.length,
-            levels:     domain.levelUnion.map((l) => ({
-              index:       l.levelIndex,
-              holeIndex:   l.holeIndex,
-              elevationIn: l.elevationIn,
-            })),
-          };
-        }),
-      );
-      paintAllEntities(ctx, layoutStore, cam, dk);
+      paintAllEntities(ctx, layoutStore, cam, dk, subSelRef.current);
     }
 
     // wall-drawing preview (ghost shape during drag)
@@ -265,8 +239,9 @@ export default function CADCanvas({
       wallPreviewRef.current = null;
       scheduleRedraw();
     }
-    // entering wall mode clears selection
+    // entering wall mode clears selection and sub-selection
     if (wallMode && layoutStore) {
+      if (subSelRef.current) { subSelRef.current = null; setSubSel(null); onSubSelChangeRef.current?.(null); }
       layoutStore.deselectAll();
       selDragRef.current = null;
       selRectRef.current = null;
@@ -278,8 +253,9 @@ export default function CADCanvas({
   useEffect(() => { columnStoreRef.current = columnStore; }, [columnStore]);
   useEffect(() => {
     columnModeRef.current = columnMode;
-    // entering column mode clears selection
+    // entering column mode clears selection and sub-selection
     if (columnMode && layoutStore) {
+      if (subSelRef.current) { subSelRef.current = null; setSubSel(null); onSubSelChangeRef.current?.(null); }
       layoutStore.deselectAll();
       selDragRef.current = null;
       selRectRef.current = null;
@@ -293,8 +269,9 @@ export default function CADCanvas({
     if (!drawingMode && dragRef.current.active) {
       dragRef.current = { active: false, lastCell: null };
     }
-    // entering drawing mode clears selection
+    // entering drawing mode clears selection and sub-selection
     if (drawingMode && layoutStore) {
+      if (subSelRef.current) { subSelRef.current = null; setSubSel(null); onSubSelChangeRef.current?.(null); }
       layoutStore.deselectAll();
       selDragRef.current = null;
       selRectRef.current = null;
@@ -305,22 +282,30 @@ export default function CADCanvas({
   // ── ESC to deselect & Cmd/Ctrl+D to duplicate (canvas-level) ──
   useEffect(() => {
     const onKey = (e) => {
-      if (e.key === 'Escape' && !drawingModeRef.current && layoutStore) {
-        if (layoutStore.selectionCount() > 0) {
+      if (e.key === 'Escape' && !drawingModeRef.current) {
+        // Clear sub-selection first; if none, fall through to deselect all
+        if (subSelRef.current) {
+          subSelRef.current = null;
+          setSubSel(null);
+          onSubSelChangeRef.current?.(null);
+          scheduleRedraw();
+          return;
+        }
+        if (layoutStore && layoutStore.selectionCount() > 0) {
           layoutStore.deselectAll();
         }
       }
-      // Cmd+D (macOS) / Ctrl+D (Windows/Linux) → duplicate selection
+      // Cmd+D / Ctrl+D → duplicate (disabled during sub-selection)
       if (e.key === 'd' && (e.metaKey || e.ctrlKey) && !e.shiftKey && !e.altKey) {
-        e.preventDefault(); // prevent browser bookmark dialog
-        if (layoutStore && layoutStore.selectionCount() > 0) {
+        e.preventDefault();
+        if (!subSelRef.current && layoutStore && layoutStore.selectionCount() > 0) {
           layoutStore.duplicateSelected();
         }
       }
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [layoutStore]);
+  }, [layoutStore, scheduleRedraw]);
 
   // ── helper: get world coords under mouse ──────────────────────
   const worldAt = useCallback((e) => {
@@ -330,6 +315,160 @@ export default function CADCanvas({
     if (sx < RULER_SIZE || sy < RULER_SIZE) return null;
     return screenToWorld(sx, sy, camera.current);
   }, []);
+
+  // ── sync onSubSelChange prop ref ──────────────────────────────
+  useEffect(() => { onSubSelChangeRef.current = props.onSubSelChange; }, [props.onSubSelChange]);
+
+  // ── component-level rebuildCellMap (used by fragment + drawing) ─
+  const rebuildCellMap = useCallback(() => {
+    const cm = cellMapRef.current;
+    cm.clear();
+    const currentVert = rackOrientationRef.current === 'vertical';
+    const ents = layoutStore ? layoutStore.getAllByType('RACK_MODULE') : [];
+    for (const ent of ents) {
+      const entVert = ent.transform.rotation === 90;
+      if (entVert !== currentVert) continue;
+      const mod = rackDomainRef.current.get(ent.domainId);
+      if (!mod) continue;
+      const bayCount = mod.bays.length;
+      for (let i = 0; i < bayCount; i++) {
+        const wx = entVert ? ent.transform.x : ent.transform.x + i * BAY_STEP_M;
+        const wy = entVert ? ent.transform.y + i * BAY_STEP_M : ent.transform.y;
+        const ccx = currentVert ? Math.round(wx / DEFAULT_FRAME_DEPTH_M) : Math.round(wx / BAY_STEP_M);
+        const ccy = currentVert ? Math.round(wy / BAY_STEP_M) : Math.round(wy / DEFAULT_FRAME_DEPTH_M);
+        cm.set(`${ccx},${ccy}`, { entityId: ent.id, domainId: ent.domainId });
+      }
+    }
+  }, [layoutStore]);
+
+  // ── sub-selection helpers ─────────────────────────────────────
+  const clearSubSel = useCallback(() => {
+    subSelRef.current = null;
+    setSubSel(null);
+    onSubSelChangeRef.current?.(null);
+    scheduleRedraw();
+  }, [scheduleRedraw]);
+
+  const fragmentEntity = useCallback((entityId, bayIndex) => {
+    if (!layoutStore) return null;
+    const ent = layoutStore.get(entityId);
+    if (!ent) return null;
+    const mod = rackDomainRef.current.get(ent.domainId);
+    if (!mod) return null;
+    const bayCount = mod.bays.length;
+    if (bayIndex < 0 || bayIndex >= bayCount) return null;
+
+    const vert       = ent.transform.rotation === 90;
+    const ox         = ent.transform.x;
+    const oy         = ent.transform.y;
+    const BAY_W      = DEFAULT_BAY_WIDTH_M;
+    const growSize   = (n) => (n - 1) * BAY_STEP_M + BAY_W;
+    const bayLabel   = (n, v) => {
+      const dims = v ? '42" × 96"' : '96" × 42"';
+      return n > 1 ? `${n}× ${dims}` : dims;
+    };
+
+    const leftCount  = bayIndex;
+    const rightCount = bayCount - bayIndex - 1;
+    const targetOx   = vert ? ox : ox + bayIndex * BAY_STEP_M;
+    const targetOy   = vert ? oy + bayIndex * BAY_STEP_M : oy;
+    const rightOx    = vert ? ox : targetOx + BAY_STEP_M;
+    const rightOy    = vert ? targetOy + BAY_STEP_M : oy;
+
+    rackDomainRef.current.delete(ent.domainId);
+
+    let leftEntityId   = null;
+    let targetEntityId = null;
+    let rightEntityId  = null;
+
+    if (leftCount > 0) {
+      // Repurpose original entity as left group
+      const leftMod = buildRackModule({ frameSpec: DEFAULT_FRAME_SPEC, beamSpec: DEFAULT_BEAM_SPEC, bayCount: leftCount, holeIndices: DEFAULT_HOLE_INDICES });
+      rackDomainRef.current.set(leftMod.id, leftMod);
+      layoutStore.update(ent.id, {
+        domainId: leftMod.id,
+        widthM:   vert ? ent.widthM : growSize(leftCount),
+        depthM:   vert ? growSize(leftCount) : ent.depthM,
+        bayCount: leftCount,
+        label:    bayLabel(leftCount, vert),
+      });
+      leftEntityId = ent.id;
+
+      // Isolated bay → new entity
+      const targetMod = buildRackModule({ frameSpec: DEFAULT_FRAME_SPEC, beamSpec: DEFAULT_BEAM_SPEC, bayCount: 1, holeIndices: DEFAULT_HOLE_INDICES });
+      rackDomainRef.current.set(targetMod.id, targetMod);
+      const targetEnt = layoutStore.add(createRackModuleEntity({
+        x: targetOx, y: targetOy, rotation: vert ? 90 : 0,
+        domainId: targetMod.id,
+        widthM:   vert ? ent.widthM : BAY_W,
+        depthM:   vert ? BAY_W : ent.depthM,
+        label:    bayLabel(1, vert), bayCount: 1,
+      }));
+      targetEntityId = targetEnt.id;
+
+    } else {
+      // bayIndex === 0: repurpose original entity as isolated bay
+      const targetMod = buildRackModule({ frameSpec: DEFAULT_FRAME_SPEC, beamSpec: DEFAULT_BEAM_SPEC, bayCount: 1, holeIndices: DEFAULT_HOLE_INDICES });
+      rackDomainRef.current.set(targetMod.id, targetMod);
+      layoutStore.update(ent.id, {
+        domainId: targetMod.id,
+        widthM:   vert ? ent.widthM : BAY_W,
+        depthM:   vert ? BAY_W : ent.depthM,
+        bayCount: 1,
+        label:    bayLabel(1, vert),
+      });
+      targetEntityId = ent.id;
+    }
+
+    if (rightCount > 0) {
+      const rightMod = buildRackModule({ frameSpec: DEFAULT_FRAME_SPEC, beamSpec: DEFAULT_BEAM_SPEC, bayCount: rightCount, holeIndices: DEFAULT_HOLE_INDICES });
+      rackDomainRef.current.set(rightMod.id, rightMod);
+      const rightEnt = layoutStore.add(createRackModuleEntity({
+        x: rightOx, y: rightOy, rotation: vert ? 90 : 0,
+        domainId: rightMod.id,
+        widthM:   vert ? ent.widthM : growSize(rightCount),
+        depthM:   vert ? growSize(rightCount) : ent.depthM,
+        label:    bayLabel(rightCount, vert), bayCount: rightCount,
+      }));
+      rightEntityId = rightEnt.id;
+    }
+
+    rebuildCellMap();
+    return { leftEntityId, targetEntityId, rightEntityId };
+  }, [layoutStore, rebuildCellMap]);
+
+  const handleDeleteSubSelected = useCallback(() => {
+    const ss = subSelRef.current;
+    if (!ss || !layoutStore) return;
+    const ent = layoutStore.get(ss.entityId);
+    if (!ent) { clearSubSel(); return; }
+
+    const result = fragmentEntity(ss.entityId, ss.bayIndex);
+    if (!result) { clearSubSel(); return; }
+
+    const isolatedEnt = layoutStore.get(result.targetEntityId);
+    if (isolatedEnt) {
+      rackDomainRef.current.delete(isolatedEnt.domainId);
+      layoutStore.remove(result.targetEntityId);
+    }
+
+    rebuildCellMap();
+    clearSubSel();
+  }, [layoutStore, fragmentEntity, rebuildCellMap, clearSubSel]);
+
+  // ── stale sub-selection guard: clear if entity changes externally ─
+  useEffect(() => {
+    if (!subSel || !layoutStore) return;
+    const check = () => {
+      const ent = layoutStore.get(subSel.entityId);
+      if (!ent || (ent.bayCount ?? 1) !== subSel.bayCount) {
+        subSelRef.current = null;
+        setSubSel(null);
+        onSubSelChangeRef.current?.(null);
+      }
+    };
+    return layoutStore.subscribe(check);
+  }, [subSel, layoutStore]);
 
   // ── rack drawing interactions (mousedown / move / up) ─────────
   useEffect(() => {
@@ -359,36 +498,157 @@ export default function CADCanvas({
     const placedCells = new Set();
     const cellKey = (cx, cy) => `${cx},${cy}`;
 
+    /** Label for a rack entity showing bay count and dimensions. */
+    const bayLabel = (bayCount, vert) => {
+      const dims = vert ? '42" × 96"' : '96" × 42"';
+      return bayCount > 1 ? `${bayCount}× ${dims}` : dims;
+    };
+
+    /** Compute entity growth-axis size for N bays. */
+    const growSize = (n) => (n - 1) * BAY_STEP_M + BAY_W;
+
     const placeCell = (cx, cy) => {
       const key = cellKey(cx, cy);
       if (placedCells.has(key)) return false;
-      const w = bayCellWorld(cx, cy);
+      const cm = cellMapRef.current;
+      if (cm.has(key)) return false;
+
       const vert = rackOrientationRef.current === 'vertical';
+      const w = bayCellWorld(cx, cy);
       const entW = vert ? BAY_D : BAY_W;
       const entD = vert ? BAY_W : BAY_D;
+
       // Check if the bay footprint centre is already occupied
       if (layoutStore.hitTest(w.x + entW / 2, w.y + entD / 2)) return false;
       placedCells.add(key);
 
-      // Create domain RackModule (1 bay, default industry-standard specs)
-      const rackModule = buildRackModule({
-        frameSpec:   DEFAULT_FRAME_SPEC,
-        beamSpec:    DEFAULT_BEAM_SPEC,
-        bayCount:    1,
-        holeIndices: DEFAULT_HOLE_INDICES,
-      });
-      rackDomainRef.current.set(rackModule.id, rackModule);
+      // Check adjacent cells along the bay growth axis
+      const prevKey = vert ? cellKey(cx, cy - 1) : cellKey(cx - 1, cy);
+      const nextKey = vert ? cellKey(cx, cy + 1) : cellKey(cx + 1, cy);
+      const prevInfo = cm.get(prevKey);
+      const nextInfo = cm.get(nextKey);
 
-      // Create layout entity linked to the domain object
-      layoutStore.add(createRackModuleEntity({
-        x:        w.x,
-        y:        w.y,
-        rotation: vert ? 90 : 0,
-        domainId: rackModule.id,
-        widthM:   entW,
-        depthM:   entD,
-        label:    vert ? '42" × 96"' : '96" × 42"',
-      }));
+      // Resolve entities (guard against stale references)
+      const prevEnt = prevInfo ? layoutStore.get(prevInfo.entityId) : null;
+      const nextEnt = nextInfo ? layoutStore.get(nextInfo.entityId) : null;
+      const prevMod = prevEnt ? rackDomainRef.current.get(prevEnt.domainId) : null;
+      const nextMod = nextEnt ? rackDomainRef.current.get(nextEnt.domainId) : null;
+      const hasPrev = !!(prevEnt && prevMod);
+      const hasNext = !!(nextEnt && nextMod);
+
+      if (hasPrev && hasNext && prevInfo.entityId !== nextInfo.entityId) {
+        // ── MERGE: new bay bridges two separate entities ──────────
+        const totalBays = prevMod.bays.length + 1 + nextMod.bays.length;
+        const newMod = buildRackModule({
+          frameSpec:   DEFAULT_FRAME_SPEC,
+          beamSpec:    DEFAULT_BEAM_SPEC,
+          bayCount:    totalBays,
+          holeIndices: DEFAULT_HOLE_INDICES,
+        });
+        rackDomainRef.current.delete(prevEnt.domainId);
+        rackDomainRef.current.delete(nextEnt.domainId);
+        rackDomainRef.current.set(newMod.id, newMod);
+
+        const newGrow = growSize(totalBays);
+        layoutStore.update(prevEnt.id, {
+          domainId: newMod.id,
+          widthM: vert ? prevEnt.widthM : newGrow,
+          depthM: vert ? newGrow : prevEnt.depthM,
+          bayCount: totalBays,
+          label: bayLabel(totalBays, vert),
+        });
+        layoutStore.remove(nextEnt.id);
+
+        // Update cellMap: all cells from both old entities + new cell → prevEnt
+        const newRef = { entityId: prevEnt.id, domainId: newMod.id };
+        for (const [k, v] of cm) {
+          if (v.entityId === prevInfo.entityId || v.entityId === nextInfo.entityId) {
+            cm.set(k, newRef);
+          }
+        }
+        cm.set(key, newRef);
+
+      } else if (hasPrev) {
+        // ── Extend prev entity forward (right / down) ────────────
+        const newBayCount = prevMod.bays.length + 1;
+        const newMod = buildRackModule({
+          frameSpec:   DEFAULT_FRAME_SPEC,
+          beamSpec:    DEFAULT_BEAM_SPEC,
+          bayCount:    newBayCount,
+          holeIndices: DEFAULT_HOLE_INDICES,
+        });
+        rackDomainRef.current.delete(prevEnt.domainId);
+        rackDomainRef.current.set(newMod.id, newMod);
+
+        const newGrow = growSize(newBayCount);
+        layoutStore.update(prevEnt.id, {
+          domainId: newMod.id,
+          widthM: vert ? prevEnt.widthM : newGrow,
+          depthM: vert ? newGrow : prevEnt.depthM,
+          bayCount: newBayCount,
+          label: bayLabel(newBayCount, vert),
+        });
+
+        const newRef = { entityId: prevEnt.id, domainId: newMod.id };
+        for (const [k, v] of cm) {
+          if (v.entityId === prevInfo.entityId) cm.set(k, newRef);
+        }
+        cm.set(key, newRef);
+
+      } else if (hasNext) {
+        // ── Extend next entity backward (left / up) ──────────────
+        const newBayCount = nextMod.bays.length + 1;
+        const newMod = buildRackModule({
+          frameSpec:   DEFAULT_FRAME_SPEC,
+          beamSpec:    DEFAULT_BEAM_SPEC,
+          bayCount:    newBayCount,
+          holeIndices: DEFAULT_HOLE_INDICES,
+        });
+        rackDomainRef.current.delete(nextEnt.domainId);
+        rackDomainRef.current.set(newMod.id, newMod);
+
+        const newGrow = growSize(newBayCount);
+        // Shift entity origin backward along the growth axis
+        layoutStore.moveTo(nextEnt.id,
+          vert ? nextEnt.transform.x : nextEnt.transform.x - BAY_STEP_M,
+          vert ? nextEnt.transform.y - BAY_STEP_M : nextEnt.transform.y,
+        );
+        layoutStore.update(nextEnt.id, {
+          domainId: newMod.id,
+          widthM: vert ? nextEnt.widthM : newGrow,
+          depthM: vert ? newGrow : nextEnt.depthM,
+          bayCount: newBayCount,
+          label: bayLabel(newBayCount, vert),
+        });
+
+        const newRef = { entityId: nextEnt.id, domainId: newMod.id };
+        for (const [k, v] of cm) {
+          if (v.entityId === nextInfo.entityId) cm.set(k, newRef);
+        }
+        cm.set(key, newRef);
+
+      } else {
+        // ── No adjacent rack → create new single-bay entity ──────
+        const rackModule = buildRackModule({
+          frameSpec:   DEFAULT_FRAME_SPEC,
+          beamSpec:    DEFAULT_BEAM_SPEC,
+          bayCount:    1,
+          holeIndices: DEFAULT_HOLE_INDICES,
+        });
+        rackDomainRef.current.set(rackModule.id, rackModule);
+
+        const ent = layoutStore.add(createRackModuleEntity({
+          x:        w.x,
+          y:        w.y,
+          rotation: vert ? 90 : 0,
+          domainId: rackModule.id,
+          widthM:   entW,
+          depthM:   entD,
+          label:    bayLabel(1, vert),
+        }));
+        cm.set(key, { entityId: ent.id, domainId: rackModule.id });
+      }
+
       return true;
     };
 
@@ -397,6 +657,8 @@ export default function CADCanvas({
       const world = worldAt(e);
       if (!world) return;
       e.preventDefault();
+      placedCells.clear();
+      rebuildCellMap();
       const cell = toBayCell(world.x, world.y);
       placeCell(cell.x, cell.y);
       dragRef.current = { active: true, lastCell: cell };
@@ -428,7 +690,7 @@ export default function CADCanvas({
       window.removeEventListener('mousemove', onMove);
       window.removeEventListener('mouseup',   onUp);
     };
-  }, [layoutStore, worldAt]);
+  }, [layoutStore, worldAt, rebuildCellMap]);
 
   // ── wall drawing interactions (mousedown / move / up) ────────
   useEffect(() => {
@@ -566,6 +828,33 @@ export default function CADCanvas({
       // Check if clicking on an entity
       const hit = layoutStore.hitTest(world.x, world.y);
       if (hit) {
+        const now  = Date.now();
+        const last = lastClickInfoRef.current;
+        const isDoubleClick = last && last.entityId === hit.id && now - last.time < 350;
+
+        // Double-click on a multi-bay RACK_MODULE → activate sub-selection
+        if (isDoubleClick && hit.type === 'RACK_MODULE' && (hit.bayCount ?? 1) > 1) {
+          lastClickInfoRef.current = null;  // prevent triple-click mis-fire
+          const vert     = hit.transform.rotation === 90;
+          const relCoord = vert ? world.y - hit.transform.y : world.x - hit.transform.x;
+          const bayIdx   = Math.max(0, Math.min((hit.bayCount) - 1, Math.floor(relCoord / BAY_STEP_M)));
+          const newSubSel = { entityId: hit.id, bayIndex: bayIdx, bayCount: hit.bayCount, vert };
+          subSelRef.current = newSubSel;
+          setSubSel(newSubSel);
+          onSubSelChangeRef.current?.(newSubSel);
+          layoutStore.deselectAll();
+          scheduleRedraw();
+          return;
+        }
+
+        // Single click: clear any active sub-selection
+        if (subSelRef.current) {
+          subSelRef.current = null;
+          setSubSel(null);
+          onSubSelChangeRef.current?.(null);
+        }
+        lastClickInfoRef.current = { entityId: hit.id, time: now };
+
         if (e.shiftKey) {
           layoutStore.toggleSelect(hit.id);
         } else {
@@ -577,7 +866,13 @@ export default function CADCanvas({
         return;
       }
 
-      // No entity hit → start rectangle selection (keep existing selection)
+      // No entity hit → clear sub-selection + start rectangle selection
+      if (subSelRef.current) {
+        subSelRef.current = null;
+        setSubSel(null);
+        onSubSelChangeRef.current?.(null);
+      }
+      lastClickInfoRef.current = null;
       selDragRef.current = { sx, sy, ex: sx, ey: sy };
       selRectRef.current = null;
     };
@@ -726,59 +1021,47 @@ export default function CADCanvas({
 
       {/* ── actions toolbar (upper-right) ── */}
       <div style={{ ...actionsBarStyle, background: overlayBg, borderColor: overlayBorder }}>
-        <button
-          onClick={handleDeselect}
-          style={{ ...actionBtnStyle, color: overlayText }}
-          title="Deselect all (Esc)"
-        >
-          <XCircle size={16} />
-        </button>
-        {hasSelection && (
+        {subSel ? (
+          // Sub-selection mode: only deselect + delete bay
           <>
-            <div style={{ ...actionDividerStyle, background: overlayBorder }} />
             <button
-              onClick={handleMoveUp}
+              onClick={clearSubSel}
               style={{ ...actionBtnStyle, color: overlayText }}
-              title="Move up one grid unit"
+              title="Clear bay sub-selection (Esc)"
             >
-              <ArrowUp size={16} />
-            </button>
-            <button
-              onClick={handleMoveDown}
-              style={{ ...actionBtnStyle, color: overlayText }}
-              title="Move down one grid unit"
-            >
-              <ArrowDown size={16} />
-            </button>
-            <button
-              onClick={handleMoveLeft}
-              style={{ ...actionBtnStyle, color: overlayText }}
-              title="Move left one grid unit"
-            >
-              <ArrowLeft size={16} />
-            </button>
-            <button
-              onClick={handleMoveRight}
-              style={{ ...actionBtnStyle, color: overlayText }}
-              title="Move right one grid unit"
-            >
-              <ArrowRight size={16} />
+              <XCircle size={16} />
             </button>
             <div style={{ ...actionDividerStyle, background: overlayBorder }} />
             <button
-              onClick={handleDuplicateSelected}
-              style={{ ...actionBtnStyle, color: overlayText }}
-              title="Duplicate selected (⌘D / Ctrl+D)"
-            >
-              <Copy size={16} />
-            </button>
-            <button
-              onClick={handleDeleteSelected}
+              onClick={handleDeleteSubSelected}
               style={{ ...actionBtnStyle, color: overlayAccent }}
-              title="Delete selected"
+              title="Delete this bay"
             >
               <Trash2 size={16} />
             </button>
+          </>
+        ) : (
+          // Normal selection mode
+          <>
+            <button
+              onClick={handleDeselect}
+              style={{ ...actionBtnStyle, color: overlayText }}
+              title="Deselect all (Esc)"
+            >
+              <XCircle size={16} />
+            </button>
+            {hasSelection && (
+              <>
+                <div style={{ ...actionDividerStyle, background: overlayBorder }} />
+                <button onClick={handleMoveUp}    style={{ ...actionBtnStyle, color: overlayText }} title="Move up one grid unit"><ArrowUp size={16} /></button>
+                <button onClick={handleMoveDown}  style={{ ...actionBtnStyle, color: overlayText }} title="Move down one grid unit"><ArrowDown size={16} /></button>
+                <button onClick={handleMoveLeft}  style={{ ...actionBtnStyle, color: overlayText }} title="Move left one grid unit"><ArrowLeft size={16} /></button>
+                <button onClick={handleMoveRight} style={{ ...actionBtnStyle, color: overlayText }} title="Move right one grid unit"><ArrowRight size={16} /></button>
+                <div style={{ ...actionDividerStyle, background: overlayBorder }} />
+                <button onClick={handleDuplicateSelected} style={{ ...actionBtnStyle, color: overlayText }} title="Duplicate selected (⌘D / Ctrl+D)"><Copy size={16} /></button>
+                <button onClick={handleDeleteSelected}    style={{ ...actionBtnStyle, color: overlayAccent }} title="Delete selected"><Trash2 size={16} /></button>
+              </>
+            )}
           </>
         )}
       </div>
@@ -813,6 +1096,16 @@ export default function CADCanvas({
           color: overlayBanner.color,
         }}>
           Placing: Column — click to place · Esc to cancel
+        </div>
+      )}
+      {subSel && (
+        <div style={{
+          ...drawBannerStyle,
+          background: dk ? 'rgba(127,29,29,0.88)' : 'rgba(254,226,226,0.92)',
+          borderColor: '#f87171',
+          color: dk ? '#fca5a5' : '#991b1b',
+        }}>
+          Bay {subSel.bayIndex + 1} of {subSel.bayCount} selected — Delete to remove · Esc to cancel
         </div>
       )}
 

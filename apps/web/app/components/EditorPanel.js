@@ -1,6 +1,13 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
+import { Pencil, ClipboardList, Settings } from 'lucide-react';
+import {
+  BEAMS_PER_LEVEL,
+  SAFETY_PINS_PER_BEAM,
+  ANCHORS_PER_FRAME,
+  BasePlateType,
+} from '../services/rack/constants.js';
 
 /**
  * EditorPanel – left sidebar with two sections:
@@ -26,15 +33,71 @@ export default function EditorPanel({
   columnStore = null,
   columnStoreVersion,
   onExportDXF,
+  rackDomainRef,
+  subSelActive = false,
   children,
 }) {
   const dk = darkMode;
+  const [activeView, setActiveView] = useState('edition');
+
+  const VIEW_MODES = [
+    { key: 'edition',       label: 'Edition',     Icon: Pencil },
+    { key: 'bom',           label: 'BOM & Stats',  Icon: ClipboardList },
+    { key: 'configuration', label: 'Config',        Icon: Settings },
+  ];
+
   return (
     <aside style={{
       ...panelStyle,
       background: dk ? '#1e1f22' : '#ffffff',
       borderRightColor: dk ? '#374151' : '#e5e7eb',
     }}>
+      {/* ── View-mode selector ───────────────────────────────── */}
+      <div style={{
+        display: 'flex',
+        gap: 0,
+        borderBottom: `1px solid ${dk ? '#374151' : '#e5e7eb'}`,
+        flexShrink: 0,
+        background: dk ? '#18191c' : '#f9fafb',
+      }}>
+        {VIEW_MODES.map(({ key, label, Icon }) => {
+          const isActive = activeView === key;
+          return (
+            <button
+              key={key}
+              onClick={() => setActiveView(key)}
+              style={{
+                flex: 1,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 4,
+                padding: '8px 4px',
+                border: 'none',
+                borderBottom: isActive
+                  ? '2px solid #3b82f6'
+                  : '2px solid transparent',
+                background: 'transparent',
+                color: isActive
+                  ? (dk ? '#93c5fd' : '#1d4ed8')
+                  : (dk ? '#6b7280' : '#9ca3af'),
+                fontSize: 11,
+                fontWeight: isActive ? 600 : 500,
+                cursor: 'pointer',
+                transition: 'all 0.15s',
+                userSelect: 'none',
+              }}
+              title={label}
+            >
+              <Icon size={14} strokeWidth={isActive ? 2.2 : 1.8} />
+              <span>{label}</span>
+            </button>
+          );
+        })}
+      </div>
+
+      {/* ── Edition view ─────────────────────────────────────── */}
+      {activeView === 'edition' && (<>
       {/* ── Section 1: Object Picker ─────────────────────────── */}
       <div style={pickerSectionStyle}>
         <div style={{
@@ -42,7 +105,22 @@ export default function EditorPanel({
           color: dk ? '#9ca3af' : '#6b7280',
           borderBottomColor: dk ? '#2d2f34' : '#f3f4f6',
         }}>Objects</div>
-        <div style={sectionBodyStyle}>
+        {subSelActive && (
+          <div style={{
+            margin: '8px 10px 0',
+            padding: '7px 10px',
+            borderRadius: 6,
+            background: dk ? 'rgba(127,29,29,0.5)' : 'rgba(254,226,226,0.9)',
+            border: `1px solid ${dk ? '#f87171' : '#fca5a5'}`,
+            color: dk ? '#fca5a5' : '#991b1b',
+            fontSize: 11,
+            fontWeight: 500,
+            lineHeight: 1.4,
+          }}>
+            Bay sub-selected — use the canvas toolbar to delete it. Other tools are disabled.
+          </div>
+        )}
+        <div style={{ ...sectionBodyStyle, ...(subSelActive ? { opacity: 0.4, pointerEvents: 'none' } : {}) }}>
           <button
             onClick={onToggleDrawingMode}
             style={{
@@ -233,7 +311,283 @@ export default function EditorPanel({
       </div>
 
       {children}
+      </>)}
+
+      {/* ── BOM & Stats view ─────────────────────────────────── */}
+      {activeView === 'bom' && (
+        <BOMView
+          layoutStore={layoutStore}
+          layoutVersion={layoutVersion}
+          rackDomainRef={rackDomainRef}
+          darkMode={dk}
+        />
+      )}
+
+      {/* ── Configuration view ───────────────────────────────── */}
+      {activeView === 'configuration' && (
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+          <div style={{
+            ...sectionHeaderStyle,
+            color: dk ? '#9ca3af' : '#6b7280',
+            borderBottomColor: dk ? '#2d2f34' : '#f3f4f6',
+          }}>Configuration</div>
+          <div style={{ ...sectionBodyStyle, color: dk ? '#9ca3af' : '#6b7280', fontSize: 13 }}>
+            <p style={{ margin: 0 }}>Project configuration and settings will appear here.</p>
+          </div>
+        </div>
+      )}
     </aside>
+  );
+}
+
+// ── BOMView ─────────────────────────────────────────────────────
+const MAX_NAME_LEN = 28;
+
+function BOMView({ layoutStore, layoutVersion, rackDomainRef, darkMode }) {
+  const dk = darkMode;
+
+  const bomItems = useMemo(() => {
+    if (!layoutStore || !rackDomainRef?.current) return [];
+
+    const domainMap = rackDomainRef.current;
+    const entities = layoutStore.getAll().filter(
+      (e) => e.type === 'RACK_MODULE' || e.type === 'RACK_LINE',
+    );
+
+    // Aggregate items by SKU
+    const merged = new Map();
+
+    const addItem = (sku, name, qty, category) => {
+      const existing = merged.get(sku);
+      if (existing) {
+        existing.quantity += qty;
+      } else {
+        merged.set(sku, { sku, name, quantity: qty, category });
+      }
+    };
+
+    for (const ent of entities) {
+      const mod = domainMap.get(ent.domainId);
+      if (!mod) continue;
+
+      // Frames
+      const frameSpec = mod.frameSpec;
+      const frameCount = mod.frameCount || (mod.bays.length + 1);
+      addItem(
+        frameSpec.id,
+        `Frame ${frameSpec.heightIn}" × ${frameSpec.depthIn}" (${frameSpec.uprightSeries})`,
+        frameCount,
+        'Frame',
+      );
+
+      // Beams
+      for (const bay of mod.bays) {
+        for (const level of bay.levels) {
+          const bs = level.beamSpec;
+          addItem(
+            bs.id,
+            `Beam ${bs.lengthIn}" (${bs.beamSeries})`,
+            BEAMS_PER_LEVEL,
+            'Beam',
+          );
+        }
+      }
+
+      // Safety Pins
+      let totalBeams = 0;
+      for (const bay of mod.bays) {
+        totalBeams += bay.levels.length * BEAMS_PER_LEVEL;
+      }
+      const pinCount = totalBeams * SAFETY_PINS_PER_BEAM;
+      if (pinCount > 0) {
+        addItem('ACC-SAFETY-PIN', 'Safety Pin', pinCount, 'Accessory');
+      }
+
+      // Anchors
+      const bpType = frameSpec.basePlateType || BasePlateType.STANDARD;
+      const anchorsPerFrame = ANCHORS_PER_FRAME[bpType] || 2;
+      addItem(
+        `ACC-ANCHOR-${bpType}`,
+        `Anchor (${bpType.charAt(0) + bpType.slice(1).toLowerCase()})`,
+        frameCount * anchorsPerFrame,
+        'Accessory',
+      );
+    }
+
+    // Sort: Frames first, then Beams, then Accessories
+    const order = { Frame: 0, Beam: 1, Accessory: 2 };
+    return [...merged.values()].sort(
+      (a, b) => (order[a.category] ?? 9) - (order[b.category] ?? 9),
+    );
+  }, [layoutStore, layoutVersion, rackDomainRef]);
+
+  const textColor   = dk ? '#e5e7eb' : '#1f2937';
+  const textMuted   = dk ? '#6b7280' : '#9ca3af';
+  const headerBg    = dk ? '#18191c' : '#f9fafb';
+  const borderColor = dk ? '#2d2f34' : '#f3f4f6';
+  const rowHoverBg  = dk ? '#25272b' : '#f9fafb';
+  const tagBg       = {
+    Frame:     dk ? '#1e3a5f' : '#dbeafe',
+    Beam:      dk ? '#1a3a2a' : '#d1fae5',
+    Accessory: dk ? '#3b2f1e' : '#fef3c7',
+  };
+  const tagColor = {
+    Frame:     dk ? '#93c5fd' : '#1e40af',
+    Beam:      dk ? '#6ee7b7' : '#065f46',
+    Accessory: dk ? '#fcd34d' : '#92400e',
+  };
+
+  const cropName = (name) =>
+    name.length > MAX_NAME_LEN ? name.slice(0, MAX_NAME_LEN - 1) + '…' : name;
+
+  // Group items by category for section rendering
+  const grouped = useMemo(() => {
+    const groups = new Map();
+    for (const item of bomItems) {
+      if (!groups.has(item.category)) groups.set(item.category, []);
+      groups.get(item.category).push(item);
+    }
+    return groups;
+  }, [bomItems]);
+
+  return (
+    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+      <div style={{
+        ...sectionHeaderStyle,
+        color: dk ? '#9ca3af' : '#6b7280',
+        borderBottomColor: borderColor,
+      }}>Bill of Materials</div>
+
+      <div style={{ flex: 1, overflow: 'auto', padding: 0 }}>
+        {bomItems.length === 0 ? (
+          <div style={{
+            padding: 20,
+            textAlign: 'center',
+            color: textMuted,
+            fontSize: 13,
+          }}>
+            No rack modules placed yet.
+            <br />
+            <span style={{ fontSize: 11 }}>Place racks on the canvas to see the BOM.</span>
+          </div>
+        ) : (
+          <>
+            {/* Total count badge */}
+            <div style={{
+              padding: '8px 12px',
+              borderBottom: `1px solid ${borderColor}`,
+              background: headerBg,
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+            }}>
+              <span style={{ fontSize: 11, color: textMuted, fontWeight: 500 }}>
+                {bomItems.reduce((sum, i) => sum + i.quantity, 0)} total items
+              </span>
+              <span style={{ fontSize: 11, color: textMuted }}>
+                {bomItems.length} line{bomItems.length !== 1 ? 's' : ''}
+              </span>
+            </div>
+
+            {/* Grouped sections */}
+            {['Frame', 'Beam', 'Accessory'].map((cat) => {
+              const items = grouped.get(cat);
+              if (!items || items.length === 0) return null;
+              return (
+                <div key={cat}>
+                  {/* Category header */}
+                  <div style={{
+                    padding: '6px 12px',
+                    background: headerBg,
+                    borderBottom: `1px solid ${borderColor}`,
+                    fontSize: 10,
+                    fontWeight: 600,
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.06em',
+                    color: textMuted,
+                    userSelect: 'none',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 6,
+                  }}>
+                    <span style={{
+                      display: 'inline-block',
+                      width: 8,
+                      height: 8,
+                      borderRadius: 2,
+                      background: tagBg[cat],
+                      border: `1px solid ${tagColor[cat]}`,
+                      flexShrink: 0,
+                    }} />
+                    {cat}s
+                  </div>
+
+                  {/* Items */}
+                  {items.map((item) => (
+                    <div
+                      key={item.sku}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 8,
+                        padding: '7px 12px',
+                        borderBottom: `1px solid ${borderColor}`,
+                        fontSize: 12,
+                        color: textColor,
+                        transition: 'background 0.1s',
+                      }}
+                      onMouseEnter={(e) => { e.currentTarget.style.background = rowHoverBg; }}
+                      onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
+                    >
+                      {/* Tag */}
+                      <span style={{
+                        flexShrink: 0,
+                        padding: '1px 5px',
+                        borderRadius: 4,
+                        fontSize: 9,
+                        fontWeight: 600,
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.04em',
+                        background: tagBg[item.category],
+                        color: tagColor[item.category],
+                        userSelect: 'none',
+                      }}>
+                        {item.category === 'Accessory' ? 'ACC' : item.category.slice(0, 3).toUpperCase()}
+                      </span>
+
+                      {/* Name + attributes */}
+                      <span style={{
+                        flex: 1,
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap',
+                        fontWeight: 500,
+                        fontSize: 12,
+                      }} title={item.name}>
+                        {cropName(item.name)}
+                      </span>
+
+                      {/* Quantity */}
+                      <span style={{
+                        flexShrink: 0,
+                        fontWeight: 600,
+                        fontFamily: 'monospace',
+                        fontSize: 12,
+                        minWidth: 28,
+                        textAlign: 'right',
+                        color: dk ? '#e5e7eb' : '#111827',
+                      }}>
+                        ×{item.quantity}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              );
+            })}
+          </>
+        )}
+      </div>
+    </div>
   );
 }
 

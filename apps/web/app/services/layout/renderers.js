@@ -102,7 +102,7 @@ function buildRackAdjacencyFlags(entities) {
 
 // ── Rack Module / Rack Line ─────────────────────────────────────────────────
 
-function paintRackBox(ctx, entity, cam, selected, dk, { skipRightFrame = false, skipBottomFrame = false } = {}) {
+function paintRackBox(ctx, entity, cam, selected, dk, { skipRightFrame = false, skipBottomFrame = false } = {}, subSelectedBayIndex = null) {
   const p = pal(dk).rack;
   const { x, y } = entity.transform;
   const sx = cam.x + x * cam.zoom;
@@ -137,7 +137,8 @@ function paintRackBox(ctx, entity, cam, selected, dk, { skipRightFrame = false, 
   }
 
   // ── Single horizontal drawing path ───────────────────────────
-  const fcw = Math.max(2, lw * FRAME_COL_FRAC);   // upright column width
+  const bc = entity.bayCount ?? 1;
+  const fcw = Math.max(2, (lw / bc) * FRAME_COL_FRAC);   // upright column width (per-bay fraction)
   const bsh = Math.max(2, lh * BEAM_H_FRAC);       // beam strip height
 
   // Beams (top & bottom)
@@ -152,12 +153,42 @@ function paintRackBox(ctx, entity, cam, selected, dk, { skipRightFrame = false, 
     ctx.fillRect(lw - fcw, 0, fcw, lh);             // right
   }
 
+  // Intermediate frames for multi-bay entities
+  // Position of intermediate frame i: i * (lw - fcw) / bayCount
+  // This equals i * BAY_STEP_M * cam.zoom — the correct shared-frame position.
+  if (bc > 1) {
+    const step = (lw - fcw) / bc;
+    for (let i = 1; i < bc; i++) {
+      ctx.fillRect(i * step, 0, fcw, lh);
+    }
+  }
+
   // Upright borders
   ctx.strokeStyle = selected ? p.selBorder : p.frameStroke;
   ctx.lineWidth = 1;
   ctx.strokeRect(0, 0, fcw, lh);
   if (!skipRight) {
     ctx.strokeRect(lw - fcw, 0, fcw, lh);
+  }
+  if (bc > 1) {
+    const step = (lw - fcw) / bc;
+    for (let i = 1; i < bc; i++) {
+      ctx.strokeRect(i * step, 0, fcw, lh);
+    }
+  }
+
+  // Sub-selected bay highlight
+  if (subSelectedBayIndex !== null && !selected) {
+    const step = (lw - fcw) / bc;
+    const bayLeft  = subSelectedBayIndex * step;
+    const bayRight = bayLeft + step + (subSelectedBayIndex === bc - 1 ? fcw : 0);
+    ctx.save();
+    ctx.fillStyle = dk ? 'rgba(239,68,68,0.22)' : 'rgba(239,68,68,0.18)';
+    ctx.fillRect(bayLeft, 0, bayRight - bayLeft, lh);
+    ctx.strokeStyle = '#ef4444';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(bayLeft + 1, 1, bayRight - bayLeft - 2, lh - 2);
+    ctx.restore();
   }
 
   // Label
@@ -416,13 +447,13 @@ export function paintWallPreview(ctx, preview, cam, dk) {
  * @param {boolean} selected
  * @param {boolean} dk  dark mode
  */
-export function paintEntity(ctx, entity, cam, selected, dk, flags = {}) {
+export function paintEntity(ctx, entity, cam, selected, dk, flags = {}, subSelectedBayIndex = null) {
   if (!entity.visible) return;
 
   switch (entity.type) {
     case EntityType.RACK_MODULE:
     case EntityType.RACK_LINE:
-      paintRackBox(ctx, entity, cam, selected, dk, flags);
+      paintRackBox(ctx, entity, cam, selected, dk, flags, subSelectedBayIndex);
       break;
     case EntityType.WALL:
       paintWall(ctx, entity, cam, selected, dk);
@@ -446,11 +477,12 @@ export function paintEntity(ctx, entity, cam, selected, dk, flags = {}) {
  * @param {{ x: number, y: number, zoom: number }} cam
  * @param {boolean} dk  dark mode
  */
-export function paintAllEntities(ctx, store, cam, dk) {
+export function paintAllEntities(ctx, store, cam, dk, subSel = null) {
   const selection = store.getSelection();
   const all = store.getAll();
   const adjacency = buildRackAdjacencyFlags(all);
   for (const ent of all) {
-    paintEntity(ctx, ent, cam, selection.has(ent.id), dk, adjacency.get(ent.id) ?? {});
+    const bayIdx = (subSel && ent.id === subSel.entityId) ? subSel.bayIndex : null;
+    paintEntity(ctx, ent, cam, selection.has(ent.id), dk, adjacency.get(ent.id) ?? {}, bayIdx);
   }
 }

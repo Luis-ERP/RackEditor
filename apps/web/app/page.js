@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import EditorPanel from './components/EditorPanel';
 import CADCanvas from './components/CADCanvas';
 import useLayoutStore from './hooks/useLayoutStore';
@@ -14,9 +14,13 @@ export default function HomePage() {
   const [rackOrientation, setRackOrientation] = useState('horizontal');
   const [wallMode, setWallMode] = useState(null); // null | 'line' | 'rect'
   const [columnMode, setColumnMode] = useState(false);
+  const [subSel, setSubSel] = useState(null);
   const { store, version } = useLayoutStore();
   const { store: wallSt, version: wallVer } = useWallStore();
   const { store: colSt, version: colVer } = useColumnStore();
+
+  // Rack domain registry: shared between canvas (writes) and panel (reads BOM)
+  const rackDomainRef = useRef(new Map());
 
   const toggleDrawingMode = useCallback(() => {
     setDrawingMode((prev) => {
@@ -89,6 +93,8 @@ export default function HomePage() {
         columnStore={colSt}
         columnStoreVersion={colVer}
         onExportDXF={handleExportDXF}
+        rackDomainRef={rackDomainRef}
+        subSelActive={subSel !== null}
       />
       <CADCanvas
         drawingMode={drawingMode}
@@ -101,6 +107,8 @@ export default function HomePage() {
         wallStore={wallSt}
         columnMode={columnMode}
         columnStore={colSt}
+        rackDomainRef={rackDomainRef}
+        onSubSelChange={setSubSel}
       />
     </div>
   );

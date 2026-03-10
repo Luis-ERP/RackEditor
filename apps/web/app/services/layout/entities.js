@@ -65,7 +65,7 @@ function baseTransform(x = 0, y = 0, rotation = 0) {
  * @returns {Object}
  */
 export function createRackModuleEntity({
-  id, x, y, rotation = 0, domainId, widthM, depthM, label = '',
+  id, x, y, rotation = 0, domainId, widthM, depthM, label = '', bayCount = 1,
 }) {
   return {
     id:        id ?? nextEntityId('rm'),
@@ -74,6 +74,7 @@ export function createRackModuleEntity({
     domainId,
     widthM,
     depthM,
+    bayCount,
     label,
     locked:    false,
     visible:   true,
