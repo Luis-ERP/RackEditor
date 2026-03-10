@@ -18,6 +18,7 @@ import { drawTopRuler, drawLeftRuler, drawCornerPatch }  from '../services/ruler
 import {
   createRackModuleEntity,
   createWallEntity,
+  createColumnEntity,
   bresenhamLine,
   paintAllEntities,
   paintSelectionRect as paintSelRect,
@@ -46,6 +47,8 @@ export default function CADCanvas({
   rackOrientation = 'horizontal',
   wallMode = null,      // null | 'line' | 'rect'
   wallStore = null,     // WallStore instance (from useWallStore)
+  columnMode = false,   // true when placing columns
+  columnStore = null,   // ColumnStore instance (from useColumnStore)
 }) {
   const wrapperRef = useRef(null);
   const canvasRef  = useRef(null);
@@ -68,6 +71,10 @@ export default function CADCanvas({
   const wallModeRef     = useRef(wallMode);
   const wallStoreRef    = useRef(wallStore);
   const wallPreviewRef  = useRef(null);
+
+  // ── column mode refs ──────────────────────────────────────────
+  const columnModeRef   = useRef(columnMode);
+  const columnStoreRef  = useRef(columnStore);
 
   // ── selection-drag refs ───────────────────────────────────────
   const selDragRef = useRef(null);    // { sx, sy, ex, ey } screen coords
@@ -266,6 +273,19 @@ export default function CADCanvas({
       scheduleRedraw();
     }
   }, [wallMode, scheduleRedraw, layoutStore]);
+
+  // ── sync columnMode / columnStore refs ─────────────────────────
+  useEffect(() => { columnStoreRef.current = columnStore; }, [columnStore]);
+  useEffect(() => {
+    columnModeRef.current = columnMode;
+    // entering column mode clears selection
+    if (columnMode && layoutStore) {
+      layoutStore.deselectAll();
+      selDragRef.current = null;
+      selRectRef.current = null;
+      scheduleRedraw();
+    }
+  }, [columnMode, scheduleRedraw, layoutStore]);
 
   // ── sync drawingMode ref & cancel drag when mode turns off ─
   useEffect(() => {
@@ -499,6 +519,33 @@ export default function CADCanvas({
     };
   }, [layoutStore, worldAt, scheduleRedraw]);
 
+  // ── column placement interaction (click to place) ─────────────
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas || !layoutStore) return;
+
+    const onDown = (e) => {
+      if (!columnModeRef.current || e.button !== 0) return;
+      const world = worldAt(e);
+      if (!world) return;
+      e.preventDefault();
+      const snapped = snapPointToGrid(world.x, world.y);
+      const colStore = columnStoreRef.current;
+      const widthM = colStore ? colStore.getDefaultWidth() : 0.4;
+      const depthM = colStore ? colStore.getDefaultDepth() : 0.4;
+      layoutStore.add(createColumnEntity({
+        x: snapped.x,
+        y: snapped.y,
+        widthM,
+        depthM,
+      }));
+      scheduleRedraw();
+    };
+
+    canvas.addEventListener('mousedown', onDown);
+    return () => canvas.removeEventListener('mousedown', onDown);
+  }, [layoutStore, worldAt, scheduleRedraw]);
+
   // ── select mode: click-to-select, rectangle-select, move ──────
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -507,7 +554,7 @@ export default function CADCanvas({
     let didMove = false;
 
     const onDown = (e) => {
-      if (drawingModeRef.current || wallModeRef.current || e.button !== 0) return;
+      if (drawingModeRef.current || wallModeRef.current || columnModeRef.current || e.button !== 0) return;
       const rect = canvas.getBoundingClientRect();
       const sx = e.clientX - rect.left;
       const sy = e.clientY - rect.top;
@@ -672,7 +719,7 @@ export default function CADCanvas({
         ref={canvasRef}
         style={{
           display: 'block',
-          cursor: (drawingMode || wallMode) ? 'cell' : 'crosshair',
+          cursor: (drawingMode || wallMode || columnMode) ? 'cell' : 'crosshair',
           touchAction: 'none',
         }}
       />
@@ -756,6 +803,16 @@ export default function CADCanvas({
         }}>
           Drawing: Wall ({wallMode === 'rect' ? 'Rectangle' : 'Line'})
           {' '}— click &amp; drag to draw · Esc to cancel
+        </div>
+      )}
+      {columnMode && (
+        <div style={{
+          ...drawBannerStyle,
+          background: overlayBanner.bg,
+          borderColor: overlayBanner.border,
+          color: overlayBanner.color,
+        }}>
+          Placing: Column — click to place · Esc to cancel
         </div>
       )}
 

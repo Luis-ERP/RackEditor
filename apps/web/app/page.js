@@ -5,18 +5,24 @@ import EditorPanel from './components/EditorPanel';
 import CADCanvas from './components/CADCanvas';
 import useLayoutStore from './hooks/useLayoutStore';
 import useWallStore from './hooks/useWallStore';
+import useColumnStore from './hooks/useColumnStore';
 
 export default function HomePage() {
   const [drawingMode, setDrawingMode] = useState(false);
   const [darkMode, setDarkMode] = useState(false);
   const [rackOrientation, setRackOrientation] = useState('horizontal');
   const [wallMode, setWallMode] = useState(null); // null | 'line' | 'rect'
+  const [columnMode, setColumnMode] = useState(false);
   const { store, version } = useLayoutStore();
   const { store: wallSt, version: wallVer } = useWallStore();
+  const { store: colSt, version: colVer } = useColumnStore();
 
   const toggleDrawingMode = useCallback(() => {
     setDrawingMode((prev) => {
-      if (!prev) setWallMode(null); // entering rack mode exits wall mode
+      if (!prev) {
+        setWallMode(null);     // entering rack mode exits wall mode
+        setColumnMode(false);  // entering rack mode exits column mode
+      }
       return !prev;
     });
   }, []);
@@ -30,7 +36,19 @@ export default function HomePage() {
     setWallMode((prev) => {
       if (prev === mode) return null;            // toggle off
       setDrawingMode(false);                     // exit rack drawing mode
+      setColumnMode(false);                      // exit column mode
       return mode;
+    });
+  }, []);
+
+  /** Toggle column placement mode. */
+  const handleToggleColumnMode = useCallback(() => {
+    setColumnMode((prev) => {
+      if (!prev) {
+        setDrawingMode(false);                   // exit rack drawing mode
+        setWallMode(null);                       // exit wall mode
+      }
+      return !prev;
     });
   }, []);
 
@@ -40,6 +58,7 @@ export default function HomePage() {
       if (e.key === 'Escape') {
         setDrawingMode(false);
         setWallMode(null);
+        setColumnMode(false);
       }
     };
     window.addEventListener('keydown', onKeyDown);
@@ -60,6 +79,10 @@ export default function HomePage() {
         onSetWallMode={handleSetWallMode}
         wallStore={wallSt}
         wallStoreVersion={wallVer}
+        columnMode={columnMode}
+        onToggleColumnMode={handleToggleColumnMode}
+        columnStore={colSt}
+        columnStoreVersion={colVer}
       />
       <CADCanvas
         drawingMode={drawingMode}
@@ -70,6 +93,8 @@ export default function HomePage() {
         rackOrientation={rackOrientation}
         wallMode={wallMode}
         wallStore={wallSt}
+        columnMode={columnMode}
+        columnStore={colSt}
       />
     </div>
   );

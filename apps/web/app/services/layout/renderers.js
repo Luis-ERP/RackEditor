@@ -261,14 +261,17 @@ function paintColumn(ctx, entity, cam, selected, dk) {
     ctx.strokeRect(cx - hw, cy - hd, hw * 2, hd * 2);
   }
 
-  // Cross-hair in column centre
-  if (hw > 4) {
-    ctx.globalAlpha = 0.5;
+  // Diagonal X cross spanning the full column — standard structural convention
+  if (hw > 2) {
+    ctx.globalAlpha = 0.6;
+    ctx.lineWidth = Math.max(1, Math.min(1.5, hw * 0.08));
     ctx.beginPath();
-    ctx.moveTo(cx - hw * 0.4, cy);
-    ctx.lineTo(cx + hw * 0.4, cy);
-    ctx.moveTo(cx, cy - hd * 0.4);
-    ctx.lineTo(cx, cy + hd * 0.4);
+    // top-left → bottom-right
+    ctx.moveTo(cx - hw, cy - hd);
+    ctx.lineTo(cx + hw, cy + hd);
+    // top-right → bottom-left
+    ctx.moveTo(cx + hw, cy - hd);
+    ctx.lineTo(cx - hw, cy + hd);
     ctx.stroke();
   }
 

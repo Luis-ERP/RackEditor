@@ -21,6 +21,10 @@ export default function EditorPanel({
   onSetWallMode,
   wallStore = null,
   wallStoreVersion,
+  columnMode = false,
+  onToggleColumnMode,
+  columnStore = null,
+  columnStoreVersion,
   children,
 }) {
   const dk = darkMode;
@@ -64,65 +68,6 @@ export default function EditorPanel({
             <span style={{ flex: 1 }}>Rack</span>
             {drawingMode && <span style={badgeStyle}>ACTIVE</span>}
           </button>
-
-          {/* ── Orientation toggle ── */}
-          <div style={{ marginTop: 8 }}>
-            <div style={{
-              fontSize: 10,
-              fontWeight: 600,
-              textTransform: 'uppercase',
-              letterSpacing: '0.06em',
-              color: dk ? '#6b7280' : '#9ca3af',
-              marginBottom: 5,
-              userSelect: 'none',
-            }}>
-              Orientation
-            </div>
-            <div style={{
-              display: 'flex',
-              border: `1px solid ${dk ? '#4b5563' : '#e5e7eb'}`,
-              borderRadius: 7,
-              overflow: 'hidden',
-            }}>
-              {['horizontal', 'vertical'].map((opt) => {
-                const active = rackOrientation === opt;
-                return (
-                  <button
-                    key={opt}
-                    onClick={() => { if (!active) onToggleOrientation(); }}
-                    title={opt === 'horizontal' ? 'Bays extend left–right' : 'Bays extend top–bottom'}
-                    style={{
-                      flex: 1,
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      gap: 5,
-                      padding: '5px 6px',
-                      border: 'none',
-                      borderRight: opt === 'horizontal' ? `1px solid ${dk ? '#4b5563' : '#e5e7eb'}` : 'none',
-                      background: active
-                        ? (dk ? '#1e3a5f' : '#eff6ff')
-                        : (dk ? '#2d2f34' : '#ffffff'),
-                      color: active
-                        ? (dk ? '#93c5fd' : '#1d4ed8')
-                        : (dk ? '#9ca3af' : '#6b7280'),
-                      cursor: active ? 'default' : 'pointer',
-                      fontSize: 11,
-                      fontWeight: active ? 600 : 400,
-                      transition: 'all 0.12s',
-                      userSelect: 'none',
-                    }}
-                  >
-                    {opt === 'horizontal'
-                      ? <HorizontalRackIcon size={16} />
-                      : <VerticalRackIcon size={16} />
-                    }
-                    {opt === 'horizontal' ? 'H' : 'V'}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
 
           {/* ── Wall tools ── */}
           <div style={{ marginTop: 14 }}>
@@ -172,6 +117,43 @@ export default function EditorPanel({
             </div>
 
           </div>
+
+          {/* ── Column tool ── */}
+          <div style={{ marginTop: 14 }}>
+            <div style={{
+              fontSize: 10,
+              fontWeight: 600,
+              textTransform: 'uppercase',
+              letterSpacing: '0.06em',
+              color: dk ? '#6b7280' : '#9ca3af',
+              marginBottom: 5,
+              userSelect: 'none',
+            }}>
+              Columns
+            </div>
+            <button
+              onClick={onToggleColumnMode}
+              style={{
+                ...wallBtnStyle,
+                width: '100%',
+                background: columnMode
+                  ? (dk ? '#1e3a5f' : '#eff6ff')
+                  : (dk ? '#2d2f34' : '#ffffff'),
+                borderColor: columnMode
+                  ? '#3b82f6'
+                  : (dk ? '#4b5563' : '#e5e7eb'),
+                color: columnMode
+                  ? (dk ? '#93c5fd' : '#1d4ed8')
+                  : (dk ? '#d1d5db' : '#374151'),
+                ...(columnMode ? { boxShadow: '0 0 0 2px rgba(59,130,246,0.2)' } : {}),
+              }}
+              title="Click to enter column placement mode, then click on the canvas"
+            >
+              <ColumnIcon size={16} />
+              <span style={{ flex: 1, textAlign: 'left' }}>Column</span>
+              {columnMode && <span style={badgeStyle}>ACTIVE</span>}
+            </button>
+          </div>
         </div>
       </div>
 
@@ -186,6 +168,13 @@ export default function EditorPanel({
           borderBottomColor: dk ? '#2d2f34' : '#f3f4f6',
         }}>Editor</div>
         <div style={sectionBodyStyle}>
+          {drawingMode && (
+            <OrientationToggle
+              rackOrientation={rackOrientation}
+              onToggleOrientation={onToggleOrientation}
+              darkMode={dk}
+            />
+          )}
           <TransformPanel
             layoutStore={layoutStore}
             layoutVersion={layoutVersion}
@@ -198,6 +187,18 @@ export default function EditorPanel({
               darkMode={dk}
             />
           )}
+          {columnMode && (
+            <ColumnDimensionControl
+              columnStore={columnStore}
+              columnStoreVersion={columnStoreVersion}
+              darkMode={dk}
+            />
+          )}
+          <ColumnEntityEditor
+            layoutStore={layoutStore}
+            layoutVersion={layoutVersion}
+            darkMode={dk}
+          />
         </div>
       </div>
 
@@ -477,6 +478,70 @@ const wallBtnStyle = {
   userSelect: 'none',
 };
 
+// ── OrientationToggle ──────────────────────────────────────────
+function OrientationToggle({ rackOrientation, onToggleOrientation, darkMode }) {
+  const dk = darkMode;
+  return (
+    <div style={{ marginBottom: 10 }}>
+      <div style={{
+        fontSize: 10,
+        fontWeight: 600,
+        textTransform: 'uppercase',
+        letterSpacing: '0.06em',
+        color: dk ? '#6b7280' : '#9ca3af',
+        marginBottom: 5,
+        userSelect: 'none',
+      }}>
+        Orientation
+      </div>
+      <div style={{
+        display: 'flex',
+        border: `1px solid ${dk ? '#4b5563' : '#e5e7eb'}`,
+        borderRadius: 7,
+        overflow: 'hidden',
+      }}>
+        {['horizontal', 'vertical'].map((opt) => {
+          const active = rackOrientation === opt;
+          return (
+            <button
+              key={opt}
+              onClick={() => { if (!active) onToggleOrientation(); }}
+              title={opt === 'horizontal' ? 'Bays extend left–right' : 'Bays extend top–bottom'}
+              style={{
+                flex: 1,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 5,
+                padding: '5px 6px',
+                border: 'none',
+                borderRight: opt === 'horizontal' ? `1px solid ${dk ? '#4b5563' : '#e5e7eb'}` : 'none',
+                background: active
+                  ? (dk ? '#1e3a5f' : '#eff6ff')
+                  : (dk ? '#2d2f34' : '#ffffff'),
+                color: active
+                  ? (dk ? '#93c5fd' : '#1d4ed8')
+                  : (dk ? '#9ca3af' : '#6b7280'),
+                cursor: active ? 'default' : 'pointer',
+                fontSize: 11,
+                fontWeight: active ? 600 : 400,
+                transition: 'all 0.12s',
+                userSelect: 'none',
+              }}
+            >
+              {opt === 'horizontal'
+                ? <HorizontalRackIcon size={16} />
+                : <VerticalRackIcon size={16} />
+              }
+              {opt === 'horizontal' ? 'H' : 'V'}
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 // ── Orientation icons ──────────────────────────────────────────
 function HorizontalRackIcon({ size = 16 }) {
   return (
@@ -599,6 +664,211 @@ function WallThicknessControl({ wallStore, wallStoreVersion, darkMode }) {
           fontSize: 10,
           color: textMuted,
           paddingRight: 8,
+          userSelect: 'none',
+          flexShrink: 0,
+        }}>m</span>
+      </div>
+    </div>
+  );
+}
+
+// ── ColumnIcon ─────────────────────────────────────────────────
+function ColumnIcon({ size = 16 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 16 16" fill="none">
+      <rect x="3" y="3" width="10" height="10" rx="1" stroke="currentColor" strokeWidth="1.5" />
+      <line x1="3" y1="3"  x2="13" y2="13" stroke="currentColor" strokeWidth="1" />
+      <line x1="13" y1="3" x2="3"  y2="13" stroke="currentColor" strokeWidth="1" />
+    </svg>
+  );
+}
+
+// ── ColumnDimensionControl ─────────────────────────────────────
+// Shown when column placement mode is active — set default width/depth
+// for newly placed columns.
+function ColumnDimensionControl({ columnStore, columnStoreVersion, darkMode }) {
+  const dk = darkMode;
+  const currentW = columnStore ? columnStore.getDefaultWidth() : 0.4;
+  const currentD = columnStore ? columnStore.getDefaultDepth() : 0.4;
+  const [wVal, setWVal] = useState(String(currentW));
+  const [dVal, setDVal] = useState(String(currentD));
+
+  useEffect(() => {
+    if (columnStore) {
+      setWVal(String(columnStore.getDefaultWidth()));
+      setDVal(String(columnStore.getDefaultDepth()));
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [columnStoreVersion, columnStore]);
+
+  const commitW = useCallback(() => {
+    if (!columnStore) return;
+    const num = parseFloat(wVal);
+    if (!isNaN(num) && num > 0 && num <= 5) {
+      columnStore.setDefaultWidth(num);
+    } else {
+      setWVal(String(columnStore.getDefaultWidth()));
+    }
+  }, [columnStore, wVal]);
+
+  const commitD = useCallback(() => {
+    if (!columnStore) return;
+    const num = parseFloat(dVal);
+    if (!isNaN(num) && num > 0 && num <= 5) {
+      columnStore.setDefaultDepth(num);
+    } else {
+      setDVal(String(columnStore.getDefaultDepth()));
+    }
+  }, [columnStore, dVal]);
+
+  const textMuted  = dk ? '#6b7280' : '#9ca3af';
+  const inputBg    = dk ? '#2d2f34' : '#f9fafb';
+  const inputColor = dk ? '#e5e7eb' : '#111827';
+  const border     = dk ? '#374151' : '#e5e7eb';
+
+  return (
+    <div style={{ marginTop: 8 }}>
+      <div style={{
+        fontSize: 10,
+        fontWeight: 600,
+        textTransform: 'uppercase',
+        letterSpacing: '0.06em',
+        color: textMuted,
+        marginBottom: 4,
+        userSelect: 'none',
+      }}>
+        Default Column Size
+      </div>
+      <div style={{ display: 'flex', gap: 8 }}>
+        <DimInput label="W" value={wVal} onChange={setWVal} onBlur={commitW}
+          inputBg={inputBg} inputColor={inputColor} border={border} labelColor={textMuted} />
+        <DimInput label="D" value={dVal} onChange={setDVal} onBlur={commitD}
+          inputBg={inputBg} inputColor={inputColor} border={border} labelColor={textMuted} />
+      </div>
+    </div>
+  );
+}
+
+// ── ColumnEntityEditor ─────────────────────────────────────────
+// Shown when a COLUMN entity is selected — allows editing width/depth
+// of the placed column.
+function ColumnEntityEditor({ layoutStore, layoutVersion, darkMode }) {
+  const dk = darkMode;
+
+  const selCount  = layoutStore ? layoutStore.selectionCount() : 0;
+  const selected  = layoutStore ? layoutStore.getSelectedEntities() : [];
+  const singleEnt = selCount === 1 ? selected[0] : null;
+  const isColumn  = singleEnt?.type === 'COLUMN';
+
+  const [wVal, setWVal] = useState('');
+  const [dVal, setDVal] = useState('');
+
+  useEffect(() => {
+    if (isColumn) {
+      setWVal(fmt(singleEnt.widthM));
+      setDVal(fmt(singleEnt.depthM));
+    } else {
+      setWVal('');
+      setDVal('');
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isColumn, singleEnt?.id, singleEnt?.widthM, singleEnt?.depthM, layoutVersion]);
+
+  const commitW = useCallback(() => {
+    if (!isColumn || !layoutStore) return;
+    const num = parseFloat(wVal);
+    if (!isNaN(num) && num > 0 && num <= 5) {
+      layoutStore.update(singleEnt.id, { widthM: num });
+    } else {
+      setWVal(fmt(singleEnt.widthM));
+    }
+  }, [isColumn, layoutStore, singleEnt, wVal]);
+
+  const commitD = useCallback(() => {
+    if (!isColumn || !layoutStore) return;
+    const num = parseFloat(dVal);
+    if (!isNaN(num) && num > 0 && num <= 5) {
+      layoutStore.update(singleEnt.id, { depthM: num });
+    } else {
+      setDVal(fmt(singleEnt.depthM));
+    }
+  }, [isColumn, layoutStore, singleEnt, dVal]);
+
+  if (!isColumn) return null;
+
+  const textMuted  = dk ? '#6b7280' : '#9ca3af';
+  const inputBg    = dk ? '#2d2f34' : '#f9fafb';
+  const inputColor = dk ? '#e5e7eb' : '#111827';
+  const border     = dk ? '#374151' : '#e5e7eb';
+
+  return (
+    <div style={{ marginTop: 12 }}>
+      <div style={{
+        fontSize: 11,
+        fontWeight: 600,
+        textTransform: 'uppercase',
+        letterSpacing: '0.05em',
+        color: textMuted,
+        marginBottom: 8,
+      }}>
+        Column Size
+      </div>
+      <div style={{ display: 'flex', gap: 8 }}>
+        <DimInput label="Width" value={wVal} onChange={setWVal} onBlur={commitW}
+          inputBg={inputBg} inputColor={inputColor} border={border} labelColor={textMuted} />
+        <DimInput label="Depth" value={dVal} onChange={setDVal} onBlur={commitD}
+          inputBg={inputBg} inputColor={inputColor} border={border} labelColor={textMuted} />
+      </div>
+    </div>
+  );
+}
+
+// ── Shared dimension input ─────────────────────────────────────
+function DimInput({ label, value, onChange, onBlur, inputBg, inputColor, border, labelColor }) {
+  return (
+    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 3 }}>
+      <label style={{
+        fontSize: 10,
+        fontWeight: 600,
+        textTransform: 'uppercase',
+        letterSpacing: '0.06em',
+        color: labelColor,
+        userSelect: 'none',
+      }}>{label}</label>
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        border: `1px solid ${border}`,
+        borderRadius: 6,
+        overflow: 'hidden',
+        background: inputBg,
+      }}>
+        <input
+          type="number"
+          step="0.05"
+          min="0.05"
+          max="5"
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          onBlur={onBlur}
+          onKeyDown={(e) => { if (e.key === 'Enter') { onBlur(); e.target.blur(); } }}
+          style={{
+            flex: 1,
+            border: 'none',
+            outline: 'none',
+            background: 'transparent',
+            color: inputColor,
+            fontSize: 12,
+            fontFamily: 'monospace',
+            fontWeight: 500,
+            padding: '5px 8px',
+            width: 0,
+          }}
+        />
+        <span style={{
+          fontSize: 10,
+          color: labelColor,
+          paddingRight: 6,
           userSelect: 'none',
           flexShrink: 0,
         }}>m</span>
