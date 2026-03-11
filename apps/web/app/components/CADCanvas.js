@@ -2,6 +2,7 @@
 
 import { useRef, useEffect, useCallback, useState } from 'react';
 import { ZoomIn, ZoomOut, Maximize, XCircle, Trash2, Copy, Moon, Sun, ArrowUp, ArrowDown, ArrowLeft, ArrowRight } from 'lucide-react';
+import DrawingToolbar from './DrawingToolbar';
 
 import {
   MIN_ZOOM,
@@ -50,6 +51,9 @@ export default function CADCanvas(props) {
     wallStore = null,     // WallStore instance (from useWallStore)
     columnMode = false,   // true when placing columns
     columnStore = null,   // ColumnStore instance (from useColumnStore)
+    onToggleDrawingMode,  // toggle rack drawing mode
+    onSetWallMode,        // set wall mode ('rect' | 'line')
+    onToggleColumnMode,   // toggle column placement mode
     // rackDomainRef is accessed via props below
   } = props;
   const wrapperRef = useRef(null);
@@ -100,6 +104,100 @@ export default function CADCanvas(props) {
   const lastClickInfoRef = useRef(null);   // { entityId, time } for double-click detection
   const onSubSelChangeRef = useRef(props.onSubSelChange);
 
+  const roundMetric = useCallback((value) => Number(value.toFixed(3)), []);
+
+  const describeEntitySemantics = useCallback((entity, selected = false) => {
+    const base = {
+      id: entity.id,
+      type: entity.type,
+      semanticRole: entity.type.toLowerCase(),
+      label: entity.label || null,
+      selected,
+      visible: entity.visible,
+      locked: entity.locked,
+      positionM: {
+        x: roundMetric(entity.transform.x),
+        y: roundMetric(entity.transform.y),
+      },
+      rotationDeg: roundMetric(entity.transform.rotation),
+    };
+
+    switch (entity.type) {
+      case 'RACK_MODULE':
+      case 'RACK_LINE': {
+        const domain = rackDomainRef.current.get(entity.domainId);
+        const firstBay = domain?.bays?.[0] ?? null;
+        return {
+          ...base,
+          semanticRole: entity.type === 'RACK_MODULE' ? 'rack-module' : 'rack-line',
+          domainId: entity.domainId,
+          bayCount: entity.bayCount ?? domain?.bays?.length ?? domain?.totalBayCount ?? null,
+          widthM: roundMetric(entity.widthM),
+          depthM: roundMetric(entity.depthM),
+          orientation: entity.transform.rotation === 90 ? 'vertical' : 'horizontal',
+          rack: domain ? {
+            id: domain.id,
+            frameCount: domain.frameCount ?? domain.totalFrameCount ?? null,
+            startFrameIndex: domain.startFrameIndex ?? null,
+            endFrameIndex: domain.endFrameIndex ?? null,
+            levelCount: domain.levelUnion?.length ?? null,
+            rowConfiguration: domain.rowConfiguration ?? null,
+            levelMode: domain.levelMode ?? null,
+            backToBackConfig: domain.backToBackConfig ?? null,
+            accessoryIds: domain.accessoryIds ?? firstBay?.accessoryIds ?? [],
+            frameSpec: domain.frameSpec ? {
+              id: domain.frameSpec.id,
+              heightIn: domain.frameSpec.heightIn,
+              depthIn: domain.frameSpec.depthIn,
+              gauge: domain.frameSpec.gauge,
+              capacityClass: domain.frameSpec.capacityClass,
+              uprightSeries: domain.frameSpec.uprightSeries,
+              basePlateType: domain.frameSpec.basePlateType ?? null,
+            } : null,
+            beamSpec: firstBay?.beamSpec ? {
+              id: firstBay.beamSpec.id,
+              lengthIn: firstBay.beamSpec.lengthIn,
+              capacityLbPair: firstBay.beamSpec.capacityLbPair,
+              series: firstBay.beamSpec.series ?? null,
+            } : null,
+          } : null,
+        };
+      }
+      case 'WALL':
+        return {
+          ...base,
+          semanticRole: 'wall-segment',
+          lengthM: roundMetric(entity.lengthM),
+          thicknessM: roundMetric(entity.thicknessM),
+        };
+      case 'COLUMN':
+        return {
+          ...base,
+          semanticRole: 'structural-column',
+          widthM: roundMetric(entity.widthM),
+          depthM: roundMetric(entity.depthM),
+          shape: entity.shape,
+        };
+      case 'TEXT_NOTE':
+        return {
+          ...base,
+          semanticRole: 'text-note',
+          text: entity.text,
+          fontSizeM: roundMetric(entity.fontSizeM),
+        };
+      default:
+        return base;
+    }
+  }, [rackDomainRef, roundMetric]);
+
+  const logDrawnObjectSemantics = useCallback(() => {
+    if (!layoutStore) return;
+    const selection = layoutStore.getSelection();
+    const visibleEntities = layoutStore.getAll().filter((entity) => entity.visible);
+    const semantics = visibleEntities.map((entity) => describeEntitySemantics(entity, selection.has(entity.id)));
+    console.log('[CADCanvas] Drawn object semantics', semantics);
+  }, [describeEntitySemantics, layoutStore]);
+
   // ── draw (reads entities from the store) ─────────────────────
   const draw = useCallback(() => {
     const canvas = canvasRef.current;
@@ -114,6 +212,7 @@ export default function CADCanvas(props) {
     // paint all layout entities via the central store + renderers
     if (layoutStore) {
       paintAllEntities(ctx, layoutStore, cam, dk, subSelRef.current);
+      logDrawnObjectSemantics();
     }
 
     // wall-drawing preview (ghost shape during drag)
@@ -125,7 +224,7 @@ export default function CADCanvas(props) {
     drawTopRuler(ctx, w, cam, dk);
     drawLeftRuler(ctx, h, cam, dk);
     drawCornerPatch(ctx, dk);
-  }, [layoutStore]);
+  }, [layoutStore, logDrawnObjectSemantics]);
 
   // ── animation loop ────────────────────────────────────────────
   const scheduleRedraw = useCallback(() => {
@@ -1108,6 +1207,18 @@ export default function CADCanvas(props) {
           Bay {subSel.bayIndex + 1} of {subSel.bayCount} selected — Delete to remove · Esc to cancel
         </div>
       )}
+
+      {/* ── floating drawing toolbar (bottom-centre, Figma-style) ── */}
+      <DrawingToolbar
+        drawingMode={drawingMode}
+        onToggleDrawingMode={onToggleDrawingMode}
+        wallMode={wallMode}
+        onSetWallMode={onSetWallMode}
+        columnMode={columnMode}
+        onToggleColumnMode={onToggleColumnMode}
+        darkMode={dk}
+        disabled={!!subSel}
+      />
 
       {/* ── cursor coordinate HUD (bottom-left of canvas area) ── */}
       <div style={{

@@ -18,21 +18,17 @@ export const PANEL_WIDTH = 320; // px – fixed width
 
 export default function EditorPanel({
   drawingMode,
-  onToggleDrawingMode,
   darkMode = false,
   layoutStore,
   layoutVersion,
   rackOrientation = 'horizontal',
   onToggleOrientation,
   wallMode = null,
-  onSetWallMode,
   wallStore = null,
   wallStoreVersion,
   columnMode = false,
-  onToggleColumnMode,
   columnStore = null,
   columnStoreVersion,
-  onExportDXF,
   rackDomainRef,
   subSelActive = false,
   children,
@@ -98,13 +94,8 @@ export default function EditorPanel({
 
       {/* ── Edition view ─────────────────────────────────────── */}
       {activeView === 'edition' && (<>
-      {/* ── Section 1: Object Picker ─────────────────────────── */}
-      <div style={pickerSectionStyle}>
-        <div style={{
-          ...sectionHeaderStyle,
-          color: dk ? '#9ca3af' : '#6b7280',
-          borderBottomColor: dk ? '#2d2f34' : '#f3f4f6',
-        }}>Objects</div>
+      {/* ── Section: Object Editor ───────────────────────────── */}
+      <div style={editorSectionStyle}>
         {subSelActive && (
           <div style={{
             margin: '8px 10px 0',
@@ -117,164 +108,9 @@ export default function EditorPanel({
             fontWeight: 500,
             lineHeight: 1.4,
           }}>
-            Bay sub-selected — use the canvas toolbar to delete it. Other tools are disabled.
+            Bay sub-selected — use the canvas toolbar to delete it.
           </div>
         )}
-        <div style={{ ...sectionBodyStyle, ...(subSelActive ? { opacity: 0.4, pointerEvents: 'none' } : {}) }}>
-          <button
-            onClick={onToggleDrawingMode}
-            style={{
-              ...rackBtnStyle,
-              background: drawingMode
-                ? (dk ? '#1e3a5f' : '#eff6ff')
-                : (dk ? '#2d2f34' : '#ffffff'),
-              borderColor: drawingMode
-                ? '#3b82f6'
-                : (dk ? '#4b5563' : '#e5e7eb'),
-              color: drawingMode
-                ? (dk ? '#93c5fd' : '#1d4ed8')
-                : (dk ? '#d1d5db' : '#374151'),
-              ...(drawingMode ? { boxShadow: '0 0 0 2px rgba(59,130,246,0.2)' } : {}),
-            }}
-            title="Click to enter rack drawing mode, then click & drag on the canvas"
-          >
-            {/* simple rack icon */}
-            <svg width="20" height="20" viewBox="0 0 20 20" fill="none" style={{ flexShrink: 0 }}>
-              <rect x="2" y="2" width="16" height="16" rx="2" stroke="currentColor" strokeWidth="1.5" />
-              <line x1="2" y1="7"  x2="18" y2="7"  stroke="currentColor" strokeWidth="1" />
-              <line x1="2" y1="13" x2="18" y2="13" stroke="currentColor" strokeWidth="1" />
-            </svg>
-            <span style={{ flex: 1 }}>Rack</span>
-            {drawingMode && <span style={badgeStyle}>ACTIVE</span>}
-          </button>
-
-          {/* ── Wall tools ── */}
-          <div style={{ marginTop: 14 }}>
-            <div style={{
-              fontSize: 10,
-              fontWeight: 600,
-              textTransform: 'uppercase',
-              letterSpacing: '0.06em',
-              color: dk ? '#6b7280' : '#9ca3af',
-              marginBottom: 5,
-              userSelect: 'none',
-            }}>
-              Walls
-            </div>
-            <div style={{ display: 'flex', gap: 6 }}>
-              {['rect', 'line'].map((mode) => {
-                const active = wallMode === mode;
-                const label = mode === 'rect' ? 'Rectangle' : 'Line';
-                return (
-                  <button
-                    key={mode}
-                    onClick={() => onSetWallMode?.(mode)}
-                    style={{
-                      ...wallBtnStyle,
-                      background: active
-                        ? (dk ? '#1e3a5f' : '#eff6ff')
-                        : (dk ? '#2d2f34' : '#ffffff'),
-                      borderColor: active
-                        ? '#3b82f6'
-                        : (dk ? '#4b5563' : '#e5e7eb'),
-                      color: active
-                        ? (dk ? '#93c5fd' : '#1d4ed8')
-                        : (dk ? '#d1d5db' : '#374151'),
-                      ...(active ? { boxShadow: '0 0 0 2px rgba(59,130,246,0.2)' } : {}),
-                    }}
-                    title={`Draw walls in ${label.toLowerCase()} mode`}
-                  >
-                    {mode === 'rect'
-                      ? <WallRectIcon size={16} />
-                      : <WallLineIcon size={16} />
-                    }
-                    <span style={{ flex: 1, textAlign: 'left' }}>{label}</span>
-                    {active && <span style={badgeStyle}>ACTIVE</span>}
-                  </button>
-                );
-              })}
-            </div>
-
-          </div>
-
-          {/* ── Column tool ── */}
-          <div style={{ marginTop: 14 }}>
-            <div style={{
-              fontSize: 10,
-              fontWeight: 600,
-              textTransform: 'uppercase',
-              letterSpacing: '0.06em',
-              color: dk ? '#6b7280' : '#9ca3af',
-              marginBottom: 5,
-              userSelect: 'none',
-            }}>
-              Columns
-            </div>
-            <button
-              onClick={onToggleColumnMode}
-              style={{
-                ...wallBtnStyle,
-                width: '100%',
-                background: columnMode
-                  ? (dk ? '#1e3a5f' : '#eff6ff')
-                  : (dk ? '#2d2f34' : '#ffffff'),
-                borderColor: columnMode
-                  ? '#3b82f6'
-                  : (dk ? '#4b5563' : '#e5e7eb'),
-                color: columnMode
-                  ? (dk ? '#93c5fd' : '#1d4ed8')
-                  : (dk ? '#d1d5db' : '#374151'),
-                ...(columnMode ? { boxShadow: '0 0 0 2px rgba(59,130,246,0.2)' } : {}),
-              }}
-              title="Click to enter column placement mode, then click on the canvas"
-            >
-              <ColumnIcon size={16} />
-              <span style={{ flex: 1, textAlign: 'left' }}>Column</span>
-              {columnMode && <span style={badgeStyle}>ACTIVE</span>}
-            </button>
-          </div>
-
-          {/* ── Export ── */}
-          {/* <div style={{ marginTop: 20, paddingTop: 14, borderTop: `1px solid ${dk ? '#2d2f34' : '#f3f4f6'}` }}>
-            <div style={{
-              fontSize: 10,
-              fontWeight: 600,
-              textTransform: 'uppercase',
-              letterSpacing: '0.06em',
-              color: dk ? '#6b7280' : '#9ca3af',
-              marginBottom: 5,
-              userSelect: 'none',
-            }}>
-              Export
-            </div>
-            <button
-              onClick={onExportDXF}
-              style={{
-                ...wallBtnStyle,
-                width: '100%',
-                background: dk ? '#2d2f34' : '#ffffff',
-                borderColor: dk ? '#4b5563' : '#e5e7eb',
-                color: dk ? '#d1d5db' : '#374151',
-              }}
-              title="Export layout as AutoCAD DXF file"
-            >
-              <DXFIcon size={16} />
-              <span style={{ flex: 1, textAlign: 'left' }}>Export DXF</span>
-            </button>
-          </div> */}
-        </div>
-      </div>
-
-      {/* ── Resizable divider ────────────────────────────────── */}
-      <div style={{ ...dividerStyle, background: dk ? '#374151' : '#e5e7eb' }} />
-
-      {/* ── Section 2: Object Editor ───────────────────────── */}
-      <div style={editorSectionStyle}>
-        <div style={{
-          ...sectionHeaderStyle,
-          color: dk ? '#9ca3af' : '#6b7280',
-          borderBottomColor: dk ? '#2d2f34' : '#f3f4f6',
-        }}>Editor</div>
         <div style={sectionBodyStyle}>
           {drawingMode && (
             <OrientationToggle
@@ -791,13 +627,6 @@ const panelStyle = {
   zIndex: 20,
 };
 
-const pickerSectionStyle = {
-  flex: '0 0 45%',
-  display: 'flex',
-  flexDirection: 'column',
-  overflow: 'hidden',
-};
-
 const editorSectionStyle = {
   flex: 1,
   display: 'flex',
@@ -820,46 +649,6 @@ const sectionBodyStyle = {
   flex: 1,
   overflow: 'auto',
   padding: 12,
-};
-
-const dividerStyle = {
-  height: 1,
-  background: '#e5e7eb',
-  flexShrink: 0,
-};
-
-const rackBtnStyle = {
-  display: 'flex',
-  alignItems: 'center',
-  gap: 8,
-  width: '100%',
-  padding: '8px 10px',
-  border: '1px solid #e5e7eb',
-  borderRadius: 8,
-  background: '#ffffff',
-  fontSize: 13,
-  fontWeight: 500,
-  color: '#374151',
-  cursor: 'pointer',
-  transition: 'all 0.15s',
-  userSelect: 'none',
-};
-
-const wallBtnStyle = {
-  display: 'flex',
-  alignItems: 'center',
-  gap: 6,
-  flex: 1,
-  padding: '7px 8px',
-  border: '1px solid #e5e7eb',
-  borderRadius: 8,
-  background: '#ffffff',
-  fontSize: 12,
-  fontWeight: 500,
-  color: '#374151',
-  cursor: 'pointer',
-  transition: 'all 0.15s',
-  userSelect: 'none',
 };
 
 // ── OrientationToggle ──────────────────────────────────────────
@@ -947,33 +736,6 @@ function VerticalRackIcon({ size = 16 }) {
   );
 }
 
-const badgeStyle = {
-  fontSize: 9,
-  fontWeight: 700,
-  letterSpacing: '0.05em',
-  color: '#ffffff',
-  background: '#3b82f6',
-  borderRadius: 4,
-  padding: '1px 5px',
-};
-
-// ── Wall icons ─────────────────────────────────────────────────
-function WallRectIcon({ size = 16 }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 16 16" fill="none">
-      <rect x="2" y="2" width="12" height="12" rx="1" stroke="currentColor" strokeWidth="2" />
-    </svg>
-  );
-}
-
-function WallLineIcon({ size = 16 }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 16 16" fill="none">
-      <line x1="2" y1="14" x2="14" y2="2" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" />
-    </svg>
-  );
-}
-
 // ── WallThicknessControl ───────────────────────────────────────
 function WallThicknessControl({ wallStore, wallStoreVersion, darkMode }) {
   const dk = darkMode;
@@ -1053,31 +815,6 @@ function WallThicknessControl({ wallStore, wallStoreVersion, darkMode }) {
         }}>m</span>
       </div>
     </div>
-  );
-}
-
-// ── DXFIcon ────────────────────────────────────────────────────
-function DXFIcon({ size = 16 }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 16 16" fill="none">
-      <rect x="2" y="1" width="9" height="12" rx="1" stroke="currentColor" strokeWidth="1.2" />
-      <path d="M8 1v4h4" stroke="currentColor" strokeWidth="1.2" strokeLinejoin="round" />
-      <line x1="4" y1="7"  x2="9"  y2="7"  stroke="currentColor" strokeWidth="1" />
-      <line x1="4" y1="9"  x2="9"  y2="9"  stroke="currentColor" strokeWidth="1" />
-      <line x1="4" y1="11" x2="7"  y2="11" stroke="currentColor" strokeWidth="1" />
-      <path d="M10 11l2 2-2 2" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  );
-}
-
-// ── ColumnIcon ─────────────────────────────────────────────────
-function ColumnIcon({ size = 16 }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 16 16" fill="none">
-      <rect x="3" y="3" width="10" height="10" rx="1" stroke="currentColor" strokeWidth="1.5" />
-      <line x1="3" y1="3"  x2="13" y2="13" stroke="currentColor" strokeWidth="1" />
-      <line x1="13" y1="3" x2="3"  y2="13" stroke="currentColor" strokeWidth="1" />
-    </svg>
   );
 }
 

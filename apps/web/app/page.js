@@ -78,21 +78,17 @@ export default function HomePage() {
     <div style={{ display: 'flex', width: '100vw', height: '100vh', overflow: 'hidden' }}>
       <EditorPanel
         drawingMode={drawingMode}
-        onToggleDrawingMode={toggleDrawingMode}
         darkMode={darkMode}
         layoutStore={store}
         layoutVersion={version}
         rackOrientation={rackOrientation}
         onToggleOrientation={() => setRackOrientation((o) => o === 'horizontal' ? 'vertical' : 'horizontal')}
         wallMode={wallMode}
-        onSetWallMode={handleSetWallMode}
         wallStore={wallSt}
         wallStoreVersion={wallVer}
         columnMode={columnMode}
-        onToggleColumnMode={handleToggleColumnMode}
         columnStore={colSt}
         columnStoreVersion={colVer}
-        onExportDXF={handleExportDXF}
         rackDomainRef={rackDomainRef}
         subSelActive={subSel !== null}
       />
@@ -109,6 +105,9 @@ export default function HomePage() {
         columnStore={colSt}
         rackDomainRef={rackDomainRef}
         onSubSelChange={setSubSel}
+        onToggleDrawingMode={toggleDrawingMode}
+        onSetWallMode={handleSetWallMode}
+        onToggleColumnMode={handleToggleColumnMode}
       />
     </div>
   );
