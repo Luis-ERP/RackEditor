@@ -144,9 +144,6 @@ function ModuleEditorInner({ entity, domain, layoutStore, rackDomainRef, darkMod
 
   return (
     <div style={{ color: c.text, fontSize: 12 }}>
-      {/* ── Header ─────────────────────────────────────────────────────── */}
-      <SectionHeader dk={dk} c={c} label="Rack Module" badge={`${draft.bayCount} bay${draft.bayCount !== 1 ? 's' : ''}`} />
-
       {/* ── Validation Banner ───────────────────────────────────────────── */}
       <ValidationBanner validation={validation} dk={dk} c={c} />
 
