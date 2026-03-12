@@ -569,6 +569,23 @@ export default function CADCanvas(props) {
     return layoutStore.subscribe(check);
   }, [subSel, layoutStore]);
 
+  // ── Delete / Backspace to remove selected or sub-selected ─────
+  useEffect(() => {
+    const onKey = (e) => {
+      if (e.key !== 'Delete' && e.key !== 'Backspace') return;
+      // Only active in selection mode (no drawing / wall / column mode)
+      if (drawingModeRef.current || wallModeRef.current || columnModeRef.current) return;
+      e.preventDefault();
+      if (subSelRef.current) {
+        handleDeleteSubSelected();
+      } else if (layoutStore && layoutStore.selectionCount() > 0) {
+        layoutStore.removeSelected();
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [layoutStore, handleDeleteSubSelected]);
+
   // ── rack drawing interactions (mousedown / move / up) ─────────
   useEffect(() => {
     const canvas = canvasRef.current;
