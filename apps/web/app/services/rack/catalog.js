@@ -56,12 +56,12 @@ export const DEFAULT_BEAM_SPEC = createBeamSpec({
 });
 
 // ── Default Beam Level Configuration ────────────────────────────────────────
-//  3 levels on a 144" frame at 2" hole spacing:
-//    Level 0 → hole 1  → elevation   2" (just off the floor)
-//    Level 1 → hole 27 → elevation  54" (~48" clear above level 0 + 4" beam)
-//    Level 2 → hole 51 → elevation 102" (~48" clear above level 1 + 4" beam)
+//  3 levels evenly distributed across a 144" frame (1/4, 2/4, 3/4 of height):
+//    Level 0 → hole 18 → elevation  36" (1/4 × 144")
+//    Level 1 → hole 36 → elevation  72" (2/4 × 144")
+//    Level 2 → hole 54 → elevation 108" (3/4 × 144")
 
-export const DEFAULT_HOLE_INDICES = [1, 27, 51];
+export const DEFAULT_HOLE_INDICES = [18, 36, 54];
 
 // ── Derived Layout Dimensions ────────────────────────────────────────────────
 

@@ -652,14 +652,24 @@ export default function CADCanvas(props) {
       const hasPrev = !!(prevEnt && prevMod);
       const hasNext = !!(nextEnt && nextMod);
 
+      /** Extract hole indices from an existing module's levelUnion. */
+      const modHoleIndices = (mod) => mod.levelUnion.map((l) => l.holeIndex);
+
+      /** True if two modules share the same frame spec (same depth, height, capacity). */
+      const frameSpecsMatch = (a, b) => a.frameSpec.id === b.frameSpec.id;
+
       if (hasPrev && hasNext && prevInfo.entityId !== nextInfo.entityId) {
         // ── MERGE: new bay bridges two separate entities ──────────
+        // Only merge if both racks have identical frame specs; otherwise place independently.
+        if (!frameSpecsMatch(prevMod, nextMod)) {
+          return false; // Incompatible specs — refuse to place here
+        }
         const totalBays = prevMod.bays.length + 1 + nextMod.bays.length;
         const newMod = buildRackModule({
-          frameSpec:   DEFAULT_FRAME_SPEC,
-          beamSpec:    DEFAULT_BEAM_SPEC,
+          frameSpec:   prevMod.frameSpec,
+          beamSpec:    prevMod.bays[0].beamSpec,
           bayCount:    totalBays,
-          holeIndices: DEFAULT_HOLE_INDICES,
+          holeIndices: modHoleIndices(prevMod),
         });
         rackDomainRef.current.delete(prevEnt.domainId);
         rackDomainRef.current.delete(nextEnt.domainId);
@@ -688,10 +698,10 @@ export default function CADCanvas(props) {
         // ── Extend prev entity forward (right / down) ────────────
         const newBayCount = prevMod.bays.length + 1;
         const newMod = buildRackModule({
-          frameSpec:   DEFAULT_FRAME_SPEC,
-          beamSpec:    DEFAULT_BEAM_SPEC,
+          frameSpec:   prevMod.frameSpec,
+          beamSpec:    prevMod.bays[0].beamSpec,
           bayCount:    newBayCount,
-          holeIndices: DEFAULT_HOLE_INDICES,
+          holeIndices: modHoleIndices(prevMod),
         });
         rackDomainRef.current.delete(prevEnt.domainId);
         rackDomainRef.current.set(newMod.id, newMod);
@@ -715,10 +725,10 @@ export default function CADCanvas(props) {
         // ── Extend next entity backward (left / up) ──────────────
         const newBayCount = nextMod.bays.length + 1;
         const newMod = buildRackModule({
-          frameSpec:   DEFAULT_FRAME_SPEC,
-          beamSpec:    DEFAULT_BEAM_SPEC,
+          frameSpec:   nextMod.frameSpec,
+          beamSpec:    nextMod.bays[0].beamSpec,
           bayCount:    newBayCount,
-          holeIndices: DEFAULT_HOLE_INDICES,
+          holeIndices: modHoleIndices(nextMod),
         });
         rackDomainRef.current.delete(nextEnt.domainId);
         rackDomainRef.current.set(newMod.id, newMod);

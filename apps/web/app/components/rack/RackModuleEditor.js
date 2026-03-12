@@ -35,7 +35,8 @@ import {
   removeLevel,
   moveLevel,
   applyFrameSpec,
-  applyBeamSpec,
+  applyBeamLength,
+  applyLevelBeamSpec,
   commitDraftToModule,
 } from '../../services/rack/rackModuleEditorUtils.js';
 
@@ -74,9 +75,13 @@ function ModuleEditorInner({ entity, domain, layoutStore, rackDomainRef, darkMod
   // Initialise draft from the domain object
   const initDraft = useCallback(() => {
     const holeIndices = domain.levelUnion.map((l) => l.holeIndex).sort((a, b) => a - b);
+    const levelMap    = new Map(domain.levelUnion.map((l) => [l.holeIndex, l.beamSpec]));
+    const beamSpecs   = holeIndices.map((h) => levelMap.get(h) ?? domain.bays[0]?.beamSpec);
+    const refSpec     = beamSpecs[0] ?? domain.bays[0]?.beamSpec ?? domain.levelUnion[0]?.beamSpec;
     return {
       frameSpec:        domain.frameSpec,
-      beamSpec:         domain.bays[0]?.beamSpec ?? domain.levelUnion[0]?.beamSpec ?? null,
+      beamLengthIn:     refSpec?.lengthIn ?? 96,
+      beamSpecs,
       holeIndices,
       bayCount:         entity.bayCount || domain.bays.length,
       rowConfiguration: entity.rowConfiguration ?? RowConfiguration.SINGLE,
@@ -97,7 +102,7 @@ function ModuleEditorInner({ entity, domain, layoutStore, rackDomainRef, darkMod
 
   // Write-back: build new domain object and update layout entity
   const commit = useCallback((newDraft) => {
-    if (!newDraft.frameSpec || !newDraft.beamSpec) return;
+    if (!newDraft.frameSpec || !newDraft.beamLengthIn) return;
 
     const startFrameIndex = domain.startFrameIndex ?? 0;
     let newMod;
@@ -108,7 +113,7 @@ function ModuleEditorInner({ entity, domain, layoutStore, rackDomainRef, darkMod
     }
 
     const { widthM, depthM } = computeEntityDimensions(
-      newDraft.beamSpec,
+      { lengthIn: newDraft.beamLengthIn },
       newDraft.frameSpec,
       newDraft.bayCount,
     );
@@ -124,14 +129,15 @@ function ModuleEditorInner({ entity, domain, layoutStore, rackDomainRef, darkMod
     });
   }, [domain, entity, layoutStore, rackDomainRef]);
 
-  // Updater: mutate draft and commit in one step
+  // Updater: mutate draft and commit in one step.
+  // Intentionally does NOT call commit inside setDraft's updater — side effects
+  // inside updaters cause layoutStore to trigger a synchronous re-render before
+  // React applies the new draft, producing a one-click visual lag.
   const update = useCallback((mutateFn) => {
-    setDraft((prev) => {
-      const next = mutateFn(prev);
-      commit(next);
-      return next;
-    });
-  }, [commit]);
+    const next = mutateFn(draft);
+    setDraft(next);
+    commit(next);
+  }, [draft, commit]);
 
   // ── Colours ──────────────────────────────────────────────────────────────
   const c = useColors(dk);
@@ -158,7 +164,7 @@ function ModuleEditorInner({ entity, domain, layoutStore, rackDomainRef, darkMod
       <CollapsibleSection label="Beam" dk={dk} c={c} defaultOpen>
         <BeamPicker
           draft={draft}
-          onChange={(newBeamSpec) => update((d) => applyBeamSpec(d, newBeamSpec))}
+          onChange={(newLengthIn) => update((d) => applyBeamLength(d, newLengthIn))}
           dk={dk}
           c={c}
         />
@@ -166,7 +172,7 @@ function ModuleEditorInner({ entity, domain, layoutStore, rackDomainRef, darkMod
 
       {/* ── Beam Levels ─────────────────────────────────────────────────── */}
       <CollapsibleSection label="Beam Levels" dk={dk} c={c} defaultOpen>
-        {draft.frameSpec && draft.beamSpec && (
+        {draft.frameSpec && draft.beamLengthIn && (
           <RackFrontView
             draft={draft}
             validation={validation}
@@ -181,6 +187,10 @@ function ModuleEditorInner({ entity, domain, layoutStore, rackDomainRef, darkMod
           onMove={(levelIndex, newHole) => update((d) => moveLevel(d, levelIndex, newHole))}
           onRemove={(levelIndex) => update((d) => removeLevel(d, levelIndex))}
           onAdd={() => update((d) => addLevel(d))}
+          onLevelCapacity={(levelIndex, cap) => update((d) => {
+            const spec = findBeamSpec(d.beamLengthIn, cap);
+            return spec ? applyLevelBeamSpec(d, levelIndex, spec) : d;
+          })}
           dk={dk}
           c={c}
         />
@@ -232,7 +242,7 @@ function FramePicker({ draft, onChange, dk, c }) {
   const matched = findFrameSpec(selHeight, selDepth, selCapacity);
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
       <AttrRow label="Height">
         <SegmentedControl
           options={FRAME_HEIGHTS_IN.map((h) => ({ value: h, label: `${h}"` }))}
@@ -267,47 +277,23 @@ function FramePicker({ draft, onChange, dk, c }) {
 // ─────────────────────────────────────────────────────────────────────────────
 
 function BeamPicker({ draft, onChange, dk, c }) {
-  const cur = draft.beamSpec;
-  const [selLength,   setSelLength]   = useState(cur?.lengthIn     ?? 96);
-  const [selCapacity, setSelCapacity] = useState(cur?.capacityClass ?? 'standard');
+  const [selLength, setSelLength] = useState(draft.beamLengthIn ?? 96);
 
   useEffect(() => {
-    if (cur) {
-      setSelLength(cur.lengthIn);
-      setSelCapacity(cur.capacityClass);
-    }
-  }, [cur?.id]); // eslint-disable-line react-hooks/exhaustive-deps
+    setSelLength(draft.beamLengthIn);
+  }, [draft.beamLengthIn]);
 
-  const tryApply = useCallback((l, cap) => {
-    const spec = findBeamSpec(l, cap);
-    if (spec) onChange(spec);
-  }, [onChange]);
-
-  const handleLength   = (l)   => { setSelLength(l);   tryApply(l, selCapacity); };
-  const handleCapacity = (cap) => { setSelCapacity(cap); tryApply(selLength, cap); };
-
-  const matched = findBeamSpec(selLength, selCapacity);
+  const handleLength = (l) => { setSelLength(l); onChange(l); };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-      <AttrRow label="Length">
-        <SegmentedControl
-          options={BEAM_LENGTHS_IN.map((l) => ({ value: l, label: `${l}"` }))}
-          value={selLength}
-          onChange={handleLength}
-          dk={dk} c={c}
-        />
-      </AttrRow>
-      <AttrRow label="Capacity">
-        <SegmentedControl
-          options={BEAM_CAPACITY_CLASSES.map((cap) => ({ value: cap, label: CAPACITY_LABELS[cap] }))}
-          value={selCapacity}
-          onChange={handleCapacity}
-          dk={dk} c={c}
-        />
-      </AttrRow>
-      <SpecMatchBadge matched={matched} label="Beam" dk={dk} c={c} />
-    </div>
+    <AttrRow label="Length">
+      <SegmentedControl
+        options={BEAM_LENGTHS_IN.map((l) => ({ value: l, label: `${l}"` }))}
+        value={selLength}
+        onChange={handleLength}
+        dk={dk} c={c}
+      />
+    </AttrRow>
   );
 }
 
@@ -318,12 +304,12 @@ function BeamPicker({ draft, onChange, dk, c }) {
 const SVG_W = 280;
 const SVG_H = 160;
 const COL_W = 10;   // upright column width (px)
-const PAD_X = 20;   // horizontal padding
+const PAD_X = 36;   // horizontal padding — wide enough for labels like "108""
 const PAD_Y = 8;    // vertical padding
 
 function RackFrontView({ draft, validation, onMove, dk, c }) {
-  const { frameSpec, beamSpec, holeIndices } = draft;
-  if (!frameSpec || !beamSpec) return null;
+  const { frameSpec, beamLengthIn, holeIndices } = draft;
+  if (!frameSpec || !beamLengthIn) return null;
 
   const sorted     = [...holeIndices].sort((a, b) => a - b);
   const frameH     = frameSpec.heightIn;
@@ -441,9 +427,9 @@ function RackFrontView({ draft, validation, onMove, dk, c }) {
               strokeWidth={isDragging ? 3 : 2}
               strokeLinecap="round"
             />
-            {/* Elevation label */}
+            {/* Elevation label — anchored left of the upright column */}
             <text
-              x={beamLeft - 3} y={y + 4}
+              x={leftX - 3} y={y + 4}
               textAnchor="end"
               fontSize={8}
               fill={isError ? '#ef4444' : c.muted}
@@ -488,12 +474,16 @@ function RackFrontView({ draft, validation, onMove, dk, c }) {
 //  BeamLevelList
 // ─────────────────────────────────────────────────────────────────────────────
 
-function BeamLevelList({ draft, validation, onMove, onRemove, onAdd, dk, c }) {
-  const { frameSpec, beamSpec, holeIndices } = draft;
+const CAP_SHORT = { light: 'L', standard: 'S', medium: 'M', heavy: 'H' };
+
+function BeamLevelList({ draft, validation, onMove, onRemove, onAdd, onLevelCapacity, dk, c }) {
+  const { frameSpec, beamLengthIn, beamSpecs, holeIndices } = draft;
   const sorted = [...holeIndices].sort((a, b) => a - b);
 
   const maxAllowed = frameSpec ? maxAllowedHoleIndex(frameSpec) : 0;
-  const canAdd     = frameSpec && beamSpec && autoPositionNewLevel(holeIndices, frameSpec, beamSpec) !== null;
+  const topSpec    = beamSpecs.length > 0 ? beamSpecs[beamSpecs.length - 1] : null;
+  const newSpec    = findBeamSpec(beamLengthIn, topSpec?.capacityClass ?? 'standard');
+  const canAdd     = frameSpec && beamLengthIn && autoPositionNewLevel(holeIndices, frameSpec, topSpec, newSpec) !== null;
 
   // Map levelIndex → error messages
   const levelErrors = useMemo(() => {
@@ -517,94 +507,94 @@ function BeamLevelList({ draft, validation, onMove, onRemove, onAdd, dk, c }) {
       )}
 
       {sorted.map((hole, idx) => {
-        const elevation = hole * HOLE_STEP_IN;
-        const errors    = levelErrors.get(idx) ?? [];
-        const hasError  = errors.length > 0;
+        const elevation   = hole * HOLE_STEP_IN;
+        const errors      = levelErrors.get(idx) ?? [];
+        const hasError    = errors.length > 0;
+        const levelCap    = beamSpecs[idx]?.capacityClass ?? 'standard';
 
         return (
           <div key={idx} style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 6,
-            padding: '4px 0',
+            padding: '8px 0',
             borderBottom: `1px solid ${c.divider}`,
           }}>
-            {/* Level index badge */}
-            <span style={{
-              width: 18,
-              height: 18,
-              borderRadius: 4,
-              background: hasError ? '#ef4444' : (dk ? '#1e3a5f' : '#dbeafe'),
-              color: hasError ? '#fff' : (dk ? '#93c5fd' : '#1e40af'),
-              fontSize: 9,
-              fontWeight: 700,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              flexShrink: 0,
-            }}>{idx}</span>
-
-            {/* Elevation display */}
-            <span style={{ flex: 1, color: c.muted, fontSize: 11, minWidth: 36 }}>
-              {elevation}"
-            </span>
-
-            {/* Hole index stepper */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-              <StepperButton
-                onClick={() => onMove(idx, hole - 1)}
-                disabled={hole <= 0}
-                dk={dk} c={c}
-              >−</StepperButton>
+            {/* Row 1: badge + elevation + delete */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6 }}>
               <span style={{
-                fontFamily: 'monospace',
-                fontSize: 11,
-                width: 28,
-                textAlign: 'center',
-                color: c.text,
-              }}>h{hole}</span>
-              <StepperButton
-                onClick={() => onMove(idx, hole + 1)}
-                disabled={hole >= maxAllowed}
-                dk={dk} c={c}
-              >+</StepperButton>
-            </div>
-
-            {/* Delete button */}
-            <button
-              onClick={() => onRemove(idx)}
-              title="Remove level"
-              style={{
-                width: 20,
-                height: 20,
-                border: 'none',
+                width: 18,
+                height: 18,
                 borderRadius: 4,
-                background: 'transparent',
-                color: c.muted,
-                cursor: 'pointer',
-                fontSize: 14,
-                lineHeight: 1,
+                background: hasError ? '#ef4444' : (dk ? '#1e3a5f' : '#dbeafe'),
+                color: hasError ? '#fff' : (dk ? '#93c5fd' : '#1e40af'),
+                fontSize: 9,
+                fontWeight: 700,
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                padding: 0,
                 flexShrink: 0,
-              }}
-              onMouseEnter={(e) => { e.currentTarget.style.color = '#ef4444'; e.currentTarget.style.background = dk ? 'rgba(239,68,68,0.1)' : 'rgba(239,68,68,0.08)'; }}
-              onMouseLeave={(e) => { e.currentTarget.style.color = c.muted; e.currentTarget.style.background = 'transparent'; }}
-            >×</button>
+              }}>{idx}</span>
+
+              <span style={{ flex: 1, color: c.muted, fontSize: 11 }}>
+                {elevation}"
+              </span>
+
+              <button
+                onClick={() => onRemove(idx)}
+                title="Remove level"
+                style={{
+                  width: 20, height: 20, border: 'none', borderRadius: 4,
+                  background: 'transparent', color: c.muted, cursor: 'pointer',
+                  fontSize: 14, lineHeight: 1, display: 'flex',
+                  alignItems: 'center', justifyContent: 'center', padding: 0, flexShrink: 0,
+                }}
+                onMouseEnter={(e) => { e.currentTarget.style.color = '#ef4444'; e.currentTarget.style.background = dk ? 'rgba(239,68,68,0.1)' : 'rgba(239,68,68,0.08)'; }}
+                onMouseLeave={(e) => { e.currentTarget.style.color = c.muted; e.currentTarget.style.background = 'transparent'; }}
+              >×</button>
+            </div>
+
+            {/* Row 2: hole stepper + capacity buttons */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              {/* Hole stepper */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 2, flex: 1 }}>
+                <StepperButton onClick={() => onMove(idx, hole - 1)} disabled={hole <= 0} dk={dk} c={c}>−</StepperButton>
+                <span style={{
+                  fontFamily: 'monospace', fontSize: 11, width: 44,
+                  textAlign: 'center', color: c.text,
+                }}>hole #{hole}</span>
+                <StepperButton onClick={() => onMove(idx, hole + 1)} disabled={hole >= maxAllowed} dk={dk} c={c}>+</StepperButton>
+              </div>
+
+              {/* Per-level capacity selector */}
+              <div style={{ display: 'flex', border: `1px solid ${c.border}`, borderRadius: 4, overflow: 'hidden' }}>
+                {BEAM_CAPACITY_CLASSES.map((cap, ci) => {
+                  const active = cap === levelCap;
+                  return (
+                    <button
+                      key={cap}
+                      onClick={() => onLevelCapacity(idx, cap)}
+                      title={CAPACITY_LABELS[cap]}
+                      style={{
+                        width: 20, height: 20, border: 'none',
+                        borderRight: ci < BEAM_CAPACITY_CLASSES.length - 1 ? `1px solid ${c.border}` : 'none',
+                        background: active ? (dk ? '#1e3a5f' : '#eff6ff') : (dk ? '#2d2f34' : '#fff'),
+                        color: active ? (dk ? '#93c5fd' : '#1d4ed8') : c.muted,
+                        fontSize: 9, fontWeight: active ? 700 : 400,
+                        cursor: 'pointer', padding: 0, lineHeight: 1,
+                      }}
+                    >{CAP_SHORT[cap]}</button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Inline error messages */}
+            {errors.map((msg, mi) => (
+              <div key={mi} style={{ fontSize: 10, color: '#ef4444', paddingTop: 3, lineHeight: 1.3 }}>
+                ↳ {msg}
+              </div>
+            ))}
           </div>
         );
       })}
-
-      {/* Inline error messages */}
-      {[...levelErrors.entries()].map(([li, msgs]) => (
-        msgs.map((msg, mi) => (
-          <div key={`${li}-${mi}`} style={{ fontSize: 10, color: '#ef4444', padding: '2px 0 0', lineHeight: 1.3 }}>
-            ↳ {msg}
-          </div>
-        ))
-      ))}
 
       {/* Add level button */}
       <button
@@ -725,7 +715,7 @@ function ValidationBanner({ validation, dk, c }) {
   const issues = [...validation.errors, ...validation.warnings];
 
   return (
-    <div style={{ margin: '6px 0' }}>
+    <div style={{ margin: '10px 0' }}>
       <button
         onClick={() => setExpanded((x) => !x)}
         style={{
@@ -791,7 +781,7 @@ function ValidationBanner({ validation, dk, c }) {
 function CollapsibleSection({ label, dk, c, defaultOpen = false, children }) {
   const [open, setOpen] = useState(defaultOpen);
   return (
-    <div style={{ marginBottom: 2 }}>
+    <div style={{ marginBottom: 10 }}>
       <button
         onClick={() => setOpen((x) => !x)}
         style={{
@@ -799,7 +789,7 @@ function CollapsibleSection({ label, dk, c, defaultOpen = false, children }) {
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
-          padding: '6px 0',
+          padding: '8px 0',
           border: 'none',
           background: 'transparent',
           cursor: 'pointer',
@@ -813,7 +803,7 @@ function CollapsibleSection({ label, dk, c, defaultOpen = false, children }) {
         <span style={{ fontSize: 10 }}>{open ? '▲' : '▼'}</span>
       </button>
       {open && (
-        <div style={{ paddingTop: 8, paddingBottom: 4 }}>
+        <div style={{ paddingTop: 12, paddingBottom: 8 }}>
           {children}
         </div>
       )}
