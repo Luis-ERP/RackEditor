@@ -4,10 +4,10 @@
 //  Validates rack line configurations against all business rules and produces
 //  structured validation results with errors and warnings.
 //
-//  Reference: business_rules_racks.md — Sections 3–8, 12–14
+//  Reference: business_rules_racks.md — Sections 2.1, 2.4, 3–9, 12–14
 // ─────────────────────────────────────────────────────────────────────────────
 
-import { ValidationState, HOLE_STEP_IN } from './constants.js';
+import { ValidationState, HOLE_STEP_IN, RowConfiguration, CAPACITY_CLASS_RANK } from './constants.js';
 import { maxHoleIndex } from './models/frame.js';
 import {
   validateLevelSpacing,
@@ -35,7 +35,7 @@ import { rackLineAllBays } from './models/rackLine.js';
 
 /**
  * Rule: All beam levels must align to the hole grid. (Section 3)
- * hole_index must be an integer.
+ * hole_index must be a non-negative integer.
  *
  * @param {import('./models/beam.js').BeamLevel[]} levels
  * @returns {ValidationError[]}
@@ -56,18 +56,45 @@ function validateHoleGridAlignment(levels) {
 }
 
 /**
- * Rule: Beam levels must not exceed frame height. (Section 7)
- * top_beam_elevation ≤ frame_height
+ * Rule: levelIndex values must be consecutive integers starting at 0. (Section 2.4)
+ * Valid: {0, 1, 2}. Invalid: {0, 2, 5} or {1, 2, 3}.
+ *
+ * @param {import('./models/beam.js').BeamLevel[]} levels
+ * @returns {ValidationError[]}
+ */
+function validateLevelIndexConsecutive(levels) {
+  if (levels.length === 0) return [];
+
+  const sorted = [...levels].sort((a, b) => a.levelIndex - b.levelIndex);
+  for (let i = 0; i < sorted.length; i++) {
+    if (sorted[i].levelIndex !== i) {
+      return [{
+        code: 'LEVEL_INDEX_NOT_CONSECUTIVE',
+        message: `Level indices must be consecutive integers starting at 0. Expected index ${i}, found ${sorted[i].levelIndex}.`,
+        severity: 'error',
+        context: { expectedIndex: i, actualIndex: sorted[i].levelIndex },
+      }];
+    }
+  }
+  return [];
+}
+
+/**
+ * Rule: Beam levels must not exceed frame height minus minimum top clearance. (Section 7)
+ *
+ * top_beam_elevation ≤ frame_height − minimumTopClearanceIn
+ *
+ * Violating either the hard height limit or the top clearance is a blocking INVALID error.
  *
  * @param {import('./models/beam.js').BeamLevel[]} levels
  * @param {import('./models/frame.js').FrameSpec}  frameSpec
- * @param {number} [minimumTopClearanceIn=0] - Optional safety clearance
  * @returns {ValidationError[]}
  */
-function validateFrameHeightConstraint(levels, frameSpec, minimumTopClearanceIn = 0) {
+function validateFrameHeightConstraint(levels, frameSpec) {
   const errors = [];
   const maxHole = maxHoleIndex(frameSpec);
-  const maxElevation = frameSpec.heightIn - minimumTopClearanceIn;
+  const minimumTopClearanceIn = frameSpec.minimumTopClearanceIn;
+  const maxAllowedElevation = frameSpec.heightIn - minimumTopClearanceIn;
 
   for (const level of levels) {
     if (level.holeIndex > maxHole) {
@@ -77,13 +104,12 @@ function validateFrameHeightConstraint(levels, frameSpec, minimumTopClearanceIn 
         severity: 'error',
         context: { levelIndex: level.levelIndex, holeIndex: level.holeIndex, maxHole },
       });
-    }
-    if (minimumTopClearanceIn > 0 && level.elevationIn > maxElevation) {
+    } else if (minimumTopClearanceIn > 0 && level.elevationIn > maxAllowedElevation) {
       errors.push({
         code: 'INSUFFICIENT_TOP_CLEARANCE',
-        message: `Level ${level.levelIndex}: elevation ${level.elevationIn}" exceeds max allowed ${maxElevation}" (top clearance: ${minimumTopClearanceIn}").`,
-        severity: 'warning',
-        context: { levelIndex: level.levelIndex, elevationIn: level.elevationIn, maxElevation },
+        message: `Level ${level.levelIndex}: elevation ${level.elevationIn}" exceeds max allowed ${maxAllowedElevation}" (frame height ${frameSpec.heightIn}" − top clearance ${minimumTopClearanceIn}").`,
+        severity: 'error',
+        context: { levelIndex: level.levelIndex, elevationIn: level.elevationIn, maxAllowedElevation, minimumTopClearanceIn },
       });
     }
   }
@@ -91,7 +117,9 @@ function validateFrameHeightConstraint(levels, frameSpec, minimumTopClearanceIn 
 }
 
 /**
- * Rule: Minimum floor clearance for first beam level. (Section 8)
+ * Rule: Minimum floor clearance for first beam level. (Section 8.1)
+ *
+ * first_beam_elevation ≥ minimum_floor_clearance_in
  *
  * @param {import('./models/beam.js').BeamLevel[]} levels
  * @param {number} minimumFloorClearanceIn
@@ -119,7 +147,103 @@ function validateFloorClearance(levels, minimumFloorClearanceIn) {
 }
 
 /**
- * Rule: Beam must be compatible with frame upright series. (Section 12)
+ * Rule: First beam connector must not penetrate below floor grade. (Section 8.2)
+ *
+ * first_beam_elevation ≥ first_beam.beam_vertical_envelope_in
+ *
+ * @param {import('./models/beam.js').BeamLevel[]} levels
+ * @returns {ValidationError[]}
+ */
+function validateConnectorAboveGrade(levels) {
+  if (levels.length === 0) return [];
+
+  const sorted = [...levels].sort((a, b) => a.holeIndex - b.holeIndex);
+  const firstLevel = sorted[0];
+
+  if (firstLevel.elevationIn < firstLevel.beamSpec.verticalEnvelopeIn) {
+    return [{
+      code: 'CONNECTOR_BELOW_GRADE',
+      message: `First beam level elevation (${firstLevel.elevationIn}") is less than its connector envelope (${firstLevel.beamSpec.verticalEnvelopeIn}"). Connector hardware would penetrate below floor.`,
+      severity: 'error',
+      context: {
+        levelIndex: firstLevel.levelIndex,
+        elevationIn: firstLevel.elevationIn,
+        envelopeIn: firstLevel.beamSpec.verticalEnvelopeIn,
+      },
+    }];
+  }
+  return [];
+}
+
+/**
+ * Rule: Beam connector type must be in frame's compatible connector types. (Section 12.1)
+ *
+ * beam.connectorType ∈ frame.compatibleConnectorTypes
+ *
+ * @param {import('./models/beam.js').BeamLevel[]} levels
+ * @param {import('./models/frame.js').FrameSpec}  frameSpec
+ * @returns {ValidationError[]}
+ */
+function validateConnectorType(levels, frameSpec) {
+  const errors = [];
+  for (const level of levels) {
+    if (!frameSpec.compatibleConnectorTypes.includes(level.beamSpec.connectorType)) {
+      errors.push({
+        code: 'CONNECTOR_TYPE_MISMATCH',
+        message: `Level ${level.levelIndex}: beam connector type "${level.beamSpec.connectorType}" is not compatible with frame. Allowed: [${frameSpec.compatibleConnectorTypes.join(', ')}].`,
+        severity: 'error',
+        context: {
+          levelIndex: level.levelIndex,
+          connectorType: level.beamSpec.connectorType,
+          compatibleConnectorTypes: frameSpec.compatibleConnectorTypes,
+        },
+      });
+    }
+  }
+  return errors;
+}
+
+/**
+ * Rule: Beam capacity class must not exceed frame's allowable capacity class. (Section 12.2)
+ *
+ * beamCapacityClass ≤ frameAllowableCapacityClass
+ *
+ * Uses CAPACITY_CLASS_RANK for ordered comparison. If either rank is unknown,
+ * the check is skipped (no information to validate against).
+ *
+ * @param {import('./models/beam.js').BeamLevel[]} levels
+ * @param {import('./models/frame.js').FrameSpec}  frameSpec
+ * @returns {ValidationError[]}
+ */
+function validateCapacityClass(levels, frameSpec) {
+  const errors = [];
+  const frameRank = CAPACITY_CLASS_RANK[(frameSpec.capacityClass || '').toUpperCase()];
+  if (frameRank == null) return []; // Unknown frame class; cannot compare
+
+  for (const level of levels) {
+    const beamRank = CAPACITY_CLASS_RANK[(level.beamSpec.capacityClass || '').toUpperCase()];
+    if (beamRank == null) continue; // Unknown beam class; skip
+
+    if (beamRank > frameRank) {
+      errors.push({
+        code: 'CAPACITY_CLASS_EXCEEDED',
+        message: `Level ${level.levelIndex}: beam capacity class "${level.beamSpec.capacityClass}" exceeds frame allowable class "${frameSpec.capacityClass}". Upright would be underspecified for the load.`,
+        severity: 'error',
+        context: {
+          levelIndex: level.levelIndex,
+          beamCapacityClass: level.beamSpec.capacityClass,
+          frameCapacityClass: frameSpec.capacityClass,
+        },
+      });
+    }
+  }
+  return errors;
+}
+
+/**
+ * Rule: Beam must be compatible with frame upright series. (Section 12.4)
+ *
+ * beam.compatibleUprightSeries.includes(frame.uprightSeries)
  *
  * @param {import('./models/beam.js').BeamLevel[]} levels
  * @param {string} uprightSeries
@@ -131,7 +255,7 @@ function validateBeamFrameCompatibility(levels, uprightSeries) {
     if (!isBeamCompatibleWithFrame(level.beamSpec, uprightSeries)) {
       errors.push({
         code: 'BEAM_INCOMPATIBLE_WITH_FRAME',
-        message: `Level ${level.levelIndex}: beam "${level.beamSpec.id}" (connector: ${level.beamSpec.connectorType}) is not compatible with upright series "${uprightSeries}".`,
+        message: `Level ${level.levelIndex}: beam "${level.beamSpec.id}" is not compatible with upright series "${uprightSeries}".`,
         severity: 'error',
         context: {
           levelIndex: level.levelIndex,
@@ -145,7 +269,7 @@ function validateBeamFrameCompatibility(levels, uprightSeries) {
 }
 
 /**
- * Rule: Beam length must match bay width. (Section 12)
+ * Rule: Beam length must match bay width. (Section 12.3)
  *
  * @param {import('./models/bay.js').Bay[]} bays
  * @returns {ValidationError[]}
@@ -183,7 +307,125 @@ function validateMinimumVerticalSpacing(levels) {
 }
 
 /**
- * Check for near-capacity or non-standard spacing conditions. (Section 14)
+ * Rule: Frame depth must be uniform within the rack line for single-row configurations,
+ * and uniform within each row for back-to-back configurations. (Section 2.1, 9.2.3)
+ *
+ * All resolved FrameSpecs (including per-frame overrides) must share the same depthIn.
+ * For back-to-back lines with rowIndex annotations on modules, depth uniformity is
+ * enforced per rowIndex group.
+ *
+ * @param {import('./models/rackLine.js').RackLine} rackLine
+ * @returns {ValidationError[]}
+ */
+function validateFrameDepthUniformity(rackLine) {
+  const errors = [];
+
+  if (rackLine.rowConfiguration === RowConfiguration.SINGLE) {
+    // All frame depths in all modules must match
+    const depths = new Set();
+    for (const mod of rackLine.modules) {
+      depths.add(mod.frameSpec.depthIn);
+      for (const override of Object.values(mod.frameOverrides)) {
+        depths.add(override.depthIn);
+      }
+    }
+    if (depths.size > 1) {
+      errors.push({
+        code: 'FRAME_DEPTH_NOT_UNIFORM',
+        message: `Frame depths are not uniform within the rack line. Found depths: ${[...depths].join(', ')} inches.`,
+        severity: 'error',
+        context: { depths: [...depths] },
+      });
+    }
+  } else {
+    // Back-to-back: enforce uniformity per rowIndex group (for modules that declare rowIndex)
+    const depthsByRow = new Map(); // rowIndex → Set of depths
+
+    for (const mod of rackLine.modules) {
+      if (mod.rowIndex == null) continue; // Skip unassigned modules
+
+      if (!depthsByRow.has(mod.rowIndex)) {
+        depthsByRow.set(mod.rowIndex, new Set());
+      }
+      const rowDepths = depthsByRow.get(mod.rowIndex);
+      rowDepths.add(mod.frameSpec.depthIn);
+      for (const override of Object.values(mod.frameOverrides)) {
+        rowDepths.add(override.depthIn);
+      }
+    }
+
+    for (const [rowIdx, depths] of depthsByRow) {
+      if (depths.size > 1) {
+        errors.push({
+          code: 'FRAME_DEPTH_NOT_UNIFORM',
+          message: `Frame depths are not uniform within row ${rowIdx}. Found depths: ${[...depths].join(', ')} inches.`,
+          severity: 'error',
+          context: { rowIndex: rowIdx, depths: [...depths] },
+        });
+      }
+    }
+  }
+
+  return errors;
+}
+
+/**
+ * Rule: Row spacer size must meet minimum. (Section 9.2.5)
+ *
+ * row_spacer_size ≥ minimum_row_spacer_in
+ *
+ * Only checked when minimumRowSpacerIn > 0 (catalog-defined minimum must be provided
+ * as a validation option).
+ *
+ * @param {import('./models/rackLine.js').RackLine} rackLine
+ * @param {number} minimumRowSpacerIn
+ * @returns {ValidationError[]}
+ */
+function validateRowSpacerSize(rackLine, minimumRowSpacerIn) {
+  if (minimumRowSpacerIn <= 0) return [];
+  if (rackLine.rowConfiguration === RowConfiguration.SINGLE) return [];
+  if (!rackLine.backToBackConfig) return [];
+
+  if (rackLine.backToBackConfig.rowSpacerSizeIn < minimumRowSpacerIn) {
+    return [{
+      code: 'ROW_SPACER_TOO_SMALL',
+      message: `Row spacer size (${rackLine.backToBackConfig.rowSpacerSizeIn}") is below the catalog minimum (${minimumRowSpacerIn}").`,
+      severity: 'error',
+      context: {
+        rowSpacerSizeIn: rackLine.backToBackConfig.rowSpacerSizeIn,
+        minimumRowSpacerIn,
+      },
+    }];
+  }
+  return [];
+}
+
+/**
+ * Rule: In back-to-back rack lines, every module must declare its rowIndex. (Section 9.2.2, 9.2.4)
+ *
+ * @param {import('./models/rackLine.js').RackLine} rackLine
+ * @returns {ValidationError[]}
+ */
+function validateModuleRowMembership(rackLine) {
+  if (rackLine.rowConfiguration === RowConfiguration.SINGLE) return [];
+
+  const errors = [];
+  for (let i = 0; i < rackLine.modules.length; i++) {
+    const mod = rackLine.modules[i];
+    if (mod.rowIndex == null) {
+      errors.push({
+        code: 'MODULE_ROW_UNASSIGNED',
+        message: `Module ${i} (id: ${mod.id}) does not declare rowIndex. Back-to-back rack lines require all modules to have a rowIndex annotation. (Section 9.2.2)`,
+        severity: 'error',
+        context: { moduleIndex: i, moduleId: mod.id },
+      });
+    }
+  }
+  return errors;
+}
+
+/**
+ * Check for informational warning conditions. (Section 14)
  *
  * @param {import('./models/beam.js').BeamLevel[]} levels
  * @param {import('./models/frame.js').FrameSpec}  frameSpec
@@ -193,14 +435,14 @@ function checkWarnings(levels, frameSpec) {
   const warnings = [];
   const sorted = [...levels].sort((a, b) => a.holeIndex - b.holeIndex);
 
-  // Warn if very close to frame top (within 4 inches)
+  // Warn if top beam is within 4 inches of the frame top (but still within clearance limit)
   if (sorted.length > 0) {
     const topLevel = sorted[sorted.length - 1];
     const remaining = frameSpec.heightIn - topLevel.elevationIn;
     if (remaining > 0 && remaining <= 4) {
       warnings.push({
         code: 'NEAR_FRAME_TOP',
-        message: `Top beam level is only ${remaining}" below frame top. Consider safety clearance.`,
+        message: `Top beam level is only ${remaining}" below the frame top. Consider safety clearance.`,
         severity: 'warning',
         context: { levelIndex: topLevel.levelIndex, remainingIn: remaining },
       });
@@ -217,19 +459,28 @@ function checkWarnings(levels, frameSpec) {
  *
  * @param {import('./models/rackLine.js').RackLine} rackLine
  * @param {Object} [options]
- * @param {number} [options.minimumFloorClearanceIn=0]
- * @param {number} [options.minimumTopClearanceIn=0]
+ * @param {number} [options.minimumFloorClearanceIn=0]  - Section 8.1 (catalog-defined)
+ * @param {number} [options.minimumRowSpacerIn=0]        - Section 9.2.5 (catalog-defined)
  * @returns {ValidationResult}
  */
 export function validateRackLine(rackLine, options = {}) {
   const {
     minimumFloorClearanceIn = 0,
-    minimumTopClearanceIn = 0,
+    minimumRowSpacerIn = 0,
   } = options;
 
   const allErrors = [];
   const allWarnings = [];
   const allBays = rackLineAllBays(rackLine);
+
+  // Section 9.2.5: Row spacer minimum
+  allErrors.push(...validateRowSpacerSize(rackLine, minimumRowSpacerIn));
+
+  // Section 9.2.2 / 9.2.4: Module row membership annotation in back-to-back
+  allErrors.push(...validateModuleRowMembership(rackLine));
+
+  // Section 2.1 / 9.2.3: Frame depth uniformity
+  allErrors.push(...validateFrameDepthUniformity(rackLine));
 
   // Validate each module
   for (const mod of rackLine.modules) {
@@ -239,30 +490,38 @@ export function validateRackLine(rackLine, options = {}) {
     // Section 3: Hole grid alignment
     allErrors.push(...validateHoleGridAlignment(levels));
 
+    // Section 2.4: levelIndex consecutive from 0
+    allErrors.push(...validateLevelIndexConsecutive(levels));
+
     // Sections 5, 6: Minimum spacing & strict ordering
     allErrors.push(...validateMinimumVerticalSpacing(levels));
 
-    // Section 7: Frame height constraints
-    const heightResults = validateFrameHeightConstraint(levels, frameSpec, minimumTopClearanceIn);
-    for (const r of heightResults) {
-      if (r.severity === 'error') allErrors.push(r);
-      else allWarnings.push(r);
-    }
+    // Section 7: Frame height + top clearance (blocking error)
+    allErrors.push(...validateFrameHeightConstraint(levels, frameSpec));
 
-    // Section 8: Floor clearance
+    // Section 8.1: Floor clearance
     allErrors.push(...validateFloorClearance(levels, minimumFloorClearanceIn));
 
-    // Section 12: Beam-frame compatibility
+    // Section 8.2: Connector above grade
+    allErrors.push(...validateConnectorAboveGrade(levels));
+
+    // Section 12.1: Connector type compatibility
+    allErrors.push(...validateConnectorType(levels, frameSpec));
+
+    // Section 12.2: Capacity class constraint (beam ≤ frame)
+    allErrors.push(...validateCapacityClass(levels, frameSpec));
+
+    // Section 12.4: Beam upright series compatibility
     allErrors.push(...validateBeamFrameCompatibility(levels, frameSpec.uprightSeries));
 
     // Warnings
     allWarnings.push(...checkWarnings(levels, frameSpec));
   }
 
-  // Section 12: Beam length matches bay width
+  // Section 12.3: Beam length matches bay width
   allErrors.push(...validateBeamLengthMatch(allBays));
 
-  // Completeness check: a line with no modules or empty levels is INCOMPLETE
+  // Completeness check: a line with no beam levels in any module is INCOMPLETE
   const hasLevels = rackLine.modules.some((m) => m.levelUnion.length > 0);
   if (!hasLevels) {
     return {

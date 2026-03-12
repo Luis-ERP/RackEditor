@@ -18,18 +18,22 @@ export {
   minimumGapSteps,
   validateLevelSpacing,
   isBeamCompatibleWithFrame,
+  withBeamLevelSpec,
 } from './beam.js';
 
 export {
   createBay,
   validateBayBeamLength,
   bayBeamCount,
+  withBayBeamSpec,
 } from './bay.js';
 
 export {
   createRackModule,
   moduleBayCount,
   moduleFrameIndices,
+  resolveFrameSpecAtIndex,
+  withFrameOverride,
 } from './rackModule.js';
 
 export {

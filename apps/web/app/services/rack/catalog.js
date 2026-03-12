@@ -28,13 +28,15 @@ const STANDARD_UPRIGHT_SERIES = 'standard';
 //  Most common 12-foot selective rack upright for general warehouse use.
 
 export const DEFAULT_FRAME_SPEC = createFrameSpec({
-  id:              'frame-14g-42in-144in',
-  heightIn:        144,
-  depthIn:         42,
-  gauge:           '14',
-  capacityClass:   'standard',
-  uprightSeries:   STANDARD_UPRIGHT_SERIES,
-  basePlateType:   'STANDARD',
+  id:                       'frame-14g-42in-144in',
+  heightIn:                 144,
+  depthIn:                  42,
+  gauge:                    '14',
+  capacityClass:            'standard',
+  uprightSeries:            STANDARD_UPRIGHT_SERIES,
+  compatibleConnectorTypes: ['standard'],
+  minimumTopClearanceIn:    6,
+  basePlateType:            'STANDARD',
 });
 
 // ── Default Beam Specification ───────────────────────────────────────────────
@@ -49,6 +51,7 @@ export const DEFAULT_BEAM_SPEC = createBeamSpec({
   beamSeries:               'standard',
   connectorType:            'standard',
   verticalEnvelopeIn:       5,
+  profileHeightIn:          5,
   compatibleUprightSeries:  [STANDARD_UPRIGHT_SERIES],
 });
 

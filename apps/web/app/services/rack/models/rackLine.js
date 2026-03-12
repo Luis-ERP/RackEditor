@@ -15,7 +15,9 @@ import { RowConfiguration, LevelMode, ValidationState } from '../constants.js';
 /**
  * @typedef {Object} BackToBackConfig
  * @property {number}  rowSpacerSizeIn   - Spacer size between rows (inches)
- * @property {number}  rowCount          - Number of rows (2, 3, or 4)
+ *
+ * NOTE: Row count is NOT stored here. It is the single normative value derived
+ * from the parent RackLine's rowConfiguration property. (Section 9.2.1)
  */
 
 /**

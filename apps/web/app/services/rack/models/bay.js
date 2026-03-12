@@ -7,12 +7,14 @@
 
 /**
  * @typedef {Object} Bay
- * @property {string}      id                - Unique instance identifier
- * @property {number}      leftFrameIndex    - Position index of the left frame
- * @property {number}      rightFrameIndex   - Position index of the right frame (= left + 1)
- * @property {import('./beam.js').BeamSpec} beamSpec - Default beam spec for this bay
+ * @property {string}      id                    - Unique instance identifier
+ * @property {number}      leftFrameIndex        - Position index of the left frame
+ * @property {number}      rightFrameIndex       - Position index of the right frame (= left + 1)
+ * @property {import('./beam.js').BeamSpec} beamSpec - Effective beam spec for this bay
+ * @property {boolean}     isBeamSpecCustomized  - true when beamSpec was explicitly overridden
+ *                                                  for this bay (vs. inherited from the module default)
  * @property {import('./beam.js').BeamLevel[]} levels - Beam levels in this bay
- * @property {string[]}    accessoryIds      - IDs of accessories applied to this bay
+ * @property {string[]}    accessoryIds          - IDs of accessories applied to this bay
  */
 
 /**
@@ -28,9 +30,10 @@
  * @param {import('./beam.js').BeamSpec}    params.beamSpec
  * @param {import('./beam.js').BeamLevel[]} params.levels
  * @param {string[]} [params.accessoryIds=[]]
+ * @param {boolean}  [params.isBeamSpecCustomized=false] - Mark beam spec as individually overridden
  * @returns {Readonly<Bay>}
  */
-export function createBay({ id, leftFrameIndex, beamSpec, levels, accessoryIds = [] }) {
+export function createBay({ id, leftFrameIndex, beamSpec, levels, accessoryIds = [], isBeamSpecCustomized = false }) {
   if (!Number.isInteger(leftFrameIndex) || leftFrameIndex < 0) {
     throw new RangeError('leftFrameIndex must be a non-negative integer.');
   }
@@ -42,6 +45,7 @@ export function createBay({ id, leftFrameIndex, beamSpec, levels, accessoryIds =
     leftFrameIndex,
     rightFrameIndex,
     beamSpec,
+    isBeamSpecCustomized,
     levels: Object.freeze([...levels]),
     accessoryIds: Object.freeze([...accessoryIds]),
   });
@@ -75,4 +79,32 @@ export function validateBayBeamLength(bay) {
  */
 export function bayBeamCount(bay) {
   return bay.levels.length * 2;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+//  Per-Bay Beam Customization Helper
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Return a new Bay with a different beam specification applied.
+ *
+ * The returned bay carries `isBeamSpecCustomized = true` to record that this
+ * bay's spec was explicitly overridden from the module-level default.
+ *
+ * Level beamSpecs are NOT updated automatically — use withBeamLevelSpec() on
+ * individual levels if you also want to change per-level beam specs.
+ *
+ * @param {Bay}     bay
+ * @param {import('./beam.js').BeamSpec} beamSpec
+ * @returns {Readonly<Bay>}
+ */
+export function withBayBeamSpec(bay, beamSpec) {
+  return createBay({
+    id:                   bay.id,
+    leftFrameIndex:       bay.leftFrameIndex,
+    beamSpec,
+    levels:               [...bay.levels],
+    accessoryIds:         [...bay.accessoryIds],
+    isBeamSpecCustomized: true,
+  });
 }

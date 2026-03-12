@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { Pencil, ClipboardList, Settings } from 'lucide-react';
+import RackModuleEditor from './rack/RackModuleEditor.js';
 import {
   BEAMS_PER_LEVEL,
   SAFETY_PINS_PER_BEAM,
@@ -141,6 +142,12 @@ export default function EditorPanel({
           <ColumnEntityEditor
             layoutStore={layoutStore}
             layoutVersion={layoutVersion}
+            darkMode={dk}
+          />
+          <RackModuleEditor
+            layoutStore={layoutStore}
+            layoutVersion={layoutVersion}
+            rackDomainRef={rackDomainRef}
             darkMode={dk}
           />
         </div>
@@ -504,7 +511,7 @@ function TransformPanel({ layoutStore, layoutVersion, darkMode }) {
         color: textMuted,
         marginBottom: 8,
       }}>
-        Transform
+        Position
       </div>
 
       {/* X / Y row */}

@@ -123,6 +123,8 @@ function makeFrameSpec(overrides = {}) {
     gauge: '14GA',
     capacityClass: 'STANDARD',
     uprightSeries: 'T-BOLT',
+    compatibleConnectorTypes: ['T-BOLT'],
+    minimumTopClearanceIn: 6,
     basePlateType: BasePlateType.STANDARD,
     ...overrides,
   });
@@ -136,6 +138,7 @@ function makeBeamSpec(overrides = {}) {
     beamSeries: 'STEP',
     connectorType: 'T-BOLT',
     verticalEnvelopeIn: 8,
+    profileHeightIn: 3,
     compatibleUprightSeries: ['T-BOLT'],
     ...overrides,
   });
@@ -198,21 +201,28 @@ section('Section 3 — Hole Pattern');
 section('Section 4 & 5 — Beam Envelope & Minimum Gap');
 
 {
-  const beam8 = makeBeamSpec({ verticalEnvelopeIn: 8 });
+  // Fixture beams: verticalEnvelopeIn varies, profileHeightIn=3 (from makeBeamSpec default)
+  const beam8  = makeBeamSpec({ verticalEnvelopeIn: 8 });
   const beam10 = makeBeamSpec({ id: 'BM-96-HVY', verticalEnvelopeIn: 10 });
 
-  // minimum_gap = 2 + max(10, 8) = 12" → ceil(12/2) = 6 holes
-  assertEqual(minimumGapSteps(beam10, beam8), 6, 'Sec 5: envelope 10+8 → 6 hole gap');
+  // Sec 5 formula: minimum_gap_in = HOLE_STEP + max(lower_env, upper_env) + lower_profile
+  // beam10 lower: 2 + max(10,8) + 3 = 15" → ceil(15/2) = 8 holes
+  assertEqual(minimumGapSteps(beam10, beam8), 8, 'Sec 5: lower env=10 profile=3, upper env=8 → 8 hole gap');
 
-  // minimum_gap = 2 + max(8, 8) = 10" → ceil(10/2) = 5 holes
-  assertEqual(minimumGapSteps(beam8, beam8), 5, 'Sec 5: envelope 8+8 → 5 hole gap');
+  // beam8 lower: 2 + max(8,8) + 3 = 13" → ceil(13/2) = 7 holes
+  assertEqual(minimumGapSteps(beam8, beam8), 7, 'Sec 5: lower env=8 profile=3, upper env=8 → 7 hole gap');
 
-  // Odd envelope: 2 + max(7, 8) = 10" → ceil(10/2) = 5
+  // beam7 lower: 2 + max(7,8) + 3 = 13" → ceil(13/2) = 7 holes
   const beam7 = makeBeamSpec({ id: 'BM-96-7', verticalEnvelopeIn: 7 });
-  assertEqual(minimumGapSteps(beam7, beam8), 5, 'Sec 5: envelope 7+8 → 5 hole gap');
+  assertEqual(minimumGapSteps(beam7, beam8), 7, 'Sec 5: lower env=7 profile=3, upper env=8 → 7 hole gap');
 
-  // Exact section 5 example: lower=10, upper=8 → 6
-  assertEqual(minimumGapSteps(beam10, beam8), 6, 'Sec 5 example: 6 holes');
+  // Exact Section 5 example from business rules:
+  //   Lower beam: envelope=10", profile height=5"
+  //   Upper beam: envelope=8",  profile height=4"
+  //   minimum_gap_in = 2 + max(10, 8) + 5 = 17" → ceil(17/2) = 9 holes
+  const exampleLower = makeBeamSpec({ id: 'lower', verticalEnvelopeIn: 10, profileHeightIn: 5 });
+  const exampleUpper = makeBeamSpec({ id: 'upper', verticalEnvelopeIn: 8,  profileHeightIn: 4 });
+  assertEqual(minimumGapSteps(exampleLower, exampleUpper), 9, 'Sec 5 business-rules example: 9 holes');
 }
 
 // ═══════════════════════════════════════════════════════════════════════
@@ -222,18 +232,18 @@ section('Section 6 — Level Ordering');
 
 {
   const beam = makeBeamSpec({ verticalEnvelopeIn: 8 });
-  // min gap = ceil((2+8)/2) = 5
+  // min gap = ceil((2 + 8 + 3) / 2) = ceil(13/2) = 7 holes (envelope=8, profileHeight=3)
 
-  // Valid: levels at holes 10, 15, 20 (gaps = 5 each, meets minimum)
+  // Valid: levels at holes 10, 17, 24 (gaps = 7 each, meets minimum)
   const validLevels = [
     createBeamLevel({ id: 'l0', levelIndex: 0, holeIndex: 10, beamSpec: beam }),
-    createBeamLevel({ id: 'l1', levelIndex: 1, holeIndex: 15, beamSpec: beam }),
-    createBeamLevel({ id: 'l2', levelIndex: 2, holeIndex: 20, beamSpec: beam }),
+    createBeamLevel({ id: 'l1', levelIndex: 1, holeIndex: 17, beamSpec: beam }),
+    createBeamLevel({ id: 'l2', levelIndex: 2, holeIndex: 24, beamSpec: beam }),
   ];
   const validErrors = validateLevelSpacing(validLevels);
   assertEqual(validErrors.length, 0, 'Sec 6: Properly spaced levels are valid');
 
-  // Invalid: levels too close (gap = 3 < 5)
+  // Invalid: levels too close (gap = 3 < 7)
   const tooClose = [
     createBeamLevel({ id: 'l0', levelIndex: 0, holeIndex: 10, beamSpec: beam }),
     createBeamLevel({ id: 'l1', levelIndex: 1, holeIndex: 13, beamSpec: beam }),
@@ -519,12 +529,14 @@ section('Section 14 — Validation States');
   assert(invalidResult.errors.length > 0, 'Sec 14: INVALID has errors');
 
   // VALID_WITH_WARNINGS (near frame top)
+  // Frame: height=60", minimumTopClearanceIn=4" → max allowed elevation = 56"
+  // Top level at hole 28 → elevation 56" (≤ 56": no error) → remaining = 60-56 = 4" → NEAR_FRAME_TOP warning
   resetIdCounter();
   const warnLine = buildSimpleRackLine({
-    frameSpec: makeFrameSpec({ heightIn: 42 }), // Tight: top hole at 42, test level at 20 → 40"
+    frameSpec: makeFrameSpec({ heightIn: 60, minimumTopClearanceIn: 4 }),
     beamSpec,
     bayCount: 1,
-    holeIndices: [5, 20], // 20×2=40", frame height=42", remaining=2" → warning
+    holeIndices: [5, 28], // elevations 10" and 56"; gap=23≥7, remaining=4" → warning
   });
   const warnResult = validateRackLine(warnLine);
   assertEqual(warnResult.state, ValidationState.VALID_WITH_WARNINGS, 'Sec 14: Near-top warning → VALID_WITH_WARNINGS');

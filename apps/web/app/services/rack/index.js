@@ -21,6 +21,7 @@ export {
   AccessoryCategory,
   BasePlateType,
   ANCHORS_PER_FRAME,
+  CAPACITY_CLASS_RANK,
 } from './constants.js';
 
 // ── Models ──────────────────────────────────────────────────────────────────

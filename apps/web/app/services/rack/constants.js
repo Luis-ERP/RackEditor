@@ -69,3 +69,17 @@ export const ANCHORS_PER_FRAME = Object.freeze({
   [BasePlateType.STANDARD]:   2,
   [BasePlateType.HEAVY_DUTY]: 4,
 });
+
+// ── Capacity Class Ordering (Section 12.2) ───────────────────────────────────
+//
+// Maps capacity class strings (normalised to uppercase) to a numeric rank.
+// beamCapacityClass ≤ frameAllowableCapacityClass is enforced by comparing ranks.
+// A beam whose rank exceeds the frame's rank is a blocking INVALID error.
+
+export const CAPACITY_CLASS_RANK = Object.freeze({
+  LIGHT:       0,
+  STANDARD:    1,
+  MEDIUM:      2,
+  HEAVY:       3,
+  EXTRA_HEAVY: 4,
+});

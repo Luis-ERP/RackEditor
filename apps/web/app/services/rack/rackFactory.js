@@ -18,7 +18,7 @@ import {
 import { createFrame, createFrameSpec, frameCountFromBays } from './models/frame.js';
 import { createBeamLevel, isBeamCompatibleWithFrame }        from './models/beam.js';
 import { createBay }                                          from './models/bay.js';
-import { createRackModule }                                   from './models/rackModule.js';
+import { createRackModule, resolveFrameSpecAtIndex }          from './models/rackModule.js';
 import { createRackLine }                                     from './models/rackLine.js';
 import { validateRackLine }                                   from './validation.js';
 import { withValidationState }                                from './models/rackLine.js';
@@ -70,9 +70,10 @@ export function buildBeamLevels(holeIndices, beamSpec) {
  * @typedef {Object} ModuleConfig
  * @property {import('./models/frame.js').FrameSpec} frameSpec
  * @property {import('./models/beam.js').BeamSpec}   beamSpec
- * @property {number}   bayCount         - Number of bays in the module (≥ 1)
- * @property {number[]} holeIndices      - Beam level hole indices (shared across all bays)
- * @property {number}   [startFrameIndex=0] - Starting frame position in parent line
+ * @property {number}        bayCount            - Number of bays in the module (≥ 1)
+ * @property {number[]}      holeIndices         - Beam level hole indices (shared across all bays)
+ * @property {number}        [startFrameIndex=0] - Starting frame position in parent line
+ * @property {number|null}   [rowIndex=null]     - Row membership for back-to-back configurations (Section 9.2.2)
  */
 
 /**
@@ -91,6 +92,7 @@ export function buildRackModule(config) {
     bayCount,
     holeIndices,
     startFrameIndex = 0,
+    rowIndex = null,
   } = config;
 
   if (bayCount < MIN_BAY_COUNT) {
@@ -127,6 +129,7 @@ export function buildRackModule(config) {
     bays,
     levelUnion,
     startFrameIndex,
+    rowIndex,
   });
 }
 
@@ -298,12 +301,16 @@ export function generateFrames(rackLine) {
   const frameMap = new Map(); // positionIndex → Frame
 
   for (const mod of rackLine.modules) {
-    for (let i = mod.startFrameIndex; i <= mod.endFrameIndex; i++) {
-      if (!frameMap.has(i)) {
-        frameMap.set(i, createFrame({
-          id: nextId('frm'),
-          spec: mod.frameSpec,
-          positionIndex: i,
+    for (let localIdx = 0; localIdx <= mod.bays.length; localIdx++) {
+      const absoluteIdx = mod.startFrameIndex + localIdx;
+      if (!frameMap.has(absoluteIdx)) {
+        const effectiveSpec = resolveFrameSpecAtIndex(mod, localIdx);
+        frameMap.set(absoluteIdx, createFrame({
+          id:            nextId('frm'),
+          spec:          effectiveSpec,
+          positionIndex: absoluteIdx,
+          isCustomSpec:  effectiveSpec !== mod.frameSpec,
+          rowIndex:      mod.rowIndex,
         }));
       }
     }
