@@ -9,7 +9,12 @@ import {
 } from '../../../services/coordinateSystem';
 import { drawGrid } from '../../../services/gridRenderer';
 import { drawTopRuler, drawLeftRuler, drawCornerPatch } from '../../../services/rulerRenderer';
-import { paintAllEntities, paintSelectionRect, paintWallPreview } from '../../../services/layout';
+import {
+  paintAllEntities,
+  paintEntityMeasurements,
+  paintSelectionRect,
+  paintWallPreview,
+} from '../../../services/layout';
 import { logDrawnObjectSemantics } from '../semantics';
 
 export default function useCanvasViewport({
@@ -27,6 +32,7 @@ export default function useCanvasViewport({
   selRectRef,
   subSelRef,
   rackDomainRef,
+  showMeasurements,
 }) {
   const [zoomPercent, setZoomPercent] = useState(100);
   const [cursorCoord, setCursorCoord] = useState({ x: '0 m', y: '0 m' });
@@ -44,6 +50,9 @@ export default function useCanvasViewport({
 
     if (layoutStore) {
       paintAllEntities(ctx, layoutStore, cam, dk, subSelRef.current);
+      if (showMeasurements) {
+        paintEntityMeasurements(ctx, layoutStore, cam, dk);
+      }
       logDrawnObjectSemantics(layoutStore, rackDomainRef);
     }
 
@@ -53,7 +62,7 @@ export default function useCanvasViewport({
     drawTopRuler(ctx, w, cam, dk);
     drawLeftRuler(ctx, h, cam, dk);
     drawCornerPatch(ctx, dk);
-  }, [camera, canvasRef, darkRef, layoutStore, rackDomainRef, selRectRef, sizeRef, subSelRef, wallPreviewRef]);
+  }, [camera, canvasRef, darkRef, layoutStore, rackDomainRef, selRectRef, showMeasurements, sizeRef, subSelRef, wallPreviewRef]);
 
   const scheduleRedraw = useCallback(() => {
     if (rafId.current) return;
@@ -67,6 +76,10 @@ export default function useCanvasViewport({
   useEffect(() => {
     scheduleRedraw();
   }, [layoutVersion, scheduleRedraw]);
+
+  useEffect(() => {
+    scheduleRedraw();
+  }, [showMeasurements, scheduleRedraw]);
 
   const handleZoomIn = useCallback(() => {
     const { w, h } = sizeRef.current;

@@ -30,9 +30,11 @@ export default function CADCanvas(props) {
     wallStore = null,
     columnMode = false,
     columnStore = null,
+    showMeasurements = false,
     onToggleDrawingMode,
     onSetWallMode,
     onToggleColumnMode,
+    onToggleMeasurements,
   } = props;
 
   const wrapperRef = useRef(null);
@@ -91,6 +93,7 @@ export default function CADCanvas(props) {
     selRectRef,
     subSelRef,
     rackDomainRef,
+    showMeasurements,
   });
 
   const {
@@ -299,8 +302,10 @@ export default function CADCanvas(props) {
       <CanvasHUDs
         cursorCoord={cursorCoord}
         zoomPercent={zoomPercent}
+        showMeasurements={showMeasurements}
         darkMode={darkMode}
         theme={theme}
+        onToggleMeasurements={onToggleMeasurements}
         onToggleDarkMode={onToggleDarkMode}
         onZoomIn={handleZoomIn}
         onZoomOut={handleZoomOut}

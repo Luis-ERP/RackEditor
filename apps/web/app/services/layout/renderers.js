@@ -6,7 +6,7 @@
 //  The CADCanvas component calls these; no DOM or React dependency here.
 // ─────────────────────────────────────────────────────────────────────────────
 
-import { EntityType } from './entities.js';
+import { EntityType, entityAABB } from './entities.js';
 
 // ── Color palettes (light / dark) ───────────────────────────────────────────
 
@@ -57,6 +57,245 @@ const FRAME_COL_FRAC = 3 / 96;   // ≈ 0.031 — upright column width as fracti
 const BEAM_H_FRAC    = 5 / 42;   // ≈ 0.119 — beam strip height as fraction of frame depth
 
 function pal(dk) { return dk ? PALETTE.dark : PALETTE.light; }
+
+function formatMeasureMeters(valueM) {
+  const abs = Math.abs(valueM);
+  if (abs >= 1) {
+    const rounded = Math.round(valueM * 100) / 100;
+    return `${Number.isInteger(rounded) ? rounded : rounded.toFixed(2)} m`;
+  }
+  const cm = valueM * 100;
+  const roundedCm = Math.round(cm * 10) / 10;
+  return `${Number.isInteger(roundedCm) ? roundedCm : roundedCm.toFixed(1)} cm`;
+}
+
+const GAP_MEASURE_EPS = 0.001;
+const MIN_OVERLAP_M = 0.05;
+
+function isOrthogonalWall(entity) {
+  const normalized = ((entity.transform.rotation % 360) + 360) % 360;
+  return normalized % 90 === 0;
+}
+
+function supportsAutoGapMeasurement(entity) {
+  switch (entity.type) {
+    case EntityType.RACK_MODULE:
+    case EntityType.RACK_LINE:
+    case EntityType.COLUMN:
+      return true;
+    case EntityType.WALL:
+      return isOrthogonalWall(entity);
+    default:
+      return false;
+  }
+}
+
+function spanOf(bounds, axis) {
+  return axis === 'x'
+    ? bounds.maxX - bounds.minX
+    : bounds.maxY - bounds.minY;
+}
+
+function axisOverlap(aMin, aMax, bMin, bMax) {
+  return Math.min(aMax, bMax) - Math.max(aMin, bMin);
+}
+
+function minimumAxisOverlap(sourceBounds, candidateBounds, axis) {
+  const minSpan = Math.min(spanOf(sourceBounds, axis), spanOf(candidateBounds, axis));
+  return Math.max(MIN_OVERLAP_M, minSpan * 0.2);
+}
+
+function findNearestAxisNeighbor(source, items, axis) {
+  const sourceBounds = source.bounds;
+  const isHorizontal = axis === 'x';
+  let best = null;
+
+  for (const candidate of items) {
+    if (candidate.entity.id === source.entity.id) continue;
+
+    const candidateBounds = candidate.bounds;
+    const gap = isHorizontal
+      ? candidateBounds.minX - sourceBounds.maxX
+      : candidateBounds.minY - sourceBounds.maxY;
+    if (gap < GAP_MEASURE_EPS) continue;
+
+    const overlap = isHorizontal
+      ? axisOverlap(sourceBounds.minY, sourceBounds.maxY, candidateBounds.minY, candidateBounds.maxY)
+      : axisOverlap(sourceBounds.minX, sourceBounds.maxX, candidateBounds.minX, candidateBounds.maxX);
+    if (overlap < minimumAxisOverlap(sourceBounds, candidateBounds, isHorizontal ? 'y' : 'x')) {
+      continue;
+    }
+
+    if (!best || gap < best.gap - GAP_MEASURE_EPS || (Math.abs(gap - best.gap) <= GAP_MEASURE_EPS && overlap > best.overlap)) {
+      best = {
+        entity: candidate.entity,
+        gap,
+        overlap,
+        overlapStart: isHorizontal
+          ? Math.max(sourceBounds.minY, candidateBounds.minY)
+          : Math.max(sourceBounds.minX, candidateBounds.minX),
+        overlapEnd: isHorizontal
+          ? Math.min(sourceBounds.maxY, candidateBounds.maxY)
+          : Math.min(sourceBounds.maxX, candidateBounds.maxX),
+        edgeStart: isHorizontal ? sourceBounds.maxX : sourceBounds.maxY,
+        edgeEnd: isHorizontal ? candidateBounds.minX : candidateBounds.minY,
+      };
+    }
+  }
+
+  return best;
+}
+
+export function buildAutoGapMeasurements(entities) {
+  const measurable = entities
+    .filter((entity) => entity.visible && supportsAutoGapMeasurement(entity))
+    .map((entity) => ({ entity, bounds: entityAABB(entity) }));
+
+  if (measurable.length < 2) return [];
+
+  const measurements = [];
+  const seen = new Set();
+
+  for (const source of measurable) {
+    const rightNeighbor = findNearestAxisNeighbor(source, measurable, 'x');
+    if (rightNeighbor) {
+      const key = `x:${source.entity.id}:${rightNeighbor.entity.id}`;
+      if (!seen.has(key)) {
+        seen.add(key);
+        measurements.push({
+          axis: 'x',
+          entityId: source.entity.id,
+          neighborId: rightNeighbor.entity.id,
+          distanceM: rightNeighbor.gap,
+          x1: rightNeighbor.edgeStart,
+          y1: (rightNeighbor.overlapStart + rightNeighbor.overlapEnd) / 2,
+          x2: rightNeighbor.edgeEnd,
+          y2: (rightNeighbor.overlapStart + rightNeighbor.overlapEnd) / 2,
+        });
+      }
+    }
+
+    const lowerNeighbor = findNearestAxisNeighbor(source, measurable, 'y');
+    if (lowerNeighbor) {
+      const key = `y:${source.entity.id}:${lowerNeighbor.entity.id}`;
+      if (!seen.has(key)) {
+        seen.add(key);
+        measurements.push({
+          axis: 'y',
+          entityId: source.entity.id,
+          neighborId: lowerNeighbor.entity.id,
+          distanceM: lowerNeighbor.gap,
+          x1: (lowerNeighbor.overlapStart + lowerNeighbor.overlapEnd) / 2,
+          y1: lowerNeighbor.edgeStart,
+          x2: (lowerNeighbor.overlapStart + lowerNeighbor.overlapEnd) / 2,
+          y2: lowerNeighbor.edgeEnd,
+        });
+      }
+    }
+  }
+
+  return measurements;
+}
+
+function drawDimensionLine(ctx, {
+  x1,
+  y1,
+  x2,
+  y2,
+  text,
+  color,
+  textBg,
+  fontPx = 11,
+}) {
+  const angle = Math.atan2(y2 - y1, x2 - x1);
+  const len = Math.hypot(x2 - x1, y2 - y1);
+  if (len < 18) return;
+
+  const ext = 6;
+  const head = 4;
+
+  ctx.save();
+  ctx.strokeStyle = color;
+  ctx.fillStyle = color;
+  ctx.lineWidth = 1;
+  ctx.translate(x1, y1);
+  ctx.rotate(angle);
+
+  ctx.beginPath();
+  ctx.moveTo(0, -ext);
+  ctx.lineTo(0, ext);
+  ctx.moveTo(len, -ext);
+  ctx.lineTo(len, ext);
+  ctx.moveTo(0, 0);
+  ctx.lineTo(len, 0);
+  ctx.stroke();
+
+  // Arrowheads
+  ctx.beginPath();
+  ctx.moveTo(0, 0);
+  ctx.lineTo(head, -2.5);
+  ctx.lineTo(head, 2.5);
+  ctx.closePath();
+  ctx.fill();
+
+  ctx.beginPath();
+  ctx.moveTo(len, 0);
+  ctx.lineTo(len - head, -2.5);
+  ctx.lineTo(len - head, 2.5);
+  ctx.closePath();
+  ctx.fill();
+
+  // Text background cutout keeps labels readable over dense geometry.
+  ctx.font = `600 ${fontPx}px ui-monospace, SFMono-Regular, Menlo, monospace`;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  const labelY = -9;
+  const labelW = ctx.measureText(text).width + 10;
+  const labelH = fontPx + 4;
+  ctx.fillStyle = textBg;
+  ctx.fillRect((len - labelW) / 2, labelY - labelH / 2, labelW, labelH);
+  ctx.fillStyle = color;
+  ctx.fillText(text, len / 2, labelY);
+
+  ctx.restore();
+}
+
+function drawOrthogonalDimensions(ctx, {
+  left,
+  top,
+  width,
+  height,
+  widthText,
+  heightText,
+  color,
+  textBg,
+  topOffset = 18,
+  rightOffset = 18,
+}) {
+  if (width >= 0.14) {
+    drawDimensionLine(ctx, {
+      x1: left,
+      y1: top - topOffset,
+      x2: left + width,
+      y2: top - topOffset,
+      text: widthText,
+      color,
+      textBg,
+    });
+  }
+
+  if (height >= 0.14) {
+    drawDimensionLine(ctx, {
+      x1: left + width + rightOffset,
+      y1: top,
+      x2: left + width + rightOffset,
+      y2: top + height,
+      text: heightText,
+      color,
+      textBg,
+    });
+  }
+}
 
 // ── Rack adjacency helpers ───────────────────────────────────────────────────
 
@@ -484,5 +723,132 @@ export function paintAllEntities(ctx, store, cam, dk, subSel = null) {
   for (const ent of all) {
     const bayIdx = (subSel && ent.id === subSel.entityId) ? subSel.bayIndex : null;
     paintEntity(ctx, ent, cam, selection.has(ent.id), dk, adjacency.get(ent.id) ?? {}, bayIdx);
+  }
+}
+
+/**
+ * Draw CAD-style dimensions for visible entities.
+ * Placement strategy (intentional and practical for warehouse layout work):
+ * - Racks: width on top, depth on right.
+ * - Walls: length parallel to wall (outside), plus thickness at midpoint.
+ * - Columns: width on top and depth on right.
+ */
+export function paintEntityMeasurements(ctx, store, cam, dk) {
+  if (!store) return;
+
+  const all = store.getAll().filter((ent) => ent.visible);
+  if (all.length === 0) return;
+
+  const textBg = dk ? 'rgba(17,24,39,0.9)' : 'rgba(255,255,255,0.92)';
+  const baseColor = dk ? '#93c5fd' : '#1d4ed8';
+  const highlightColor = dk ? '#fbbf24' : '#b45309';
+  const gapColor = dk ? '#5eead4' : '#0f766e';
+
+  let rackOrdinal = 0;
+  let columnOrdinal = 0;
+
+  for (const ent of all) {
+    if (ent.type === EntityType.RACK_MODULE || ent.type === EntityType.RACK_LINE) {
+      const left = cam.x + ent.transform.x * cam.zoom;
+      const top = cam.y + ent.transform.y * cam.zoom;
+      const width = ent.widthM * cam.zoom;
+      const height = ent.depthM * cam.zoom;
+
+      drawOrthogonalDimensions(ctx, {
+        left,
+        top,
+        width,
+        height,
+        widthText: formatMeasureMeters(ent.widthM),
+        heightText: formatMeasureMeters(ent.depthM),
+        color: baseColor,
+        textBg,
+        topOffset: 16 + (rackOrdinal % 2) * 12,
+        rightOffset: 16 + (rackOrdinal % 3) * 10,
+      });
+
+      rackOrdinal += 1;
+      continue;
+    }
+
+    if (ent.type === EntityType.COLUMN) {
+      const left = cam.x + (ent.transform.x - ent.widthM / 2) * cam.zoom;
+      const top = cam.y + (ent.transform.y - ent.depthM / 2) * cam.zoom;
+      const width = ent.widthM * cam.zoom;
+      const height = ent.depthM * cam.zoom;
+
+      drawOrthogonalDimensions(ctx, {
+        left,
+        top,
+        width,
+        height,
+        widthText: formatMeasureMeters(ent.widthM),
+        heightText: formatMeasureMeters(ent.depthM),
+        color: highlightColor,
+        textBg,
+        topOffset: 14 + (columnOrdinal % 2) * 10,
+        rightOffset: 14 + (columnOrdinal % 2) * 10,
+      });
+
+      columnOrdinal += 1;
+      continue;
+    }
+
+    if (ent.type === EntityType.WALL) {
+      const x1 = cam.x + ent.transform.x * cam.zoom;
+      const y1 = cam.y + ent.transform.y * cam.zoom;
+      const angle = (ent.transform.rotation * Math.PI) / 180;
+      const lengthPx = ent.lengthM * cam.zoom;
+      const thicknessPx = ent.thicknessM * cam.zoom;
+
+      const ux = Math.cos(angle);
+      const uy = Math.sin(angle);
+      const nx = -uy;
+      const ny = ux;
+
+      const offset = 18;
+      const sx1 = x1 + nx * offset;
+      const sy1 = y1 + ny * offset;
+      const sx2 = sx1 + ux * lengthPx;
+      const sy2 = sy1 + uy * lengthPx;
+
+      drawDimensionLine(ctx, {
+        x1: sx1,
+        y1: sy1,
+        x2: sx2,
+        y2: sy2,
+        text: formatMeasureMeters(ent.lengthM),
+        color: baseColor,
+        textBg,
+      });
+
+      if (thicknessPx >= 8) {
+        const midX = x1 + ux * (lengthPx / 2);
+        const midY = y1 + uy * (lengthPx / 2);
+        drawDimensionLine(ctx, {
+          x1: midX - nx * (thicknessPx / 2),
+          y1: midY - ny * (thicknessPx / 2),
+          x2: midX + nx * (thicknessPx / 2),
+          y2: midY + ny * (thicknessPx / 2),
+          text: formatMeasureMeters(ent.thicknessM),
+          color: highlightColor,
+          textBg,
+          fontPx: 10,
+        });
+      }
+    }
+  }
+
+  for (const measurement of buildAutoGapMeasurements(all)) {
+    drawDimensionLine(ctx, {
+      x1: cam.x + measurement.x1 * cam.zoom,
+      y1: cam.y + measurement.y1 * cam.zoom,
+      x2: cam.x + measurement.x2 * cam.zoom,
+      y2: cam.y + measurement.y2 * cam.zoom,
+      text: formatMeasureMeters(measurement.distanceM),
+      color: gapColor,
+      textBg,
+      fontPx: 10,
+    });
   }
 }

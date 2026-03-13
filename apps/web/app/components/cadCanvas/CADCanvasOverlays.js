@@ -2,6 +2,7 @@ import {
   ZoomIn,
   ZoomOut,
   Maximize,
+  Ruler,
   XCircle,
   Trash2,
   Copy,
@@ -124,8 +125,10 @@ export function CanvasModeBanners({ drawingMode, wallMode, columnMode, subSel, d
 export function CanvasHUDs({
   cursorCoord,
   zoomPercent,
+  showMeasurements,
   darkMode,
   theme,
+  onToggleMeasurements,
   onToggleDarkMode,
   onZoomIn,
   onZoomOut,
@@ -153,6 +156,18 @@ export function CanvasHUDs({
           <div style={{ ...dividerStyle, background: theme.overlayBorder }} />
           <button onClick={onFitView} style={{ ...btnStyle, color: theme.overlayText }} title="Reset zoom (100%)">
             <Maximize size={16} />
+          </button>
+          <div style={{ ...dividerStyle, background: theme.overlayBorder }} />
+          <button
+            onClick={onToggleMeasurements}
+            style={{
+              ...btnStyle,
+              color: showMeasurements ? '#2563eb' : theme.overlayText,
+              background: showMeasurements ? (darkMode ? 'rgba(37,99,235,0.2)' : 'rgba(219,234,254,0.9)') : 'transparent',
+            }}
+            title={showMeasurements ? 'Hide dimensions' : 'Show dimensions'}
+          >
+            <Ruler size={16} />
           </button>
           <div style={{ ...dividerStyle, background: theme.overlayBorder }} />
           <button

@@ -32,6 +32,7 @@ function normalizeCanvasSettings(canvas) {
 		drawingMode: Boolean(canvas?.drawingMode),
 		wallMode: canvas?.wallMode ?? null,
 		columnMode: Boolean(canvas?.columnMode),
+		showMeasurements: canvas?.showMeasurements !== false,
 	};
 }
 

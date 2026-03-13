@@ -38,6 +38,7 @@ export {
 export {
   paintEntity,
   paintAllEntities,
+  paintEntityMeasurements,
   paintSelectionRect,
   paintWallPreview,
 } from './renderers.js';

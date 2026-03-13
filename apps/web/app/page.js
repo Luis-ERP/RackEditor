@@ -21,6 +21,7 @@ export default function HomePage() {
   const [rackOrientation, setRackOrientation] = useState('horizontal');
   const [wallMode, setWallMode] = useState(null); // null | 'line' | 'rect'
   const [columnMode, setColumnMode] = useState(false);
+  const [showMeasurements, setShowMeasurements] = useState(true);
   const [subSel, setSubSel] = useState(null);
   const { store, version } = useLayoutStore();
   const { store: wallSt, version: wallVer } = useWallStore();
@@ -65,11 +66,12 @@ export default function HomePage() {
         drawingMode,
         wallMode,
         columnMode,
+        showMeasurements,
       },
       fileName,
       scopeKey: 'main',
     });
-  }, [store, wallSt, colSt, rackDomainRef, darkMode, rackOrientation, drawingMode, wallMode, columnMode]);
+  }, [store, wallSt, colSt, rackDomainRef, darkMode, rackOrientation, drawingMode, wallMode, columnMode, showMeasurements]);
 
   const handleImportProjectDocument = useCallback(() => {
     if (typeof window === 'undefined' || !window.document) return;
@@ -95,6 +97,7 @@ export default function HomePage() {
             setDrawingMode(Boolean(canvas.drawingMode));
             setWallMode(canvas.wallMode ?? null);
             setColumnMode(Boolean(canvas.columnMode));
+            setShowMeasurements(canvas.showMeasurements !== false);
           },
           scopeKey: 'main',
         });
@@ -164,6 +167,7 @@ export default function HomePage() {
           setDrawingMode(Boolean(canvas.drawingMode));
           setWallMode(canvas.wallMode ?? null);
           setColumnMode(Boolean(canvas.columnMode));
+          setShowMeasurements(canvas.showMeasurements !== false);
         },
       });
     } catch {
@@ -189,6 +193,7 @@ export default function HomePage() {
           drawingMode,
           wallMode,
           columnMode,
+          showMeasurements,
         },
       });
       cacheProjectDocument(doc, 'main');
@@ -204,6 +209,7 @@ export default function HomePage() {
     drawingMode,
     wallMode,
     columnMode,
+    showMeasurements,
     store,
     wallSt,
     colSt,
@@ -243,9 +249,11 @@ export default function HomePage() {
         columnStore={colSt}
         rackDomainRef={rackDomainRef}
         onSubSelChange={setSubSel}
+        showMeasurements={showMeasurements}
         onToggleDrawingMode={toggleDrawingMode}
         onSetWallMode={handleSetWallMode}
         onToggleColumnMode={handleToggleColumnMode}
+        onToggleMeasurements={() => setShowMeasurements((prev) => !prev)}
       />
     </div>
   );
