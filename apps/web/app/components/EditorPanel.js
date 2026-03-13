@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { Pencil, ClipboardList, Settings } from 'lucide-react';
+import { Pencil, ClipboardList, Settings, FileDown, FileUp } from 'lucide-react';
 import RackModuleEditor from './rack/RackModuleEditor.js';
 import {
   BEAMS_PER_LEVEL,
@@ -32,6 +32,8 @@ export default function EditorPanel({
   columnStoreVersion,
   rackDomainRef,
   subSelActive = false,
+  onExportProjectDocument,
+  onImportProjectDocument,
   children,
 }) {
   const dk = darkMode;
@@ -163,6 +165,8 @@ export default function EditorPanel({
           layoutVersion={layoutVersion}
           rackDomainRef={rackDomainRef}
           darkMode={dk}
+          onExportProjectDocument={onExportProjectDocument}
+          onImportProjectDocument={onImportProjectDocument}
         />
       )}
 
@@ -186,7 +190,14 @@ export default function EditorPanel({
 // ── BOMView ─────────────────────────────────────────────────────
 const MAX_NAME_LEN = 28;
 
-function BOMView({ layoutStore, layoutVersion, rackDomainRef, darkMode }) {
+function BOMView({
+  layoutStore,
+  layoutVersion,
+  rackDomainRef,
+  darkMode,
+  onExportProjectDocument,
+  onImportProjectDocument,
+}) {
   const dk = darkMode;
 
   const bomItems = useMemo(() => {
@@ -269,6 +280,8 @@ function BOMView({ layoutStore, layoutVersion, rackDomainRef, darkMode }) {
   const headerBg    = dk ? '#18191c' : '#f9fafb';
   const borderColor = dk ? '#2d2f34' : '#f3f4f6';
   const rowHoverBg  = dk ? '#25272b' : '#f9fafb';
+  const buttonBg    = dk ? '#1f2937' : '#f3f4f6';
+  const buttonHover = dk ? '#374151' : '#e5e7eb';
   const tagBg       = {
     Frame:     dk ? '#1e3a5f' : '#dbeafe',
     Beam:      dk ? '#1a3a2a' : '#d1fae5',
@@ -297,9 +310,78 @@ function BOMView({ layoutStore, layoutVersion, rackDomainRef, darkMode }) {
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
       <div style={{
         ...sectionHeaderStyle,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
         color: dk ? '#9ca3af' : '#6b7280',
         borderBottomColor: borderColor,
-      }}>Bill of Materials</div>
+      }}>
+        <span>Bill of Materials</span>
+        <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+          <button
+            onClick={onImportProjectDocument}
+            disabled={typeof onImportProjectDocument !== 'function'}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 6,
+              border: `1px solid ${borderColor}`,
+              borderRadius: 6,
+              background: buttonBg,
+              color: textColor,
+              cursor: typeof onImportProjectDocument === 'function' ? 'pointer' : 'default',
+              fontSize: 11,
+              fontWeight: 600,
+              padding: '5px 8px',
+              opacity: typeof onImportProjectDocument === 'function' ? 1 : 0.55,
+              transition: 'background 0.12s ease',
+            }}
+            onMouseEnter={(e) => {
+              if (typeof onImportProjectDocument === 'function') {
+                e.currentTarget.style.background = buttonHover;
+              }
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = buttonBg;
+            }}
+            title="Import project document"
+          >
+            <FileUp size={14} />
+            Import
+          </button>
+          <button
+            onClick={onExportProjectDocument}
+            disabled={typeof onExportProjectDocument !== 'function'}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 6,
+              border: `1px solid ${borderColor}`,
+              borderRadius: 6,
+              background: buttonBg,
+              color: textColor,
+              cursor: typeof onExportProjectDocument === 'function' ? 'pointer' : 'default',
+              fontSize: 11,
+              fontWeight: 600,
+              padding: '5px 8px',
+              opacity: typeof onExportProjectDocument === 'function' ? 1 : 0.55,
+              transition: 'background 0.12s ease',
+            }}
+            onMouseEnter={(e) => {
+              if (typeof onExportProjectDocument === 'function') {
+                e.currentTarget.style.background = buttonHover;
+              }
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = buttonBg;
+            }}
+            title="Export project document"
+          >
+            <FileDown size={14} />
+            Export
+          </button>
+        </div>
+      </div>
 
       <div style={{ flex: 1, overflow: 'auto', padding: 0 }}>
         {bomItems.length === 0 ? (

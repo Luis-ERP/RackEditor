@@ -67,6 +67,32 @@ export function createColumnStore() {
     _notify();
   }
 
+  // ── Serialization ─────────────────────────────────────────
+
+  /**
+   * Export a serializable snapshot.
+   * @returns {{ defaultWidthM: number, defaultDepthM: number }}
+   */
+  function snapshot() {
+    return {
+      defaultWidthM: _defaultWidth,
+      defaultDepthM: _defaultDepth,
+    };
+  }
+
+  /**
+   * Restore from a snapshot.
+   * @param {{ defaultWidthM?: number, defaultDepthM?: number }} data
+   */
+  function restore(data) {
+    const w = data?.defaultWidthM;
+    const d = data?.defaultDepthM;
+
+    _defaultWidth = (typeof w === 'number' && w > 0 && w <= 5) ? w : 0.4;
+    _defaultDepth = (typeof d === 'number' && d > 0 && d <= 5) ? d : 0.4;
+    _notify();
+  }
+
   // ── Public API ────────────────────────────────────────────
 
   return {
@@ -75,5 +101,7 @@ export function createColumnStore() {
     getDefaultDepth,
     setDefaultWidth,
     setDefaultDepth,
+    snapshot,
+    restore,
   };
 }

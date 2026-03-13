@@ -6,7 +6,14 @@ import CADCanvas from './components/CADCanvas';
 import useLayoutStore from './hooks/useLayoutStore';
 import useWallStore from './hooks/useWallStore';
 import useColumnStore from './hooks/useColumnStore';
-import { downloadDXF } from './services/export/dxfExporter';
+import {
+  cacheProjectDocument,
+  downloadProjectDocument,
+  importProjectDocumentFromFile,
+  loadCachedProjectDocument,
+  restoreProjectDocument,
+  serializeProjectDocument,
+} from './services/export/projectDocumentExporter';
 
 export default function HomePage() {
   const [drawingMode, setDrawingMode] = useState(false);
@@ -18,6 +25,7 @@ export default function HomePage() {
   const { store, version } = useLayoutStore();
   const { store: wallSt, version: wallVer } = useWallStore();
   const { store: colSt, version: colVer } = useColumnStore();
+  const hydratedFromCacheRef = useRef(false);
 
   // Rack domain registry: shared between canvas (writes) and panel (reads BOM)
   const rackDomainRef = useRef(new Map());
@@ -36,9 +44,68 @@ export default function HomePage() {
     setDarkMode((prev) => !prev);
   }, []);
 
-  const handleExportDXF = useCallback(() => {
-    downloadDXF(store, 'rack-layout.dxf');
-  }, [store]);
+  const handleExportProjectDocument = useCallback(() => {
+    if (typeof window === 'undefined') return;
+
+    const userInput = window.prompt('File name for export:', 'rack-project.json');
+    if (userInput === null) return;
+
+    const trimmed = userInput.trim();
+    const baseName = trimmed.length > 0 ? trimmed : 'rack-project.json';
+    const fileName = baseName.toLowerCase().endsWith('.json') ? baseName : `${baseName}.json`;
+
+    downloadProjectDocument({
+      layoutStore: store,
+      wallStore: wallSt,
+      columnStore: colSt,
+      rackDomainRef,
+      canvas: {
+        darkMode,
+        rackOrientation,
+        drawingMode,
+        wallMode,
+        columnMode,
+      },
+      fileName,
+      scopeKey: 'main',
+    });
+  }, [store, wallSt, colSt, rackDomainRef, darkMode, rackOrientation, drawingMode, wallMode, columnMode]);
+
+  const handleImportProjectDocument = useCallback(() => {
+    if (typeof window === 'undefined' || !window.document) return;
+
+    const input = window.document.createElement('input');
+    input.type = 'file';
+    input.accept = 'application/json,.json';
+
+    input.addEventListener('change', async () => {
+      const file = input.files?.[0];
+      if (!file) return;
+
+      try {
+        await importProjectDocumentFromFile({
+          file,
+          layoutStore: store,
+          wallStore: wallSt,
+          columnStore: colSt,
+          rackDomainRef,
+          onRestoreCanvas: (canvas) => {
+            setDarkMode(Boolean(canvas.darkMode));
+            setRackOrientation(canvas.rackOrientation ?? 'horizontal');
+            setDrawingMode(Boolean(canvas.drawingMode));
+            setWallMode(canvas.wallMode ?? null);
+            setColumnMode(Boolean(canvas.columnMode));
+          },
+          scopeKey: 'main',
+        });
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : 'Failed to import project document.';
+        window.alert(msg);
+      }
+    });
+
+    input.click();
+  }, [store, wallSt, colSt, rackDomainRef]);
 
   /** Toggle wall mode (rect or line). Clicking the active mode deactivates it. */
   const handleSetWallMode = useCallback((mode) => {
@@ -74,6 +141,75 @@ export default function HomePage() {
     return () => window.removeEventListener('keydown', onKeyDown);
   }, []);
 
+  // Hydrate from local cache once on first mount.
+  useEffect(() => {
+    if (hydratedFromCacheRef.current) return;
+
+    const cachedDoc = loadCachedProjectDocument('main');
+    if (!cachedDoc) {
+      hydratedFromCacheRef.current = true;
+      return;
+    }
+
+    try {
+      restoreProjectDocument({
+        doc: cachedDoc,
+        layoutStore: store,
+        wallStore: wallSt,
+        columnStore: colSt,
+        rackDomainRef,
+        onRestoreCanvas: (canvas) => {
+          setDarkMode(Boolean(canvas.darkMode));
+          setRackOrientation(canvas.rackOrientation ?? 'horizontal');
+          setDrawingMode(Boolean(canvas.drawingMode));
+          setWallMode(canvas.wallMode ?? null);
+          setColumnMode(Boolean(canvas.columnMode));
+        },
+      });
+    } catch {
+      // Ignore malformed cache payloads and continue with a clean session.
+    } finally {
+      hydratedFromCacheRef.current = true;
+    }
+  }, [store, wallSt, colSt, rackDomainRef]);
+
+  // Auto-save project progress to cache whenever model/canvas state changes.
+  useEffect(() => {
+    if (!hydratedFromCacheRef.current) return;
+
+    const timerId = window.setTimeout(() => {
+      const doc = serializeProjectDocument({
+        layoutStore: store,
+        wallStore: wallSt,
+        columnStore: colSt,
+        rackDomainRef,
+        canvas: {
+          darkMode,
+          rackOrientation,
+          drawingMode,
+          wallMode,
+          columnMode,
+        },
+      });
+      cacheProjectDocument(doc, 'main');
+    }, 250);
+
+    return () => window.clearTimeout(timerId);
+  }, [
+    version,
+    wallVer,
+    colVer,
+    darkMode,
+    rackOrientation,
+    drawingMode,
+    wallMode,
+    columnMode,
+    store,
+    wallSt,
+    colSt,
+    rackDomainRef,
+  ]);
+
   return (
     <div style={{ display: 'flex', width: '100vw', height: '100vh', overflow: 'hidden' }}>
       <EditorPanel
@@ -91,6 +227,8 @@ export default function HomePage() {
         columnStoreVersion={colVer}
         rackDomainRef={rackDomainRef}
         subSelActive={subSel !== null}
+        onExportProjectDocument={handleExportProjectDocument}
+        onImportProjectDocument={handleImportProjectDocument}
       />
       <CADCanvas
         drawingMode={drawingMode}
