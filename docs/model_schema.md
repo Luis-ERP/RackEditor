@@ -140,7 +140,8 @@ first so that the rationale for the schema below is clear.
 3.  CATALOG LAYER
 ─────────────────────────────────────────────────────────────────────────────
 
-These types are sourced from the CSV catalog files (frames.csv, beams.csv).
+These types are sourced from the CSV catalog files in
+apps/web/src/core/rack/catalog_lists (frames.csv, beams.csv).
 They are created once at application start and never mutated.
 
 ────────────────────────────────────────

@@ -1,0 +1,391 @@
+/* ─────────────────────────────────────────────────────────────────────────────
+   Quoter Styles
+   ───────────────────────────────────────────────────────────────────────────── */
+
+.quoterRoot {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: var(--app-bg);
+  color: var(--app-text);
+}
+
+/* ── Header ──────────────────────────────────────────────────────────────── */
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 20px;
+  border-bottom: 1px solid var(--surface-border);
+  background: var(--surface);
+  flex-shrink: 0;
+}
+
+.headerLeft {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.headerRight {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.quoteTitle {
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+
+.statusBadge {
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  background: var(--accent-soft);
+  color: var(--muted-text);
+}
+
+/* ── Content area ────────────────────────────────────────────────────────── */
+
+.content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+/* ── Sections ────────────────────────────────────────────────────────────── */
+
+.section {
+  background: var(--surface);
+  border: 1px solid var(--surface-border);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.sectionHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--surface-border);
+  background: var(--surface-muted);
+}
+
+.sectionTitle {
+  font-size: 0.85rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--muted-text);
+}
+
+.sectionBody {
+  padding: 16px;
+}
+
+/* ── Info Grid ───────────────────────────────────────────────────────────── */
+
+.infoGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 12px;
+}
+
+.infoField {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.infoLabel {
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--muted-text);
+}
+
+.infoValue {
+  font-size: 0.875rem;
+}
+
+/* ── Table ───────────────────────────────────────────────────────────────── */
+
+.tableWrap {
+  overflow-x: auto;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.825rem;
+}
+
+.table th {
+  text-align: left;
+  padding: 8px 12px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--muted-text);
+  border-bottom: 1px solid var(--surface-border);
+  background: var(--surface-muted);
+  white-space: nowrap;
+}
+
+.table td {
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--surface-border);
+  vertical-align: middle;
+}
+
+.table tr:last-child td {
+  border-bottom: none;
+}
+
+.table .numCell {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.table .thRight {
+  text-align: right;
+}
+
+.cadBadge {
+  display: inline-block;
+  padding: 1px 6px;
+  border-radius: 3px;
+  font-size: 0.65rem;
+  font-weight: 600;
+  background: #3b82f620;
+  color: #3b82f6;
+}
+
+.manualBadge {
+  display: inline-block;
+  padding: 1px 6px;
+  border-radius: 3px;
+  font-size: 0.65rem;
+  font-weight: 600;
+  background: #22c55e20;
+  color: #22c55e;
+}
+
+/* ── Summary ─────────────────────────────────────────────────────────────── */
+
+.summaryGrid {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 4px 24px;
+  max-width: 360px;
+  margin-left: auto;
+  font-size: 0.85rem;
+}
+
+.summaryLabel {
+  color: var(--muted-text);
+}
+
+.summaryValue {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.summaryDivider {
+  grid-column: 1 / -1;
+  height: 1px;
+  background: var(--surface-border);
+  margin: 4px 0;
+}
+
+.summaryTotal {
+  font-weight: 700;
+  font-size: 1rem;
+}
+
+/* ── Buttons ─────────────────────────────────────────────────────────────── */
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 0.78rem;
+  font-weight: 500;
+  border: 1px solid var(--surface-border);
+  background: var(--surface);
+  color: var(--app-text);
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease;
+  white-space: nowrap;
+}
+
+.btn:hover {
+  background: var(--accent-soft);
+}
+
+.btnPrimary {
+  background: #3b82f6;
+  color: #fff;
+  border-color: #3b82f6;
+}
+
+.btnPrimary:hover {
+  background: #2563eb;
+  border-color: #2563eb;
+}
+
+.btnDanger {
+  color: #ef4444;
+}
+
+.btnDanger:hover {
+  background: #ef444410;
+  border-color: #ef4444;
+}
+
+.btnSmall {
+  padding: 3px 8px;
+  font-size: 0.72rem;
+}
+
+/* ── Inline Editable Input ───────────────────────────────────────────────── */
+
+.inlineInput {
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  padding: 2px 6px;
+  font-size: inherit;
+  font-family: inherit;
+  color: inherit;
+  width: 100%;
+  transition: border-color 0.15s ease;
+}
+
+.inlineInput:hover {
+  border-color: var(--surface-border);
+}
+
+.inlineInput:focus {
+  outline: none;
+  border-color: #3b82f6;
+  background: var(--surface);
+}
+
+.inlineInputNum {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  width: 80px;
+}
+
+/* ── Select ──────────────────────────────────────────────────────────────── */
+
+.select {
+  background: var(--surface);
+  border: 1px solid var(--surface-border);
+  border-radius: 4px;
+  padding: 4px 8px;
+  font-size: 0.78rem;
+  color: var(--app-text);
+  cursor: pointer;
+}
+
+.select:focus {
+  outline: none;
+  border-color: #3b82f6;
+}
+
+/* ── Discount Inline ─────────────────────────────────────────────────────── */
+
+.discountInline {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* ── Empty State ─────────────────────────────────────────────────────────── */
+
+.emptyRow td {
+  text-align: center;
+  padding: 24px 12px;
+  color: var(--muted-text);
+  font-style: italic;
+}
+
+/* ── Modal Overlay ───────────────────────────────────────────────────────── */
+
+.modalOverlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.modal {
+  background: var(--surface);
+  border: 1px solid var(--surface-border);
+  border-radius: 10px;
+  padding: 24px;
+  width: 100%;
+  max-width: 420px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.modalTitle {
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.formField {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.formLabel {
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--muted-text);
+}
+
+.formInput {
+  background: var(--surface-muted);
+  border: 1px solid var(--surface-border);
+  border-radius: 6px;
+  padding: 8px 10px;
+  font-size: 0.85rem;
+  color: var(--app-text);
+}
+
+.formInput:focus {
+  outline: none;
+  border-color: #3b82f6;
+}
+
+.modalActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}

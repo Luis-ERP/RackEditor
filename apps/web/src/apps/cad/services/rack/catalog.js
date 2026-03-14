@@ -1,8 +1,9 @@
 // ─────────────────────────────────────────────────────────────────────────────
 //  Rack Catalog
 //
-//  Defines catalog entries (FrameSpec, BeamSpec) sourced from the CSV catalog
-//  files and exports the industry-standard default configuration.
+//  Defines catalog entries (FrameSpec, BeamSpec) sourced from the shared CSV
+//  catalog files in src/core/rack/catalog_lists and exports the
+//  industry-standard default configuration.
 //
 //  Default configuration (most common selective pallet rack setup):
 //    • Frame : 14-gauge, 42" deep, 144" high  (12-ft upright, standard for general warehousing)
