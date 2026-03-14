@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { useRouter } from 'next/navigation';
 import EditorPanel from './components/EditorPanel';
 import CADCanvas from './components/CADCanvas';
 import useLayoutStore from './hooks/useLayoutStore';
@@ -15,8 +16,11 @@ import {
   restoreProjectDocument,
   serializeProjectDocument,
 } from './services/export/projectDocumentExporter';
+import { buildCadToQuotePayload } from './services/export/cadQuoteExporter';
+import { saveCadToQuoteTransfer } from '@/src/core/quoteTransfer/cadQuoteTransfer';
 
 export default function CadWorkspacePage() {
+  const router = useRouter();
   const [drawingMode, setDrawingMode] = useState(false);
   const [rackOrientation, setRackOrientation] = useState('horizontal');
   const [wallMode, setWallMode] = useState(null); // null | 'line' | 'rect'
@@ -106,6 +110,51 @@ export default function CadWorkspacePage() {
 
     input.click();
   }, [store, wallSt, colSt, rackDomainRef]);
+
+  const handleExportToQuote = useCallback(() => {
+    if (typeof window === 'undefined') return;
+
+    const projectDocument = serializeProjectDocument({
+      layoutStore: store,
+      wallStore: wallSt,
+      columnStore: colSt,
+      rackDomainRef,
+      canvas: {
+        darkMode: isDark,
+        rackOrientation,
+        drawingMode,
+        wallMode,
+        columnMode,
+        showMeasurements,
+      },
+    });
+
+    const payload = buildCadToQuotePayload({
+      layoutStore: store,
+      rackDomainRef,
+      projectDocument,
+    });
+
+    if (payload.bomSnapshot.items.length === 0) {
+      window.alert('Add at least one rack to the canvas before exporting to the quoter.');
+      return;
+    }
+
+    saveCadToQuoteTransfer(payload);
+    router.push('/quoter');
+  }, [
+    store,
+    wallSt,
+    colSt,
+    rackDomainRef,
+    isDark,
+    rackOrientation,
+    drawingMode,
+    wallMode,
+    columnMode,
+    showMeasurements,
+    router,
+  ]);
 
   /** Toggle wall mode (rect or line). Clicking the active mode deactivates it. */
   const handleSetWallMode = useCallback((mode) => {
@@ -232,6 +281,7 @@ export default function CadWorkspacePage() {
         subSelActive={subSel !== null}
         onExportProjectDocument={handleExportProjectDocument}
         onImportProjectDocument={handleImportProjectDocument}
+        onExportToQuote={handleExportToQuote}
       />
       <CADCanvas
         drawingMode={drawingMode}

@@ -1,9 +1,10 @@
 'use client';
 
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback, useEffect, useMemo } from 'react';
 import useQuoteStore from '../hooks/useQuoteStore';
 import { DISCOUNT_KIND, QUOTE_LINE_SOURCE, roundCurrency } from '../services/schemas/common.js';
 import { QUOTE_STATUS } from '../services/quoteStore.js';
+import { consumeCadToQuoteTransfer } from '@/src/core/quoteTransfer/cadQuoteTransfer';
 import css from '../styles/quoter.module.css';
 
 // ─── Formatting helpers ──────────────────────────────────────────────────────
@@ -14,6 +15,19 @@ function fmtCurrency(value) {
 
 function fmtPercent(value) {
   return `${roundCurrency(value * 100, 1)}%`;
+}
+
+function fmtDate(value) {
+  if (!value) return '—';
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return '—';
+
+  const month = `${date.getUTCMonth() + 1}`.padStart(2, '0');
+  const day = `${date.getUTCDate()}`.padStart(2, '0');
+  const year = date.getUTCFullYear();
+
+  return `${year}-${month}-${day}`;
 }
 
 function fmtDiscount(discount) {
@@ -264,6 +278,34 @@ export default function QuoterPage() {
   const { store, version } = useQuoteStore();
   const [addModalOpen, setAddModalOpen] = useState(false);
 
+  useEffect(() => {
+    const transfer = consumeCadToQuoteTransfer();
+    if (!transfer) return;
+
+    store.resetQuote({
+      quoteNumber: transfer.quoteNumber,
+      linkedDesign: {
+        source: transfer.source,
+        designId: transfer.designId,
+        designRevisionId: transfer.designRevisionId,
+        exportedAt: transfer.exportedAt,
+        projectDocument: transfer.projectDocument,
+      },
+      extras: {
+        cadImport: {
+          lineCount: transfer.stats?.lineCount ?? transfer.bomSnapshot.items.length,
+          totalQuantity: transfer.stats?.totalQuantity ?? 0,
+        },
+      },
+    });
+
+    store.syncFromBom(transfer.bomSnapshot, {
+      designId: transfer.designId,
+      designRevisionId: transfer.designRevisionId,
+      updatedBy: 'cad-editor',
+    });
+  }, [store]);
+
   const quote = store.getQuote();
 
   const handleAddLineItem = useCallback(
@@ -368,9 +410,17 @@ export default function QuoterPage() {
                 </span>
               </div>
               <div className={css.infoField}>
+                <span className={css.infoLabel}>CAD Import</span>
+                <span className={css.infoValue}>
+                  {quote.linkedDesign?.source === 'CAD_EDITOR'
+                    ? `${quote.extras?.cadImport?.lineCount ?? 0} BOM lines`
+                    : 'No CAD import'}
+                </span>
+              </div>
+              <div className={css.infoField}>
                 <span className={css.infoLabel}>Created</span>
                 <span className={css.infoValue}>
-                  {new Date(quote.audit.createdAt).toLocaleDateString()}
+                  {fmtDate(quote.audit.createdAt)}
                 </span>
               </div>
             </div>
