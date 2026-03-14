@@ -10,7 +10,10 @@ import {
   Smartphone,
   Users,
   Bot,
+  Moon,
+  Sun,
 } from 'lucide-react';
+import { useAppTheme } from '@/src/shared/theme/AppThemeProvider';
 
 const navItems = [
   { href: '/', label: 'CAD', Icon: DraftingCompass },
@@ -24,6 +27,7 @@ const navItems = [
 
 export default function AppRailNav() {
   const pathname = usePathname();
+  const { isDark, toggleTheme } = useAppTheme();
 
   return (
     <aside
@@ -31,12 +35,13 @@ export default function AppRailNav() {
         width: 56,
         minWidth: 56,
         height: '100vh',
-        borderRight: '1px solid #e2e8f0',
-        background: '#ffffff',
+        borderRight: '1px solid var(--surface-border)',
+        background: 'var(--surface)',
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
         paddingTop: 12,
+        paddingBottom: 12,
         gap: 8,
       }}
       aria-label="Primary navigation"
@@ -56,9 +61,9 @@ export default function AppRailNav() {
               display: 'inline-flex',
               alignItems: 'center',
               justifyContent: 'center',
-              color: active ? '#0f172a' : '#64748b',
-              background: active ? '#e2e8f0' : 'transparent',
-              border: active ? '1px solid #cbd5e1' : '1px solid transparent',
+              color: active ? 'var(--app-text)' : 'var(--muted-text)',
+              background: active ? 'var(--accent-soft)' : 'transparent',
+              border: active ? '1px solid var(--surface-border)' : '1px solid transparent',
               textDecoration: 'none',
               transition: 'all 0.15s ease',
             }}
@@ -67,6 +72,28 @@ export default function AppRailNav() {
           </Link>
         );
       })}
+
+      <button
+        type="button"
+        onClick={toggleTheme}
+        title={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
+        aria-label={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
+        style={{
+          marginTop: 'auto',
+          width: 36,
+          height: 36,
+          borderRadius: 10,
+          display: 'inline-flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          color: 'var(--app-text)',
+          background: 'var(--accent-soft)',
+          border: '1px solid var(--surface-border)',
+          cursor: 'pointer',
+        }}
+      >
+        {isDark ? <Sun size={18} strokeWidth={2.2} /> : <Moon size={18} strokeWidth={2.2} />}
+      </button>
     </aside>
   );
 }

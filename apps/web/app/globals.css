@@ -4,14 +4,35 @@
   padding: 0;
 }
 
+:root {
+  --app-bg: #f8f9fb;
+  --app-text: #111827;
+  --surface: #ffffff;
+  --surface-muted: #f8f9fb;
+  --surface-border: #e2e8f0;
+  --muted-text: #64748b;
+  --accent-soft: #e2e8f0;
+}
+
+:root[data-theme='dark'] {
+  --app-bg: #0f1115;
+  --app-text: #e5e7eb;
+  --surface: #161b22;
+  --surface-muted: #11161d;
+  --surface-border: #2a3240;
+  --muted-text: #94a3b8;
+  --accent-soft: #243244;
+}
+
 html,
 body {
   width: 100%;
   height: 100%;
   overflow: hidden;
   font-family: Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-  background: #f8f9fb;
-  color: #111827;
+  background: var(--app-bg);
+  color: var(--app-text);
   /* Prevent iOS rubber-band / overscroll */
   overscroll-behavior: none;
+  transition: background-color 0.2s ease, color 0.2s ease;
 }

@@ -6,6 +6,7 @@ import CADCanvas from './components/CADCanvas';
 import useLayoutStore from './hooks/useLayoutStore';
 import useWallStore from './hooks/useWallStore';
 import useColumnStore from './hooks/useColumnStore';
+import { useAppTheme } from '@/src/shared/theme/AppThemeProvider';
 import {
   cacheProjectDocument,
   downloadProjectDocument,
@@ -17,12 +18,12 @@ import {
 
 export default function CadWorkspacePage() {
   const [drawingMode, setDrawingMode] = useState(false);
-  const [darkMode, setDarkMode] = useState(false);
   const [rackOrientation, setRackOrientation] = useState('horizontal');
   const [wallMode, setWallMode] = useState(null); // null | 'line' | 'rect'
   const [columnMode, setColumnMode] = useState(false);
   const [showMeasurements, setShowMeasurements] = useState(true);
   const [subSel, setSubSel] = useState(null);
+  const { isDark, setTheme } = useAppTheme();
   const { store, version } = useLayoutStore();
   const { store: wallSt, version: wallVer } = useWallStore();
   const { store: colSt, version: colVer } = useColumnStore();
@@ -41,10 +42,6 @@ export default function CadWorkspacePage() {
     });
   }, []);
 
-  const toggleDarkMode = useCallback(() => {
-    setDarkMode((prev) => !prev);
-  }, []);
-
   const handleExportProjectDocument = useCallback(() => {
     if (typeof window === 'undefined') return;
 
@@ -61,7 +58,7 @@ export default function CadWorkspacePage() {
       columnStore: colSt,
       rackDomainRef,
       canvas: {
-        darkMode,
+        darkMode: isDark,
         rackOrientation,
         drawingMode,
         wallMode,
@@ -71,7 +68,7 @@ export default function CadWorkspacePage() {
       fileName,
       scopeKey: 'main',
     });
-  }, [store, wallSt, colSt, rackDomainRef, darkMode, rackOrientation, drawingMode, wallMode, columnMode, showMeasurements]);
+  }, [store, wallSt, colSt, rackDomainRef, isDark, rackOrientation, drawingMode, wallMode, columnMode, showMeasurements]);
 
   const handleImportProjectDocument = useCallback(() => {
     if (typeof window === 'undefined' || !window.document) return;
@@ -92,7 +89,7 @@ export default function CadWorkspacePage() {
           columnStore: colSt,
           rackDomainRef,
           onRestoreCanvas: (canvas) => {
-            setDarkMode(Boolean(canvas.darkMode));
+            setTheme(Boolean(canvas.darkMode) ? 'dark' : 'light');
             setRackOrientation(canvas.rackOrientation ?? 'horizontal');
             setDrawingMode(Boolean(canvas.drawingMode));
             setWallMode(canvas.wallMode ?? null);
@@ -162,7 +159,7 @@ export default function CadWorkspacePage() {
         columnStore: colSt,
         rackDomainRef,
         onRestoreCanvas: (canvas) => {
-          setDarkMode(Boolean(canvas.darkMode));
+          setTheme(Boolean(canvas.darkMode) ? 'dark' : 'light');
           setRackOrientation(canvas.rackOrientation ?? 'horizontal');
           setDrawingMode(Boolean(canvas.drawingMode));
           setWallMode(canvas.wallMode ?? null);
@@ -175,7 +172,7 @@ export default function CadWorkspacePage() {
     } finally {
       hydratedFromCacheRef.current = true;
     }
-  }, [store, wallSt, colSt, rackDomainRef]);
+  }, [store, wallSt, colSt, rackDomainRef, setTheme]);
 
   // Auto-save project progress to cache whenever model/canvas state changes.
   useEffect(() => {
@@ -188,7 +185,7 @@ export default function CadWorkspacePage() {
         columnStore: colSt,
         rackDomainRef,
         canvas: {
-          darkMode,
+          darkMode: isDark,
           rackOrientation,
           drawingMode,
           wallMode,
@@ -204,7 +201,7 @@ export default function CadWorkspacePage() {
     version,
     wallVer,
     colVer,
-    darkMode,
+    isDark,
     rackOrientation,
     drawingMode,
     wallMode,
@@ -220,7 +217,7 @@ export default function CadWorkspacePage() {
     <div style={{ display: 'flex', width: '100%', height: '100%', overflow: 'hidden' }}>
       <EditorPanel
         drawingMode={drawingMode}
-        darkMode={darkMode}
+        darkMode={isDark}
         layoutStore={store}
         layoutVersion={version}
         rackOrientation={rackOrientation}
@@ -238,8 +235,6 @@ export default function CadWorkspacePage() {
       />
       <CADCanvas
         drawingMode={drawingMode}
-        darkMode={darkMode}
-        onToggleDarkMode={toggleDarkMode}
         layoutStore={store}
         layoutVersion={version}
         rackOrientation={rackOrientation}

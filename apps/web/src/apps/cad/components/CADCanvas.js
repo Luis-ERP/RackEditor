@@ -17,12 +17,13 @@ import useRackDrawingInteraction from './cadCanvas/hooks/useRackDrawingInteracti
 import useWallDrawingInteraction from './cadCanvas/hooks/useWallDrawingInteraction';
 import useColumnPlacementInteraction from './cadCanvas/hooks/useColumnPlacementInteraction';
 import useSelectionInteraction from './cadCanvas/hooks/useSelectionInteraction';
+import { useAppTheme } from '@/src/shared/theme/AppThemeProvider';
 
 export default function CADCanvas(props) {
+  const { isDark, toggleTheme } = useAppTheme();
+
   const {
     drawingMode = false,
-    darkMode = false,
-    onToggleDarkMode,
     layoutStore,
     layoutVersion,
     rackOrientation = 'horizontal',
@@ -44,7 +45,7 @@ export default function CADCanvas(props) {
   const needsInit = useRef(true);
   const sizeRef = useRef({ w: 0, h: 0 });
   const baseZoom = useRef(1);
-  const darkRef = useRef(darkMode);
+  const darkRef = useRef(isDark);
 
   const drawingModeRef = useRef(drawingMode);
   const rackOrientationRef = useRef(rackOrientation);
@@ -114,9 +115,9 @@ export default function CADCanvas(props) {
   });
 
   useEffect(() => {
-    darkRef.current = darkMode;
+    darkRef.current = isDark;
     scheduleRedraw();
-  }, [darkMode, scheduleRedraw]);
+  }, [isDark, scheduleRedraw]);
 
   useEffect(() => {
     onSubSelChangeRef.current = props.onSubSelChange;
@@ -251,7 +252,7 @@ export default function CADCanvas(props) {
   }, [layoutStore, scheduleRedraw]);
 
   const hasSelection = layoutStore ? layoutStore.selectionCount() > 0 : false;
-  const theme = getOverlayTheme(darkMode);
+  const theme = getOverlayTheme(isDark);
 
   return (
     <div ref={wrapperRef} style={wrapperStyle}>
@@ -284,7 +285,7 @@ export default function CADCanvas(props) {
         wallMode={wallMode}
         columnMode={columnMode}
         subSel={subSel}
-        darkMode={darkMode}
+        darkMode={isDark}
         theme={theme}
       />
 
@@ -295,7 +296,7 @@ export default function CADCanvas(props) {
         onSetWallMode={onSetWallMode}
         columnMode={columnMode}
         onToggleColumnMode={onToggleColumnMode}
-        darkMode={darkMode}
+        darkMode={isDark}
         disabled={!!subSel}
       />
 
@@ -303,10 +304,10 @@ export default function CADCanvas(props) {
         cursorCoord={cursorCoord}
         zoomPercent={zoomPercent}
         showMeasurements={showMeasurements}
-        darkMode={darkMode}
+        darkMode={isDark}
         theme={theme}
         onToggleMeasurements={onToggleMeasurements}
-        onToggleDarkMode={onToggleDarkMode}
+        onToggleDarkMode={toggleTheme}
         onZoomIn={handleZoomIn}
         onZoomOut={handleZoomOut}
         onFitView={handleFitView}

@@ -7,8 +7,8 @@ export default function ModulePlaceholder({ title, description }) {
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        background: '#f8f9fb',
-        color: '#0f172a',
+        background: 'var(--surface-muted)',
+        color: 'var(--app-text)',
         padding: '2rem',
       }}
     >
