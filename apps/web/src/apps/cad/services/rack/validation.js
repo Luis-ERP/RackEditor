@@ -241,6 +241,38 @@ function validateCapacityClass(levels, frameSpec) {
 }
 
 /**
+ * Rule: Bay beam length must match the frame's required beam separation. (Section 12.5)
+ *
+ * bay.beamSpec.lengthIn === frameSpec.beamSeparationIn
+ *
+ * The beamSeparationIn on a FrameSpec defines the only structurally valid beam
+ * length for bays adjacent to that frame. Using a beam of a different length
+ * would leave the frame connection points unsupported.
+ *
+ * @param {import('./models/bay.js').Bay[]} bays
+ * @param {import('./models/frame.js').FrameSpec} frameSpec
+ * @returns {ValidationError[]}
+ */
+function validateBeamSeparationConstraint(bays, frameSpec) {
+  const errors = [];
+  for (const bay of bays) {
+    if (bay.beamSpec.lengthIn !== frameSpec.beamSeparationIn) {
+      errors.push({
+        code: 'BEAM_LENGTH_FRAME_SEPARATION_MISMATCH',
+        message: `Bay (id: ${bay.id}): beam length (${bay.beamSpec.lengthIn}") does not match frame's required beam separation (${frameSpec.beamSeparationIn}"). (Section 12.5)`,
+        severity: 'error',
+        context: {
+          bayId: bay.id,
+          beamLengthIn: bay.beamSpec.lengthIn,
+          beamSeparationIn: frameSpec.beamSeparationIn,
+        },
+      });
+    }
+  }
+  return errors;
+}
+
+/**
  * Rule: Beam must be compatible with frame upright series. (Section 12.4)
  *
  * beam.compatibleUprightSeries.includes(frame.uprightSeries)
@@ -520,6 +552,11 @@ export function validateRackLine(rackLine, options = {}) {
 
   // Section 12.3: Beam length matches bay width
   allErrors.push(...validateBeamLengthMatch(allBays));
+
+  // Section 12.5: Bay beam length matches frame's required beam separation
+  for (const mod of rackLine.modules) {
+    allErrors.push(...validateBeamSeparationConstraint(mod.bays, mod.frameSpec));
+  }
 
   // Completeness check: a line with no beam levels in any module is INCOMPLETE
   const hasLevels = rackLine.modules.some((m) => m.levelUnion.length > 0);

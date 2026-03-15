@@ -106,6 +106,13 @@ export function buildRackModule(config) {
     );
   }
 
+  // Section 12.5: Beam length must match frame's required beam separation
+  if (beamSpec.lengthIn !== frameSpec.beamSeparationIn) {
+    throw new Error(
+      `Beam length (${beamSpec.lengthIn}") does not match frame's required beam separation (${frameSpec.beamSeparationIn}"). (Section 12.5)`
+    );
+  }
+
   // Build shared beam levels
   const levelUnion = buildBeamLevels(holeIndices, beamSpec);
 

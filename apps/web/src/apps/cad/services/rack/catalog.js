@@ -25,13 +25,14 @@ export const INCH_TO_M = 0.0254;
 const STANDARD_UPRIGHT_SERIES = 'standard';
 
 // ── Default Frame Specification ──────────────────────────────────────────────
-//  Source row (frames.csv): gauge=14, depth_in=42, height_in=144
+//  Source row (frames.csv): gauge=14, depth_in=42, height_in=144, beam_separation_in=96
 //  Most common 12-foot selective rack upright for general warehouse use.
 
 export const DEFAULT_FRAME_SPEC = createFrameSpec({
-  id:                       'frame-14g-42in-144in',
+  id:                       'frame-14g-42in-144in-96in',
   heightIn:                 144,
   depthIn:                  42,
+  beamSeparationIn:         96,
   gauge:                    '14',
   capacityClass:            'standard',
   uprightSeries:            STANDARD_UPRIGHT_SERIES,

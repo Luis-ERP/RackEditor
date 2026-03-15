@@ -4,7 +4,9 @@
 //  Enumerates all available FrameSpec and BeamSpec entries for the
 //  rack module editor's attribute-filter pickers.
 //
-//  Every (heightIn, depthIn, capacityClass) combination produces one FrameSpec.
+//  Every (heightIn, depthIn, beamSeparationIn, capacityClass) combination
+//  produces one FrameSpec. beamSeparationIn is the required beam length for
+//  bays adjacent to the frame (beam_separation = beam length).
 //  Every (lengthIn, capacityClass) combination produces one BeamSpec.
 //  All catalog entries use the 'standard' upright series for compatibility.
 // ─────────────────────────────────────────────────────────────────────────────
@@ -22,6 +24,13 @@ export const FRAME_HEIGHTS_IN = [96, 120, 144, 168, 192];
 
 /** Available frame depths in inches. */
 export const FRAME_DEPTHS_IN = [36, 42, 48];
+
+/**
+ * Available beam separation values in inches.
+ * Each value represents the required beam length for bays adjacent to a frame
+ * with this separation. beam_separation = beam length. (Section 12.5)
+ */
+export const FRAME_BEAM_SEPARATIONS_IN = [36, 42, 48, 54, 60, 72, 84, 96, 108];
 
 /** Available frame capacity classes, ordered light → heavy. */
 export const FRAME_CAPACITY_CLASSES = ['light', 'standard', 'medium', 'heavy'];
@@ -44,8 +53,8 @@ const FRAME_CAPACITY_TO_GAUGE = {
 
 // ── Beam attribute options ────────────────────────────────────────────────────
 
-/** Available beam lengths in inches. */
-export const BEAM_LENGTHS_IN = [72, 84, 96, 108, 120];
+/** Available beam lengths in inches. Must cover all FRAME_BEAM_SEPARATIONS_IN values. */
+export const BEAM_LENGTHS_IN = [36, 42, 48, 54, 60, 72, 84, 96, 108, 120];
 
 /** Available beam capacity classes. */
 export const BEAM_CAPACITY_CLASSES = ['light', 'standard', 'medium', 'heavy'];
@@ -78,26 +87,29 @@ const BEAM_CAPACITY_TO_PROFILE = {
 
 /**
  * Full catalog of all available frame specifications.
- * One entry per unique (heightIn, depthIn, capacityClass) combination.
+ * One entry per unique (heightIn, depthIn, beamSeparationIn, capacityClass) combination.
  * @type {import('./models/frame.js').FrameSpec[]}
  */
 export const FRAME_CATALOG = [];
 
 for (const heightIn of FRAME_HEIGHTS_IN) {
   for (const depthIn of FRAME_DEPTHS_IN) {
-    for (const capacityClass of FRAME_CAPACITY_CLASSES) {
-      const gauge = FRAME_CAPACITY_TO_GAUGE[capacityClass];
-      FRAME_CATALOG.push(createFrameSpec({
-        id:                       `frame-${gauge}g-${depthIn}in-${heightIn}in-${capacityClass}`,
-        heightIn,
-        depthIn,
-        gauge,
-        capacityClass,
-        uprightSeries:            STD_SERIES,
-        compatibleConnectorTypes: [STD_CONNECTOR],
-        minimumTopClearanceIn:    6,
-        basePlateType:            capacityClass === 'heavy' ? 'HEAVY_DUTY' : 'STANDARD',
-      }));
+    for (const beamSeparationIn of FRAME_BEAM_SEPARATIONS_IN) {
+      for (const capacityClass of FRAME_CAPACITY_CLASSES) {
+        const gauge = FRAME_CAPACITY_TO_GAUGE[capacityClass];
+        FRAME_CATALOG.push(createFrameSpec({
+          id:                       `frame-${gauge}g-${depthIn}in-${heightIn}in-${beamSeparationIn}in-${capacityClass}`,
+          heightIn,
+          depthIn,
+          beamSeparationIn,
+          gauge,
+          capacityClass,
+          uprightSeries:            STD_SERIES,
+          compatibleConnectorTypes: [STD_CONNECTOR],
+          minimumTopClearanceIn:    6,
+          basePlateType:            capacityClass === 'heavy' ? 'HEAVY_DUTY' : 'STANDARD',
+        }));
+      }
     }
   }
 }
@@ -132,17 +144,22 @@ for (const lengthIn of BEAM_LENGTHS_IN) {
 // ── Lookup Helpers ────────────────────────────────────────────────────────────
 
 /**
- * Find a frame spec by its three primary attributes.
+ * Find a frame spec by its four primary attributes.
  * Returns null if no catalog entry matches.
  *
  * @param {number} heightIn
  * @param {number} depthIn
+ * @param {number} beamSeparationIn
  * @param {string} capacityClass
  * @returns {import('./models/frame.js').FrameSpec|null}
  */
-export function findFrameSpec(heightIn, depthIn, capacityClass) {
+export function findFrameSpec(heightIn, depthIn, beamSeparationIn, capacityClass) {
   return FRAME_CATALOG.find(
-    (f) => f.heightIn === heightIn && f.depthIn === depthIn && f.capacityClass === capacityClass,
+    (f) =>
+      f.heightIn === heightIn &&
+      f.depthIn === depthIn &&
+      f.beamSeparationIn === beamSeparationIn &&
+      f.capacityClass === capacityClass,
   ) ?? null;
 }
 
@@ -161,7 +178,9 @@ export function findBeamSpec(lengthIn, capacityClass) {
 }
 
 /**
- * Return all beam specs compatible with the given frame (upright series + connector type).
+ * Return all beam specs compatible with the given frame.
+ * Filters by upright series, connector type, and required beam length
+ * (beam.lengthIn must equal frame.beamSeparationIn). (Section 12.5)
  *
  * @param {import('./models/frame.js').FrameSpec} frameSpec
  * @returns {import('./models/beam.js').BeamSpec[]}
@@ -171,6 +190,7 @@ export function getCompatibleBeams(frameSpec) {
   return BEAM_CATALOG.filter(
     (b) =>
       b.compatibleUprightSeries.includes(frameSpec.uprightSeries) &&
-      allowedConnectors.has(b.connectorType),
+      allowedConnectors.has(b.connectorType) &&
+      b.lengthIn === frameSpec.beamSeparationIn,
   );
 }

@@ -13,6 +13,9 @@ import { HOLE_STEP_IN } from '../constants.js';
  * @property {string}   id                       - Unique identifier (catalog SKU or generated)
  * @property {number}   heightIn                 - Frame height in inches
  * @property {number}   depthIn                  - Frame depth in inches
+ * @property {number}   beamSeparationIn         - Required beam length for bays adjacent to this frame (inches).
+ *                                                  beam_separation = beam length; determines which beams are
+ *                                                  structurally compatible with this frame. (Section 12.5)
  * @property {string}   gauge                    - Frame gauge designation
  * @property {string}   capacityClass            - Frame capacity class (max allowable load class)
  * @property {string}   uprightSeries            - Upright series / profile identifier
@@ -41,6 +44,7 @@ import { HOLE_STEP_IN } from '../constants.js';
  * @param {string}   params.id
  * @param {number}   params.heightIn
  * @param {number}   params.depthIn
+ * @param {number}   params.beamSeparationIn
  * @param {string}   params.gauge
  * @param {string}   params.capacityClass
  * @param {string}   params.uprightSeries
@@ -53,6 +57,7 @@ export function createFrameSpec({
   id,
   heightIn,
   depthIn,
+  beamSeparationIn,
   gauge,
   capacityClass,
   uprightSeries,
@@ -62,6 +67,9 @@ export function createFrameSpec({
 }) {
   if (heightIn <= 0) throw new RangeError('Frame height must be positive.');
   if (depthIn <= 0) throw new RangeError('Frame depth must be positive.');
+  if (beamSeparationIn == null || beamSeparationIn <= 0) {
+    throw new RangeError('beamSeparationIn must be a positive number. (Section 12.5)');
+  }
   if (!Array.isArray(compatibleConnectorTypes) || compatibleConnectorTypes.length === 0) {
     throw new Error('compatibleConnectorTypes must be a non-empty array. (Section 12.1)');
   }
@@ -73,6 +81,7 @@ export function createFrameSpec({
     id,
     heightIn,
     depthIn,
+    beamSeparationIn,
     gauge,
     capacityClass,
     uprightSeries,
