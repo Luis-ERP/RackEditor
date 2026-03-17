@@ -1,2 +1,2 @@
 export { httpClient } from './httpClient';
-export { loginWithCredentials, logout } from './authApi';
+export { fetchCurrentUser, loginWithCredentials, logout, registerWithCredentials } from './authApi';

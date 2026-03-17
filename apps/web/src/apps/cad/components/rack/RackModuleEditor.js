@@ -19,8 +19,8 @@ import { HOLE_STEP_IN, RowConfiguration } from '../../services/rack/constants.js
 import {
   FRAME_HEIGHTS_IN,
   FRAME_DEPTHS_IN,
+  FRAME_BEAM_SEPARATIONS_IN,
   FRAME_CAPACITY_CLASSES,
-  BEAM_LENGTHS_IN,
   BEAM_CAPACITY_CLASSES,
   CAPACITY_LABELS,
   findFrameSpec,
@@ -35,7 +35,7 @@ import {
   removeLevel,
   moveLevel,
   applyFrameSpec,
-  applyBeamLength,
+  applyBeamCapacity,
   applyLevelBeamSpec,
   commitDraftToModule,
 } from '../../services/rack/rackModuleEditorUtils.js';
@@ -80,7 +80,7 @@ function ModuleEditorInner({ entity, domain, layoutStore, rackDomainRef, darkMod
     const refSpec     = beamSpecs[0] ?? domain.bays[0]?.beamSpec ?? domain.levelUnion[0]?.beamSpec;
     return {
       frameSpec:        domain.frameSpec,
-      beamLengthIn:     refSpec?.lengthIn ?? 96,
+      beamLengthIn:     domain.frameSpec?.beamSeparationIn ?? refSpec?.lengthIn ?? 96,
       beamSpecs,
       holeIndices,
       bayCount:         entity.bayCount || domain.bays.length,
@@ -112,11 +112,17 @@ function ModuleEditorInner({ entity, domain, layoutStore, rackDomainRef, darkMod
       return; // factory rejected (e.g. incompatible specs) — leave canvas unchanged
     }
 
-    const { widthM, depthM } = computeEntityDimensions(
+    // computeEntityDimensions always returns widthM=beam-direction, depthM=frame-depth.
+    // For vertical racks (rotation=90°) the entity stores widthM as horizontal screen
+    // extent and depthM as vertical, so the two values must be swapped.
+    const dims = computeEntityDimensions(
       { lengthIn: newDraft.beamLengthIn },
       newDraft.frameSpec,
       newDraft.bayCount,
     );
+    const isVertical = entity.transform.rotation === 90;
+    const widthM = isVertical ? dims.depthM : dims.widthM;
+    const depthM = isVertical ? dims.widthM : dims.depthM;
 
     rackDomainRef.current.delete(entity.domainId);
     rackDomainRef.current.set(newMod.id, newMod);
@@ -161,7 +167,7 @@ function ModuleEditorInner({ entity, domain, layoutStore, rackDomainRef, darkMod
       <CollapsibleSection label="Beam" dk={dk} c={c} defaultOpen>
         <BeamPicker
           draft={draft}
-          onChange={(newLengthIn) => update((d) => applyBeamLength(d, newLengthIn))}
+          onChange={(newCapacity) => update((d) => applyBeamCapacity(d, newCapacity))}
           dk={dk}
           c={c}
         />
@@ -213,30 +219,33 @@ function ModuleEditorInner({ entity, domain, layoutStore, rackDomainRef, darkMod
 
 function FramePicker({ draft, onChange, dk, c }) {
   const cur = draft.frameSpec;
-  const [selHeight,   setSelHeight]   = useState(cur?.heightIn   ?? 144);
-  const [selDepth,    setSelDepth]    = useState(cur?.depthIn    ?? 42);
-  const [selCapacity, setSelCapacity] = useState(cur?.capacityClass ?? 'standard');
+  const [selHeight,   setSelHeight]   = useState(cur?.heightIn         ?? 144);
+  const [selDepth,    setSelDepth]    = useState(cur?.depthIn          ?? 42);
+  const [selBeamSep,  setSelBeamSep]  = useState(cur?.beamSeparationIn ?? 96);
+  const [selCapacity, setSelCapacity] = useState(cur?.capacityClass    ?? 'standard');
 
   // Keep local state in sync if draft is reset externally
   useEffect(() => {
     if (cur) {
       setSelHeight(cur.heightIn);
       setSelDepth(cur.depthIn);
+      setSelBeamSep(cur.beamSeparationIn);
       setSelCapacity(cur.capacityClass);
     }
   }, [cur?.id]);  // eslint-disable-line react-hooks/exhaustive-deps
 
   // Find matching spec and notify parent
-  const tryApply = useCallback((h, d, cap) => {
-    const spec = findFrameSpec(h, d, cap);
+  const tryApply = useCallback((h, d, sep, cap) => {
+    const spec = findFrameSpec(h, d, sep, cap);
     if (spec) onChange(spec);
   }, [onChange]);
 
-  const handleHeight   = (h)   => { setSelHeight(h);   tryApply(h, selDepth, selCapacity); };
-  const handleDepth    = (d)   => { setSelDepth(d);    tryApply(selHeight, d, selCapacity); };
-  const handleCapacity = (cap) => { setSelCapacity(cap); tryApply(selHeight, selDepth, cap); };
+  const handleHeight   = (h)   => { setSelHeight(h);   tryApply(h, selDepth, selBeamSep, selCapacity); };
+  const handleDepth    = (d)   => { setSelDepth(d);    tryApply(selHeight, d, selBeamSep, selCapacity); };
+  const handleBeamSep  = (sep) => { setSelBeamSep(sep); tryApply(selHeight, selDepth, sep, selCapacity); };
+  const handleCapacity = (cap) => { setSelCapacity(cap); tryApply(selHeight, selDepth, selBeamSep, cap); };
 
-  const matched = findFrameSpec(selHeight, selDepth, selCapacity);
+  const matched = findFrameSpec(selHeight, selDepth, selBeamSep, selCapacity);
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
@@ -253,6 +262,14 @@ function FramePicker({ draft, onChange, dk, c }) {
           options={FRAME_DEPTHS_IN.map((d) => ({ value: d, label: `${d}"` }))}
           value={selDepth}
           onChange={handleDepth}
+          dk={dk} c={c}
+        />
+      </AttrRow>
+      <AttrRow label="Beam Sep">
+        <SegmentedControl
+          options={FRAME_BEAM_SEPARATIONS_IN.map((s) => ({ value: s, label: `${s}"` }))}
+          value={selBeamSep}
+          onChange={handleBeamSep}
           dk={dk} c={c}
         />
       </AttrRow>
@@ -274,23 +291,48 @@ function FramePicker({ draft, onChange, dk, c }) {
 // ─────────────────────────────────────────────────────────────────────────────
 
 function BeamPicker({ draft, onChange, dk, c }) {
-  const [selLength, setSelLength] = useState(draft.beamLengthIn ?? 96);
+  // Beam length is locked to the frame's beamSeparationIn (Section 12.5).
+  const beamLengthIn = draft.frameSpec?.beamSeparationIn ?? draft.beamLengthIn ?? 96;
+  const currentCap   = draft.beamSpecs[0]?.capacityClass ?? 'standard';
+  const [selCapacity, setSelCapacity] = useState(currentCap);
 
   useEffect(() => {
-    setSelLength(draft.beamLengthIn);
-  }, [draft.beamLengthIn]);
+    setSelCapacity(draft.beamSpecs[0]?.capacityClass ?? 'standard');
+  }, [draft.beamSpecs[0]?.capacityClass]);  // eslint-disable-line react-hooks/exhaustive-deps
 
-  const handleLength = (l) => { setSelLength(l); onChange(l); };
+  const handleCapacity = (cap) => { setSelCapacity(cap); onChange(cap); };
+
+  const matched = findBeamSpec(beamLengthIn, selCapacity);
 
   return (
-    <AttrRow label="Length">
-      <SegmentedControl
-        options={BEAM_LENGTHS_IN.map((l) => ({ value: l, label: `${l}"` }))}
-        value={selLength}
-        onChange={handleLength}
-        dk={dk} c={c}
-      />
-    </AttrRow>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+      <AttrRow label="Length">
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 4,
+          padding: '4px 8px',
+          border: `1px solid ${c.border}`,
+          borderRadius: 6,
+          background: dk ? '#1f2023' : '#f3f4f6',
+          color: c.muted,
+          fontSize: 11,
+          fontFamily: 'monospace',
+        }}>
+          {beamLengthIn}"
+          <span style={{ fontSize: 9, marginLeft: 4, opacity: 0.7 }}>(set by frame)</span>
+        </div>
+      </AttrRow>
+      <AttrRow label="Capacity">
+        <SegmentedControl
+          options={BEAM_CAPACITY_CLASSES.map((cap) => ({ value: cap, label: CAPACITY_LABELS[cap] }))}
+          value={selCapacity}
+          onChange={handleCapacity}
+          dk={dk} c={c}
+        />
+      </AttrRow>
+      <SpecMatchBadge matched={matched} label="Beam" dk={dk} c={c} />
+    </div>
   );
 }
 

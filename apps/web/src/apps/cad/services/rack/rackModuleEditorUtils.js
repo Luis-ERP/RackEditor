@@ -236,10 +236,18 @@ export function computeDraftValidation(draft) {
  * @returns {Object} New draft
  */
 export function applyFrameSpec(draft, newFrameSpec) {
-  const { holeIndices, beamSpecs } = clampHoleIndicesToFrame(
-    draft.holeIndices, draft.beamSpecs, newFrameSpec,
+  // Beam length must equal the new frame's beamSeparationIn (Section 12.5).
+  // Re-map every per-level beam spec to the new length, preserving capacity class.
+  const newBeamLengthIn = newFrameSpec.beamSeparationIn;
+  const newRawSpecs = draft.beamSpecs.map((spec) =>
+    findBeamSpec(newBeamLengthIn, spec.capacityClass) ??
+    findBeamSpec(newBeamLengthIn, 'standard') ??
+    spec,
   );
-  return { ...draft, frameSpec: newFrameSpec, holeIndices, beamSpecs };
+  const { holeIndices, beamSpecs } = clampHoleIndicesToFrame(
+    draft.holeIndices, newRawSpecs, newFrameSpec,
+  );
+  return { ...draft, frameSpec: newFrameSpec, beamLengthIn: newBeamLengthIn, holeIndices, beamSpecs };
 }
 
 /**
@@ -278,6 +286,25 @@ export function applyLevelBeamSpec(draft, levelIndex, newBeamSpec) {
     draft.holeIndices, newBeamSpecs, draft.frameSpec,
   );
   return { ...draft, holeIndices, beamSpecs };
+}
+
+/**
+ * Produce a new draft with a different beam capacity class applied uniformly to
+ * all levels. Beam length is locked to frameSpec.beamSeparationIn (Section 12.5).
+ *
+ * @param {Object} draft
+ * @param {string} newCapacityClass
+ * @returns {Object} New draft
+ */
+export function applyBeamCapacity(draft, newCapacityClass) {
+  const length   = draft.frameSpec?.beamSeparationIn ?? draft.beamLengthIn;
+  const resolved = findBeamSpec(length, newCapacityClass) ?? findBeamSpec(length, 'standard');
+  if (!resolved) return draft;
+  const newRawSpecs = draft.beamSpecs.map(() => resolved);
+  const { holeIndices, beamSpecs } = clampHoleIndicesToFrame(
+    draft.holeIndices, newRawSpecs, draft.frameSpec,
+  );
+  return { ...draft, beamLengthIn: length, holeIndices, beamSpecs };
 }
 
 /**

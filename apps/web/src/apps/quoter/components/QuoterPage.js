@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback, useEffect, useMemo } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import useQuoteStore from '../hooks/useQuoteStore';
 import { DISCOUNT_KIND, QUOTE_LINE_SOURCE, roundCurrency } from '../services/schemas/common.js';
 import { QUOTE_STATUS } from '../services/quoteStore.js';
@@ -275,7 +275,7 @@ function LineItemRow({ item, onUpdate, onRemove }) {
 // ─── Main Page ───────────────────────────────────────────────────────────────
 
 export default function QuoterPage() {
-  const { store, version } = useQuoteStore();
+  const { store } = useQuoteStore();
   const [addModalOpen, setAddModalOpen] = useState(false);
 
   useEffect(() => {
@@ -327,9 +327,6 @@ export default function QuoterPage() {
     (fields) => store.updateQuoteFields(fields),
     [store],
   );
-
-  const cadItems = useMemo(() => store.getCadLineItems(), [store, version]);
-  const manualItems = useMemo(() => store.getManualLineItems(), [store, version]);
 
   return (
     <div className={css.quoterRoot}>
@@ -426,45 +423,6 @@ export default function QuoterPage() {
             </div>
           </div>
         </div>
-
-        {/* ── CAD BOM Read-Only Section ──────────────────────────────── */}
-        {cadItems.length > 0 && (
-          <div className={css.section}>
-            <div className={css.sectionHeader}>
-              <span className={css.sectionTitle}>
-                CAD Design BOM ({cadItems.length} items)
-              </span>
-            </div>
-            <div className={css.tableWrap}>
-              <table className={css.table}>
-                <thead>
-                  <tr>
-                    <th>SKU</th>
-                    <th>Name</th>
-                    <th className={css.thRight}>Cost</th>
-                    <th className={css.thRight}>Margin</th>
-                    <th className={css.thRight}>Price</th>
-                    <th className={css.thRight}>Qty</th>
-                    <th className={css.thRight}>Total</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {cadItems.map((item) => (
-                    <tr key={item.id}>
-                      <td>{item.traceability?.sku ?? '—'}</td>
-                      <td>{item.name}</td>
-                      <td className={css.numCell}>{fmtCurrency(item.cost)}</td>
-                      <td className={css.numCell}>{fmtPercent(item.marginRate)}</td>
-                      <td className={css.numCell}>{fmtCurrency(item.price)}</td>
-                      <td className={css.numCell}>{item.quantity}</td>
-                      <td className={css.numCell}>{fmtCurrency(item.total)}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        )}
 
         {/* ── Line Items Table ───────────────────────────────────────── */}
         <div className={css.section}>

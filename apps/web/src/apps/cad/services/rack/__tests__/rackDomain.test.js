@@ -120,6 +120,7 @@ function makeFrameSpec(overrides = {}) {
     id: 'FRM-240-48',
     heightIn: 240,
     depthIn: 48,
+    beamSeparationIn: 96,
     gauge: '14GA',
     capacityClass: 'STANDARD',
     uprightSeries: 'T-BOLT',

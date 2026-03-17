@@ -1,61 +1,35 @@
 // ─────────────────────────────────────────────────────────────────────────────
 //  Rack Catalog
 //
-//  Defines catalog entries (FrameSpec, BeamSpec) sourced from the shared CSV
-//  catalog files in src/core/rack/catalog_lists and exports the
-//  industry-standard default configuration.
+//  Re-exports the industry-standard default configuration sourced from the
+//  catalog registry (which is generated from the CSV catalog files in
+//  src/core/rack/catalog_lists).
 //
 //  Default configuration (most common selective pallet rack setup):
-//    • Frame : 14-gauge, 42" deep, 144" high  (12-ft upright, standard for general warehousing)
-//    • Beam  : 14-gauge, 96" wide, 5" high    (8-ft beam, fits 2 standard GMA pallets per bay)
-//    • Levels: 3 beam levels at holes 1, 27, 51 → elevations 2", 54", 102"
-//              Provides ~48" of clear vertical space per pallet level.
+//    • Frame : 14-gauge, 42" deep, 144" high, 96" beam separation
+//              (12-ft upright, standard for general warehousing)
+//    • Beam  : standard-class, 96" wide  (8-ft beam, fits 2 standard GMA pallets per bay)
+//    • Levels: 3 beam levels at holes 18, 36, 54 → elevations 36", 72", 108"
+//              Provides ~36" of clear vertical space per pallet level.
 // ─────────────────────────────────────────────────────────────────────────────
 
-import { createFrameSpec } from './models/frame.js';
-import { createBeamSpec }  from './models/beam.js';
+import { findFrameSpec, findBeamSpec } from './catalogRegistry.js';
 
 /** Unit conversion: inches → metres. */
 export const INCH_TO_M = 0.0254;
-
-/**
- * Upright series identifier shared between the default frame and beam.
- * All catalog entries using the standard upright profile share this value.
- */
-const STANDARD_UPRIGHT_SERIES = 'standard';
 
 // ── Default Frame Specification ──────────────────────────────────────────────
 //  Source row (frames.csv): gauge=14, depth_in=42, height_in=144, beam_separation_in=96
 //  Most common 12-foot selective rack upright for general warehouse use.
 
-export const DEFAULT_FRAME_SPEC = createFrameSpec({
-  id:                       'frame-14g-42in-144in-96in',
-  heightIn:                 144,
-  depthIn:                  42,
-  beamSeparationIn:         96,
-  gauge:                    '14',
-  capacityClass:            'standard',
-  uprightSeries:            STANDARD_UPRIGHT_SERIES,
-  compatibleConnectorTypes: ['standard'],
-  minimumTopClearanceIn:    6,
-  basePlateType:            'STANDARD',
-});
+export const DEFAULT_FRAME_SPEC = findFrameSpec(144, 42, 96, 'standard');
 
 // ── Default Beam Specification ───────────────────────────────────────────────
-//  Source row (beams.csv): gauge=14, width_in=96, height_in=5
+//  Source row (beams.csv): width_in=96, capacity_class=standard
 //  8-foot beam — the single most common beam length in selective pallet racking.
 //  Holds two standard 40"-wide GMA pallets with clearance on each side.
 
-export const DEFAULT_BEAM_SPEC = createBeamSpec({
-  id:                       'beam-14g-96in-5in',
-  lengthIn:                 96,
-  capacityClass:            'standard',
-  beamSeries:               'standard',
-  connectorType:            'standard',
-  verticalEnvelopeIn:       5,
-  profileHeightIn:          5,
-  compatibleUprightSeries:  [STANDARD_UPRIGHT_SERIES],
-});
+export const DEFAULT_BEAM_SPEC = findBeamSpec(96, 'standard');
 
 // ── Default Beam Level Configuration ────────────────────────────────────────
 //  3 levels evenly distributed across a 144" frame (1/4, 2/4, 3/4 of height):

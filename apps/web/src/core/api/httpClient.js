@@ -1,7 +1,7 @@
 import axios from 'axios';
-import { getAccessToken, clearAccessToken } from '@/src/core/auth/tokenStorage';
+import { clearTokens, getAccessToken } from '@/src/core/auth/tokenStorage';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? 'http://localhost:4000';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? 'http://localhost:8000';
 
 export const httpClient = axios.create({
   baseURL: API_BASE_URL,
@@ -22,7 +22,7 @@ httpClient.interceptors.response.use(
   (error) => {
     // Central place to react to expired/invalid JWTs.
     if (error?.response?.status === 401) {
-      clearAccessToken();
+      clearTokens();
     }
     return Promise.reject(error);
   },
