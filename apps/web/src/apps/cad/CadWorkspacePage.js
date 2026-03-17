@@ -18,6 +18,7 @@ import {
 } from './services/export/projectDocumentExporter';
 import { buildCadToQuotePayload } from './services/export/cadQuoteExporter';
 import { saveCadToQuoteTransfer } from '@/src/core/quoteTransfer/cadQuoteTransfer';
+import { saveCadAndCreateQuote } from '@/src/core/api/quoterApi';
 
 export default function CadWorkspacePage() {
   const router = useRouter();
@@ -111,7 +112,7 @@ export default function CadWorkspacePage() {
     input.click();
   }, [store, wallSt, colSt, rackDomainRef]);
 
-  const handleExportToQuote = useCallback(() => {
+  const handleExportToQuote = useCallback(async () => {
     if (typeof window === 'undefined') return;
 
     const projectDocument = serializeProjectDocument({
@@ -139,6 +140,11 @@ export default function CadWorkspacePage() {
       window.alert('Add at least one rack to the canvas before exporting to the quoter.');
       return;
     }
+
+    // Persist to backend (fire-and-forget; quoter UI still reads from localStorage)
+    saveCadAndCreateQuote(payload).catch((err) => {
+      console.warn('[CAD] Failed to save quote to backend:', err?.message ?? err);
+    });
 
     saveCadToQuoteTransfer(payload);
     router.push('/quoter');
