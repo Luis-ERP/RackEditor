@@ -50,3 +50,26 @@ class QuoteSerializer(serializers.ModelSerializer):
             "audit",
             "extras",
         ]
+
+
+class QuoteListSerializer(serializers.ModelSerializer):
+    """Lightweight serializer for list views — omits line items."""
+
+    lineItemCount = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Quote
+        fields = [
+            "id",
+            "quoteNumber",
+            "status",
+            "clientRef",
+            "linkedDesign",
+            "lineItemCount",
+            "subtotal",
+            "total",
+            "audit",
+        ]
+
+    def get_lineItemCount(self, obj):
+        return obj.lineItems.count()

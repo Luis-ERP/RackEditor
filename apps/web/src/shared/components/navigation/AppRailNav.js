@@ -16,7 +16,7 @@ import {
 import { useAppTheme } from '@/src/shared/theme/AppThemeProvider';
 
 const navItems = [
-  { href: '/', label: 'CAD', Icon: DraftingCompass },
+  { href: '/editor', label: 'CAD', Icon: DraftingCompass },
   { href: '/quoter', label: 'Quoter', Icon: Calculator },
   { href: '/hubspot', label: 'HubSpot', Icon: Handshake },
   { href: '/catalog', label: 'Catalog', Icon: Boxes },
@@ -47,7 +47,7 @@ export default function AppRailNav() {
       aria-label="Primary navigation"
     >
       {navItems.map(({ href, label, Icon }) => {
-        const active = pathname === href;
+        const active = pathname.startsWith(href);
         return (
           <Link
             key={href}
