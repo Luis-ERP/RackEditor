@@ -6,17 +6,11 @@ from .models import (
     Bay,
     BeamLevel,
     BeamSpec,
-    ColumnEntity,
     DesignRevision,
-    Frame,
     FrameOverride,
     FrameSpec,
     RackLine,
-    RackLineEntity,
     RackModule,
-    RackModuleEntity,
-    TextNoteEntity,
-    WallEntity,
 )
 
 
@@ -153,14 +147,6 @@ class AccessorySerializer(serializers.ModelSerializer):
         fields = ["id", "spec", "quantity", "targetBayId", "targetLevelIndex"]
 
 
-class FrameSerializer(serializers.ModelSerializer):
-    spec = FrameSpecSerializer(read_only=True)
-
-    class Meta:
-        model = Frame
-        fields = ["id", "spec", "positionIndex", "isCustomSpec", "rowIndex"]
-
-
 class DesignRevisionSerializer(serializers.ModelSerializer):
     rackLines = RackLineSerializer(many=True, read_only=True)
     accessories = AccessorySerializer(many=True, read_only=True)
@@ -177,83 +163,4 @@ class DesignRevisionSerializer(serializers.ModelSerializer):
             "bomSnapshot",
             "projectDocument",
             "createdAt",
-        ]
-
-
-class RackModuleEntitySerializer(serializers.ModelSerializer):
-    class Meta:
-        model = RackModuleEntity
-        fields = [
-            "id",
-            "type",
-            "transform",
-            "domainId",
-            "widthM",
-            "depthM",
-            "bayCount",
-            "label",
-            "locked",
-            "visible",
-        ]
-
-
-class RackLineEntitySerializer(serializers.ModelSerializer):
-    class Meta:
-        model = RackLineEntity
-        fields = [
-            "id",
-            "type",
-            "transform",
-            "domainId",
-            "widthM",
-            "depthM",
-            "label",
-            "locked",
-            "visible",
-        ]
-
-
-class WallEntitySerializer(serializers.ModelSerializer):
-    class Meta:
-        model = WallEntity
-        fields = [
-            "id",
-            "type",
-            "transform",
-            "lengthM",
-            "thicknessM",
-            "label",
-            "locked",
-            "visible",
-        ]
-
-
-class ColumnEntitySerializer(serializers.ModelSerializer):
-    class Meta:
-        model = ColumnEntity
-        fields = [
-            "id",
-            "type",
-            "transform",
-            "widthM",
-            "depthM",
-            "shape",
-            "label",
-            "locked",
-            "visible",
-        ]
-
-
-class TextNoteEntitySerializer(serializers.ModelSerializer):
-    class Meta:
-        model = TextNoteEntity
-        fields = [
-            "id",
-            "type",
-            "transform",
-            "text",
-            "fontSizeM",
-            "label",
-            "locked",
-            "visible",
         ]
