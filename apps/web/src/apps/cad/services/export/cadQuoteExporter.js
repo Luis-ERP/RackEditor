@@ -131,4 +131,16 @@ export function buildCadToQuotePayload({
   };
 }
 
+export function buildCadSubmissionPayload({
+  layoutStore,
+  rackDomainRef,
+  projectDocument,
+}) {
+  return buildCadToQuotePayload({
+    layoutStore,
+    rackDomainRef,
+    projectDocument,
+  });
+}
+
 export { CAD_QUOTE_CATALOG_VERSION };

@@ -18,7 +18,13 @@ class RegisterView(generics.CreateAPIView):
 
 
 class MeView(generics.RetrieveAPIView):
+    permission_classes = [permissions.AllowAny]
     serializer_class = UserSerializer
+
+    def get(self, request, *args, **kwargs):
+        if not request.user or not request.user.is_authenticated:
+            return Response(None)
+        return super().get(request, *args, **kwargs)
 
     def get_object(self):
         return self.request.user

@@ -34,7 +34,8 @@ export default function EditorPanel({
   subSelActive = false,
   onExportProjectDocument,
   onImportProjectDocument,
-  onExportToQuote,
+  onSubmitDesign,
+  isSubmittingDesign = false,
   children,
 }) {
   const dk = darkMode;
@@ -168,7 +169,8 @@ export default function EditorPanel({
           darkMode={dk}
           onExportProjectDocument={onExportProjectDocument}
           onImportProjectDocument={onImportProjectDocument}
-          onExportToQuote={onExportToQuote}
+          onSubmitDesign={onSubmitDesign}
+          isSubmittingDesign={isSubmittingDesign}
         />
       )}
 
@@ -199,7 +201,8 @@ function BOMView({
   darkMode,
   onExportProjectDocument,
   onImportProjectDocument,
-  onExportToQuote,
+  onSubmitDesign,
+  isSubmittingDesign,
 }) {
   const dk = darkMode;
 
@@ -322,8 +325,8 @@ function BOMView({
         <span>Bill of Materials</span>
         <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
           <button
-            onClick={onExportToQuote}
-            disabled={typeof onExportToQuote !== 'function' || bomItems.length === 0}
+            onClick={onSubmitDesign}
+            disabled={typeof onSubmitDesign !== 'function' || bomItems.length === 0 || isSubmittingDesign}
             style={{
               display: 'inline-flex',
               alignItems: 'center',
@@ -332,24 +335,24 @@ function BOMView({
               borderRadius: 6,
               background: buttonBg,
               color: textColor,
-              cursor: typeof onExportToQuote === 'function' && bomItems.length > 0 ? 'pointer' : 'default',
+              cursor: typeof onSubmitDesign === 'function' && bomItems.length > 0 && !isSubmittingDesign ? 'pointer' : 'default',
               fontSize: 11,
               fontWeight: 600,
               padding: '5px 8px',
-              opacity: typeof onExportToQuote === 'function' && bomItems.length > 0 ? 1 : 0.55,
+              opacity: typeof onSubmitDesign === 'function' && bomItems.length > 0 && !isSubmittingDesign ? 1 : 0.55,
               transition: 'background 0.12s ease',
             }}
             onMouseEnter={(e) => {
-              if (typeof onExportToQuote === 'function' && bomItems.length > 0) {
+              if (typeof onSubmitDesign === 'function' && bomItems.length > 0 && !isSubmittingDesign) {
                 e.currentTarget.style.background = buttonHover;
               }
             }}
             onMouseLeave={(e) => {
               e.currentTarget.style.background = buttonBg;
             }}
-            title="Create a quote from the current CAD BOM"
+            title="Submit the current CAD design to the backend"
           >
-            To Quoter
+            {isSubmittingDesign ? 'Submitting...' : 'Submit Design'}
           </button>
           <button
             onClick={onImportProjectDocument}

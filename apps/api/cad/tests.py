@@ -1,5 +1,10 @@
 from django.test import SimpleTestCase
+from django.urls import reverse
+from rest_framework import status
+from rest_framework.test import APITestCase
 
+from core.models import User
+from .models import DesignRevision
 from .test_helpers import (
     build_valid_back_to_back_cad_design_payload,
     build_valid_cad_design_payload,
@@ -409,6 +414,7 @@ class CadDesignValidationTests(SimpleTestCase):
             warning_codes={"NON_STANDARD_LEVEL_SPACING"},
         )
 
+
     def test_additional_valid_design_shapes_pass(self):
         cases = [
             ("single bay single level", self._valid_single_bay_single_level_payload()),
@@ -734,3 +740,71 @@ class CadDesignValidationTests(SimpleTestCase):
             }
         ]
         return payload
+
+
+class DesignRevisionSubmitViewTests(APITestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(email="cad@example.com", password="secret123")
+        self.client.force_authenticate(self.user)
+
+    def test_submit_design_revision_persists_project_document_and_bom(self):
+        payload = {
+            "source": "CAD_EDITOR",
+            "exportedAt": "2026-03-18T12:00:00Z",
+            "designId": "cad-live-design",
+            "designRevisionId": "cad-revision-2026-03-18T12:00:00Z",
+            "bomSnapshot": {
+                "catalogVersion": "rack-catalog-lists-v1",
+                "generatedAt": "2026-03-18T12:00:00Z",
+                "items": [
+                    {
+                        "sku": "FRAME-144-42-MEDIUM",
+                        "name": "Frame 144\" x 42\" (TDROP)",
+                        "quantity": 2,
+                        "unit": "ea",
+                        "rule": "frame_count=2",
+                    }
+                ],
+            },
+            "projectDocument": {
+                "documentType": "rack-editor-project",
+                "schemaVersion": "1.0.0",
+                "layout": {"entities": []},
+                "semantics": {"rackDomain": {"modules": []}},
+                "canvas": {"darkMode": False},
+            },
+            "stats": {"lineCount": 1, "totalQuantity": 2},
+        }
+
+        response = self.client.post(reverse("cad_design_revision_submit"), payload, format="json")
+
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(DesignRevision.objects.count(), 1)
+
+        revision = DesignRevision.objects.get(id=payload["designRevisionId"])
+        self.assertEqual(revision.catalogVersion, "rack-catalog-lists-v1")
+        self.assertEqual(revision.projectDocument, payload["projectDocument"])
+        self.assertEqual(revision.bomSnapshot, payload["bomSnapshot"])
+        self.assertEqual(revision.validationResults["submission"]["designId"], "cad-live-design")
+
+    def test_submit_design_revision_allows_anonymous_access(self):
+        self.client.force_authenticate(None)
+
+        response = self.client.post(
+            reverse("cad_design_revision_submit"),
+            {
+                "designRevisionId": "cad-revision-unauthorized",
+                "projectDocument": {
+                    "documentType": "rack-editor-project",
+                    "schemaVersion": "1.0.0",
+                    "layout": {"entities": []},
+                },
+                "bomSnapshot": {
+                    "catalogVersion": "rack-catalog-lists-v1",
+                    "items": [{"sku": "SKU-1", "name": "Item 1", "quantity": 1}],
+                },
+            },
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)

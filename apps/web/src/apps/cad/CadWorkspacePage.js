@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { useRouter } from 'next/navigation';
 import EditorPanel from './components/EditorPanel';
 import CADCanvas from './components/CADCanvas';
 import useLayoutStore from './hooks/useLayoutStore';
@@ -16,18 +15,17 @@ import {
   restoreProjectDocument,
   serializeProjectDocument,
 } from './services/export/projectDocumentExporter';
-import { buildCadToQuotePayload } from './services/export/cadQuoteExporter';
-import { saveCadToQuoteTransfer } from '@/src/core/quoteTransfer/cadQuoteTransfer';
-import { saveCadAndCreateQuote } from '@/src/core/api/quoterApi';
+import { buildCadSubmissionPayload } from './services/export/cadQuoteExporter';
+import { submitCadDesign } from '@/src/core/api/cadApi';
 
 export default function CadWorkspacePage() {
-  const router = useRouter();
   const [drawingMode, setDrawingMode] = useState(false);
   const [rackOrientation, setRackOrientation] = useState('horizontal');
   const [wallMode, setWallMode] = useState(null); // null | 'line' | 'rect'
   const [columnMode, setColumnMode] = useState(false);
   const [showMeasurements, setShowMeasurements] = useState(true);
   const [subSel, setSubSel] = useState(null);
+  const [isSubmittingDesign, setIsSubmittingDesign] = useState(false);
   const { isDark, setTheme } = useAppTheme();
   const { store, version } = useLayoutStore();
   const { store: wallSt, version: wallVer } = useWallStore();
@@ -112,7 +110,7 @@ export default function CadWorkspacePage() {
     input.click();
   }, [store, wallSt, colSt, rackDomainRef]);
 
-  const handleExportToQuote = useCallback(async () => {
+  const handleSubmitDesign = useCallback(async () => {
     if (typeof window === 'undefined') return;
 
     const projectDocument = serializeProjectDocument({
@@ -130,24 +128,27 @@ export default function CadWorkspacePage() {
       },
     });
 
-    const payload = buildCadToQuotePayload({
+    const payload = buildCadSubmissionPayload({
       layoutStore: store,
       rackDomainRef,
       projectDocument,
     });
 
     if (payload.bomSnapshot.items.length === 0) {
-      window.alert('Add at least one rack to the canvas before exporting to the quoter.');
+      window.alert('Add at least one rack to the canvas before submitting the design.');
       return;
     }
 
-    // Persist to backend (fire-and-forget; quoter UI still reads from localStorage)
-    saveCadAndCreateQuote(payload).catch((err) => {
-      console.warn('[CAD] Failed to save quote to backend:', err?.message ?? err);
-    });
-
-    saveCadToQuoteTransfer(payload);
-    router.push('/quoter');
+    setIsSubmittingDesign(true);
+    try {
+      const savedRevision = await submitCadDesign(payload);
+      window.alert(`Design submitted successfully. Revision: ${savedRevision.id}`);
+    } catch (err) {
+      const detail = err?.response?.data?.detail;
+      window.alert(detail || 'Failed to submit the CAD design to the backend.');
+    } finally {
+      setIsSubmittingDesign(false);
+    }
   }, [
     store,
     wallSt,
@@ -159,7 +160,6 @@ export default function CadWorkspacePage() {
     wallMode,
     columnMode,
     showMeasurements,
-    router,
   ]);
 
   /** Toggle wall mode (rect or line). Clicking the active mode deactivates it. */
@@ -287,7 +287,8 @@ export default function CadWorkspacePage() {
         subSelActive={subSel !== null}
         onExportProjectDocument={handleExportProjectDocument}
         onImportProjectDocument={handleImportProjectDocument}
-        onExportToQuote={handleExportToQuote}
+        onSubmitDesign={handleSubmitDesign}
+        isSubmittingDesign={isSubmittingDesign}
       />
       <CADCanvas
         drawingMode={drawingMode}

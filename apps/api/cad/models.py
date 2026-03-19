@@ -107,6 +107,7 @@ class DesignRevision(models.Model):
     catalogVersion = models.CharField(max_length=120)
     validationResults = models.JSONField(default=dict, blank=True)
     bomSnapshot = models.JSONField(null=True, blank=True)
+    projectDocument = models.JSONField(null=True, blank=True)
     createdAt = models.DateTimeField(auto_now_add=True)
 
     class Meta:

@@ -175,6 +175,7 @@ class DesignRevisionSerializer(serializers.ModelSerializer):
             "accessories",
             "validationResults",
             "bomSnapshot",
+            "projectDocument",
             "createdAt",
         ]
 
