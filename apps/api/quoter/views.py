@@ -1,77 +1,17 @@
 import uuid
 from datetime import datetime, timezone
-from decimal import Decimal
 
 from rest_framework import permissions, status
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from cad.catalog import lookup_sku
 from .models import Quote, QuoteLineItem
+from .services import DesignRevisionQuoteError, DesignRevisionQuoteService
 from .serializers import QuoteSerializer, QuoteListSerializer
 
 
 def _now_iso():
     return datetime.now(timezone.utc).isoformat()
-
-
-def _build_line_items_from_bom(quote, bom_snapshot, created_by):
-    """Create QuoteLineItem rows from a BOM snapshot, pricing each item from the catalog CSVs."""
-    items = bom_snapshot.get("items", [])
-    bom_generated_at = bom_snapshot.get("generatedAt", _now_iso())
-    catalog_version = bom_snapshot.get("catalogVersion", "")
-    now = _now_iso()
-    margin_rate = Decimal("0.20")
-
-    line_items = []
-    for item in items:
-        sku = item.get("sku", "")
-        name = item.get("name", sku)
-        quantity = Decimal(str(item.get("quantity", 1)))
-        rule = item.get("rule", "")
-
-        catalog_entry = lookup_sku(sku)
-        if catalog_entry:
-            cost = Decimal(str(catalog_entry["cost"]))
-            price = (cost * (1 + margin_rate)).quantize(Decimal("0.01"))
-            matched = True
-        else:
-            cost = Decimal("0")
-            price = Decimal("0")
-            matched = False
-
-        total = (price * quantity).quantize(Decimal("0.01"))
-
-        catalog_ref = {"sku": sku, "name": name, "rule": rule, "matched": matched}
-        if matched:
-            catalog_ref["catalogCost"] = float(cost)
-
-        line_item = QuoteLineItem(
-            id=str(uuid.uuid4()),
-            quote=quote,
-            name=name,
-            description="",
-            source="CAD_BOM",
-            traceability={
-                "bomGeneratedAt": bom_generated_at,
-                "catalogVersion": catalog_version,
-            },
-            catalogRef=catalog_ref,
-            cost=cost,
-            marginRate=margin_rate,
-            price=price,
-            quantity=quantity,
-            discount={"kind": "NONE", "value": 0},
-            discountAmount=0,
-            total=total,
-            isReadOnlyFromCad=True,
-            isDesignLinked=True,
-            audit={"createdAt": now, "createdBy": created_by, "updatedAt": now, "updatedBy": created_by},
-            extras={},
-        )
-        line_items.append(line_item)
-
-    return line_items
 
 
 class QuoteListView(APIView):
@@ -263,67 +203,10 @@ class SaveCadAndCreateQuoteView(APIView):
     permission_classes = [permissions.AllowAny]
 
     def post(self, request):
-        data = request.data
-
-        bom_snapshot = data.get("bomSnapshot")
-        if not bom_snapshot or not isinstance(bom_snapshot.get("items"), list):
-            return Response(
-                {"detail": "bomSnapshot.items is required and must be a list."},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-
-        if not bom_snapshot["items"]:
-            return Response(
-                {"detail": "bomSnapshot.items must not be empty."},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-
-        exported_at = data.get("exportedAt", _now_iso())
-        design_id = data.get("designId", "cad-live-design")
-        design_revision_id = data.get("designRevisionId", f"cad-revision-{exported_at}")
-        quote_number = data.get("quoteNumber", f"QTE-CAD-{uuid.uuid4().hex[:8].upper()}")
-        project_document = data.get("projectDocument")
-        now = _now_iso()
-
-        created_by = request.user.email or str(request.user.pk)
-
-        quote = Quote(
-            id=str(uuid.uuid4()),
-            quoteNumber=quote_number,
-            status="DRAFT",
-            clientRef=None,
-            linkedDesign={
-                "designId": design_id,
-                "designRevisionId": design_revision_id,
-                "source": "CAD_EDITOR",
-                "exportedAt": exported_at,
-                "bomGeneratedAt": bom_snapshot.get("generatedAt", now),
-                "catalogVersion": bom_snapshot.get("catalogVersion", ""),
-                "projectDocument": project_document,
-            },
-            subtotal=0,
-            shipping=0,
-            freight=0,
-            discount={"kind": "NONE", "value": 0},
-            discountAmount=0,
-            taxRate=0.16,
-            taxAmount=0,
-            total=0,
-            audit={"createdAt": now, "createdBy": created_by, "updatedAt": now, "updatedBy": created_by},
-            extras={},
-        )
-        quote.save()
-
-        line_items = _build_line_items_from_bom(quote, bom_snapshot, created_by)
-        QuoteLineItem.objects.bulk_create(line_items)
-
-        subtotal = sum(item.total for item in line_items)
-        tax_amount = (subtotal * quote.taxRate).quantize(Decimal("0.01"))
-        quote_total = subtotal + tax_amount
-        quote.subtotal = subtotal
-        quote.taxAmount = tax_amount
-        quote.total = quote_total
-        quote.save(update_fields=["subtotal", "taxAmount", "total"])
+        try:
+            quote = DesignRevisionQuoteService.create_quote_from_payload(request.data, actor=request.user)
+        except DesignRevisionQuoteError as exc:
+            return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
 
         serializer = QuoteSerializer(quote)
         return Response(serializer.data, status=status.HTTP_201_CREATED)

@@ -45,11 +45,15 @@ export const CAPACITY_LABELS = {
 
 // Map capacity class → steel gauge (lighter gauge = thicker steel, higher capacity)
 const FRAME_CAPACITY_TO_GAUGE = {
-  light:    '14',
+  light:    '16',
   standard: '14',
   medium:   '12',
   heavy:    '10',
 };
+
+function formatFrameSku({ heightIn, depthIn, beamSeparationIn, gauge }) {
+  return `frame-${heightIn}in-${depthIn}in-${beamSeparationIn}in-g${gauge}`;
+}
 
 // ── Beam attribute options ────────────────────────────────────────────────────
 
@@ -83,6 +87,18 @@ const BEAM_CAPACITY_TO_PROFILE = {
   heavy:    7,
 };
 
+// Keep beam SKU gauge aligned with the catalog-list naming convention.
+const BEAM_CAPACITY_TO_GAUGE = {
+  light:    '16',
+  standard: '14',
+  medium:   '12',
+  heavy:    '10',
+};
+
+function formatBeamSku({ gauge, widthIn, heightIn }) {
+  return `beam-${gauge}g-${widthIn}in-${heightIn}in`;
+}
+
 // ── Generate Frame Catalog ────────────────────────────────────────────────────
 
 /**
@@ -98,7 +114,7 @@ for (const heightIn of FRAME_HEIGHTS_IN) {
       for (const capacityClass of FRAME_CAPACITY_CLASSES) {
         const gauge = FRAME_CAPACITY_TO_GAUGE[capacityClass];
         FRAME_CATALOG.push(createFrameSpec({
-          id:                       `frame-${gauge}g-${depthIn}in-${heightIn}in-${beamSeparationIn}in-${capacityClass}`,
+          id:                       formatFrameSku({ heightIn, depthIn, beamSeparationIn, gauge }),
           heightIn,
           depthIn,
           beamSeparationIn,
@@ -128,8 +144,9 @@ for (const lengthIn of BEAM_LENGTHS_IN) {
     const beamSeries       = BEAM_CAPACITY_TO_SERIES[capacityClass];
     const verticalEnvelopeIn = BEAM_CAPACITY_TO_ENVELOPE[capacityClass];
     const profileHeightIn  = BEAM_CAPACITY_TO_PROFILE[capacityClass];
+    const gauge            = BEAM_CAPACITY_TO_GAUGE[capacityClass];
     BEAM_CATALOG.push(createBeamSpec({
-      id:                      `beam-${capacityClass}-${lengthIn}in`,
+      id:                      formatBeamSku({ gauge, widthIn: lengthIn, heightIn: profileHeightIn }),
       lengthIn,
       capacityClass,
       beamSeries,

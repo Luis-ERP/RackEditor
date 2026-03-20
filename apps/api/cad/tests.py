@@ -4,6 +4,8 @@ from rest_framework import status
 from rest_framework.test import APITestCase
 
 from core.models import User
+from quoter.models import Quote
+from quoter.services import DesignRevisionQuoteService
 from .models import DesignRevision
 from .test_helpers import (
     build_valid_back_to_back_cad_design_payload,
@@ -786,6 +788,82 @@ class DesignRevisionSubmitViewTests(APITestCase):
         self.assertEqual(revision.projectDocument, payload["projectDocument"])
         self.assertEqual(revision.bomSnapshot, payload["bomSnapshot"])
         self.assertEqual(revision.validationResults["submission"]["designId"], "cad-live-design")
+        self.assertEqual(Quote.objects.count(), 1)
+        linked_quote = Quote.objects.get()
+        self.assertEqual(linked_quote.linkedDesign["designRevisionId"], payload["designRevisionId"])
+        self.assertEqual(linked_quote.lineItems.count(), 1)
+
+    def test_submit_design_revision_updates_existing_quote_for_same_revision(self):
+        initial_payload = {
+            "source": "CAD_EDITOR",
+            "exportedAt": "2026-03-18T12:00:00Z",
+            "designId": "cad-live-design",
+            "designRevisionId": "cad-revision-link-upsert",
+            "quoteNumber": "QTE-CAD-UPSERT",
+            "bomSnapshot": {
+                "catalogVersion": "rack-catalog-lists-v1",
+                "generatedAt": "2026-03-18T12:00:00Z",
+                "items": [
+                    {
+                        "sku": "beam-16g-96in-3.5in",
+                        "name": "Beam 96 x 3.5",
+                        "quantity": 2,
+                        "unit": "ea",
+                        "rule": "BEAM_PAIR",
+                    }
+                ],
+            },
+            "projectDocument": {
+                "documentType": "rack-editor-project",
+                "schemaVersion": "1.0.0",
+                "layout": {"entities": []},
+            },
+        }
+
+        quote = DesignRevisionQuoteService.create_quote_from_payload(initial_payload, actor=self.user)
+        DesignRevisionQuoteService.add_manual_line_item(
+            quote,
+            name="Labor",
+            cost=100,
+            quantity=1,
+            margin_rate=0.5,
+            actor=self.user,
+        )
+
+        submit_payload = {
+            **initial_payload,
+            "bomSnapshot": {
+                "catalogVersion": "rack-catalog-lists-v1",
+                "generatedAt": "2026-03-18T12:30:00Z",
+                "items": [
+                    {
+                        "sku": "frame-96in-36in-36in-g14",
+                        "name": "Frame 96 x 36",
+                        "quantity": 1,
+                        "unit": "ea",
+                        "rule": "FRAME",
+                    }
+                ],
+            },
+            "projectDocument": {
+                "documentType": "rack-editor-project",
+                "schemaVersion": "1.0.0",
+                "layout": {"entities": [{"id": "module-1"}]},
+            },
+        }
+
+        response = self.client.post(reverse("cad_design_revision_submit"), submit_payload, format="json")
+
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(Quote.objects.count(), 1)
+
+        quote.refresh_from_db()
+        self.assertEqual(quote.quoteNumber, "QTE-CAD-UPSERT")
+        self.assertEqual(quote.linkedDesign["designRevisionId"], "cad-revision-link-upsert")
+        self.assertEqual(quote.linkedDesign["bomGeneratedAt"], "2026-03-18T12:30:00Z")
+        self.assertEqual(quote.linkedDesign["projectDocument"], submit_payload["projectDocument"])
+        self.assertEqual(quote.lineItems.filter(isDesignLinked=True).count(), 1)
+        self.assertEqual(quote.lineItems.filter(isDesignLinked=False).count(), 1)
 
     def test_submit_design_revision_allows_anonymous_access(self):
         self.client.force_authenticate(None)
@@ -808,3 +886,4 @@ class DesignRevisionSubmitViewTests(APITestCase):
         )
 
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(Quote.objects.count(), 1)

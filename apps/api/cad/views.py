@@ -1,9 +1,12 @@
+from django.db import transaction
 from rest_framework import permissions, status
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from .models import DesignRevision
 from .serializers import DesignRevisionSerializer
+from quoter.models import Quote
+from quoter.services import DesignRevisionQuoteError, DesignRevisionQuoteService
 
 
 class DesignRevisionSubmitView(APIView):
@@ -54,21 +57,40 @@ class DesignRevisionSubmitView(APIView):
 				status=status.HTTP_409_CONFLICT,
 			)
 
-		design_revision = DesignRevision.objects.create(
-			id=design_revision_id,
-			revisionNumber=1,
-			catalogVersion=bom_snapshot.get("catalogVersion", ""),
-			validationResults={
-				"submission": {
-					"source": data.get("source", "CAD_EDITOR"),
-					"designId": data.get("designId", "cad-live-design"),
-					"exportedAt": data.get("exportedAt"),
-					"stats": data.get("stats", {}),
-				}
-			},
-			bomSnapshot=bom_snapshot,
-			projectDocument=project_document,
-		)
+		with transaction.atomic():
+			design_revision = DesignRevision.objects.create(
+				id=design_revision_id,
+				revisionNumber=1,
+				catalogVersion=bom_snapshot.get("catalogVersion", ""),
+				validationResults={
+					"submission": {
+						"source": data.get("source", "CAD_EDITOR"),
+						"designId": data.get("designId", "cad-live-design"),
+						"exportedAt": data.get("exportedAt"),
+						"stats": data.get("stats", {}),
+					}
+				},
+				bomSnapshot=bom_snapshot,
+				projectDocument=project_document,
+			)
+
+			quote = Quote.objects.filter(linkedDesign__designRevisionId=design_revision_id).first()
+			try:
+				if quote:
+					DesignRevisionQuoteService.sync_quote_from_design_revision(
+						quote,
+						design_revision,
+						actor=request.user,
+					)
+				else:
+					DesignRevisionQuoteService.create_quote_from_design_revision(
+						design_revision,
+						actor=request.user,
+						quote_number=(data.get("quoteNumber") or "").strip(),
+					)
+			except DesignRevisionQuoteError as exc:
+				transaction.set_rollback(True)
+				return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
 
 		serializer = DesignRevisionSerializer(design_revision)
 		return Response(serializer.data, status=status.HTTP_201_CREATED)

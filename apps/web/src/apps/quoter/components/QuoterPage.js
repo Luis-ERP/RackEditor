@@ -4,6 +4,7 @@ import { useState, useCallback, useEffect } from 'react';
 import useQuoteStore from '../hooks/useQuoteStore';
 import { DISCOUNT_KIND, QUOTE_LINE_SOURCE, roundCurrency } from '../services/schemas/common.js';
 import { QUOTE_STATUS } from '../services/quoteStore.js';
+import { getQuote } from '@/src/core/api/quoterApi';
 import { consumeCadToQuoteTransfer } from '@/src/core/quoteTransfer/cadQuoteTransfer';
 import css from '../styles/quoter.module.css';
 
@@ -274,37 +275,76 @@ function LineItemRow({ item, onUpdate, onRemove }) {
 
 // ─── Main Page ───────────────────────────────────────────────────────────────
 
-export default function QuoterPage() {
+export default function QuoterPage({ quoteId = null }) {
   const { store } = useQuoteStore();
   const [addModalOpen, setAddModalOpen] = useState(false);
+  const [isLoadingQuote, setIsLoadingQuote] = useState(false);
+  const [notFound, setNotFound] = useState(false);
+  const [loadError, setLoadError] = useState('');
 
   useEffect(() => {
-    const transfer = consumeCadToQuoteTransfer();
-    if (!transfer) return;
+    let isCancelled = false;
 
-    store.resetQuote({
-      quoteNumber: transfer.quoteNumber,
-      linkedDesign: {
-        source: transfer.source,
+    async function loadInitialQuote() {
+      if (quoteId && quoteId !== 'new') {
+        setIsLoadingQuote(true);
+        setLoadError('');
+        setNotFound(false);
+        try {
+          const persistedQuote = await getQuote(quoteId);
+          if (!isCancelled) {
+            store.loadQuote(persistedQuote);
+          }
+        } catch (error) {
+          if (!isCancelled) {
+            if (error?.response?.status === 404) {
+              setNotFound(true);
+            } else {
+              setLoadError('Unable to load quote. Please try again.');
+            }
+          }
+          console.error('Failed to load quote', error);
+        } finally {
+          if (!isCancelled) {
+            setIsLoadingQuote(false);
+          }
+        }
+        return;
+      }
+
+      const transfer = consumeCadToQuoteTransfer();
+      if (!transfer) return;
+
+      store.resetQuote({
+        quoteNumber: transfer.quoteNumber,
+        linkedDesign: {
+          source: transfer.source,
+          designId: transfer.designId,
+          designRevisionId: transfer.designRevisionId,
+          exportedAt: transfer.exportedAt,
+          projectDocument: transfer.projectDocument,
+        },
+        extras: {
+          cadImport: {
+            lineCount: transfer.stats?.lineCount ?? transfer.bomSnapshot.items.length,
+            totalQuantity: transfer.stats?.totalQuantity ?? 0,
+          },
+        },
+      });
+
+      store.syncFromBom(transfer.bomSnapshot, {
         designId: transfer.designId,
         designRevisionId: transfer.designRevisionId,
-        exportedAt: transfer.exportedAt,
-        projectDocument: transfer.projectDocument,
-      },
-      extras: {
-        cadImport: {
-          lineCount: transfer.stats?.lineCount ?? transfer.bomSnapshot.items.length,
-          totalQuantity: transfer.stats?.totalQuantity ?? 0,
-        },
-      },
-    });
+        updatedBy: 'cad-editor',
+      });
+    }
 
-    store.syncFromBom(transfer.bomSnapshot, {
-      designId: transfer.designId,
-      designRevisionId: transfer.designRevisionId,
-      updatedBy: 'cad-editor',
-    });
-  }, [store]);
+    loadInitialQuote();
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [quoteId, store]);
 
   const quote = store.getQuote();
 
@@ -327,6 +367,50 @@ export default function QuoterPage() {
     (fields) => store.updateQuoteFields(fields),
     [store],
   );
+
+  if (isLoadingQuote) {
+    return (
+      <div className={css.quoterRoot}>
+        <div className={css.fullPageState}>
+          <span className={css.fullPageStateTitle}>Loading quote…</span>
+        </div>
+      </div>
+    );
+  }
+
+  if (notFound) {
+    return (
+      <div className={css.quoterRoot}>
+        <div className={css.fullPageState}>
+          <span className={css.fullPageStateTitle}>Quote not found</span>
+          <p className={css.fullPageStateBody}>
+            No quote with ID <strong>{quoteId}</strong> exists.
+            It may have been deleted or the link is invalid.
+          </p>
+          <a href="/quoter" className={`${css.btn} ${css.btnPrimary}`}>
+            Back to Quotes
+          </a>
+        </div>
+      </div>
+    );
+  }
+
+  if (loadError) {
+    return (
+      <div className={css.quoterRoot}>
+        <div className={css.fullPageState}>
+          <span className={css.fullPageStateTitle}>Could not load quote</span>
+          <p className={css.fullPageStateBody}>{loadError}</p>
+          <button
+            className={`${css.btn} ${css.btnPrimary}`}
+            onClick={() => window.location.reload()}
+          >
+            Retry
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className={css.quoterRoot}>
