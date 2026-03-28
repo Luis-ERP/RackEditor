@@ -9,6 +9,7 @@ import {
   ANCHORS_PER_FRAME,
   BasePlateType,
 } from '../services/rack/constants.js';
+import { resolveFrameSpecAtIndex } from '../services/rack/models/rackModule.js';
 
 /**
  * EditorPanel – left sidebar with two sections:
@@ -221,51 +222,59 @@ function BOMView({
     };
 
     for (const ent of entities) {
-      const mod = domainMap.get(ent.domainId);
-      if (!mod) continue;
+      const domain = domainMap.get(ent.domainId);
+      if (!domain) continue;
 
-      // Frames
-      const frameSpec = mod.frameSpec;
-      const frameCount = mod.frameCount || (mod.bays.length + 1);
-      addItem(
-        frameSpec.id,
-        `Frame ${frameSpec.heightIn}" × ${frameSpec.depthIn}" (${frameSpec.uprightSeries})`,
-        frameCount,
-        'Frame',
-      );
+      // Normalize: a RACK_LINE domain has modules[]; a RACK_MODULE domain is itself the module.
+      const modules = domain.modules ?? [domain];
 
-      // Beams
-      for (const bay of mod.bays) {
-        for (const level of bay.levels) {
-          const bs = level.beamSpec;
+      // Track absolute frame indices across modules to avoid double-counting shared frames.
+      const seenFrameIndices = new Set();
+
+      for (const mod of modules) {
+        // Frames — resolved per-position to account for per-frame spec overrides.
+        for (let localIdx = 0; localIdx < mod.frameCount; localIdx++) {
+          const absIdx = mod.startFrameIndex + localIdx;
+          if (seenFrameIndices.has(absIdx)) continue; // shared frame between modules
+          seenFrameIndices.add(absIdx);
+
+          const spec = resolveFrameSpecAtIndex(mod, localIdx);
           addItem(
-            bs.id,
-            `Beam ${bs.lengthIn}" (${bs.beamSeries})`,
-            BEAMS_PER_LEVEL,
-            'Beam',
+            spec.id,
+            `Frame ${spec.heightIn}" × ${spec.depthIn}" (${spec.uprightSeries})`,
+            1,
+            'Frame',
+          );
+
+          // Anchors per frame — each frame may have a different base plate type.
+          const bpType = spec.basePlateType || BasePlateType.STANDARD;
+          const anchorsPerFrame = ANCHORS_PER_FRAME[bpType] || 2;
+          addItem(
+            `ACC-ANCHOR-${bpType}`,
+            `Anchor (${bpType.charAt(0) + bpType.slice(1).toLowerCase()})`,
+            anchorsPerFrame,
+            'Accessory',
           );
         }
-      }
 
-      // Safety Pins
-      let totalBeams = 0;
-      for (const bay of mod.bays) {
-        totalBeams += bay.levels.length * BEAMS_PER_LEVEL;
-      }
-      const pinCount = totalBeams * SAFETY_PINS_PER_BEAM;
-      if (pinCount > 0) {
-        addItem('ACC-SAFETY-PIN', 'Safety Pin', pinCount, 'Accessory');
-      }
+        // Beams & Safety Pins
+        for (const bay of mod.bays) {
+          for (const level of bay.levels) {
+            const bs = level.beamSpec;
+            addItem(
+              bs.id,
+              `Beam ${bs.lengthIn}" (${bs.beamSeries})`,
+              BEAMS_PER_LEVEL,
+              'Beam',
+            );
+          }
+        }
 
-      // Anchors
-      const bpType = frameSpec.basePlateType || BasePlateType.STANDARD;
-      const anchorsPerFrame = ANCHORS_PER_FRAME[bpType] || 2;
-      addItem(
-        `ACC-ANCHOR-${bpType}`,
-        `Anchor (${bpType.charAt(0) + bpType.slice(1).toLowerCase()})`,
-        frameCount * anchorsPerFrame,
-        'Accessory',
-      );
+        const totalBeams = mod.bays.reduce((sum, bay) => sum + bay.levels.length * BEAMS_PER_LEVEL, 0);
+        if (totalBeams > 0) {
+          addItem('ACC-SAFETY-PIN', 'Safety Pin', totalBeams * SAFETY_PINS_PER_BEAM, 'Accessory');
+        }
+      }
     }
 
     // Sort: Frames first, then Beams, then Accessories
