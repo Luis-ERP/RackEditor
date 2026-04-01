@@ -640,83 +640,117 @@ function exportRack(entity, { skipRightFrame = false, skipBottomFrame = false } 
   const { widthM, depthM, label } = entity;
   const isVertical = rotation === 90;
 
+  // Back-to-back row support
+  const rowCount = (() => {
+    switch (entity.rowConfiguration) {
+      case 'BACK_TO_BACK_2': return 2;
+      case 'BACK_TO_BACK_3': return 3;
+      case 'BACK_TO_BACK_4': return 4;
+      default:               return 1;
+    }
+  })();
+  const spacerIn = entity.spacerSizeIn ?? 0;
+  const spacerM  = spacerIn * 0.0254;
+
   let out = '';
 
   if (isVertical) {
-    // For vertical racks, the world AABB is still (x,y)→(x+widthM, y+depthM).
-    // Frame strips run horizontally (along Y axis), beams run vertically (along X).
-    const fh  = depthM  * FRAME_COL_FRAC;  // frame strip height (Y)
-    const bw  = widthM  * BEAM_H_FRAC;     // beam strip width (X)
+    // Compute per-row height for vertical layout
+    const singleRowDepth = rowCount > 1
+      ? (depthM - spacerM * (rowCount - 1)) / rowCount
+      : depthM;
 
-    // Outer boundary
-    const outerV = axisRectVertices(x, y, widthM, depthM);
-    out += solidHatch('RACK_FRAME', outerV, TC.RACK_BAY);
-    out += lwpolyline('RACK_OUTLINE', outerV);
+    for (let r = 0; r < rowCount; r++) {
+      const rowY = y + r * (singleRowDepth + spacerM);
 
-    // Top frame strip
-    const topV = axisRectVertices(x, y, widthM, fh);
-    out += solidHatch('RACK_FRAME', topV, TC.RACK_FRAME);
-    out += lwpolyline('RACK_FRAME', topV);
+      const fh = singleRowDepth * FRAME_COL_FRAC;
+      const bw = widthM * BEAM_H_FRAC;
 
-    // Bottom frame strip (skip if shared with adjacent below)
-    if (!skipBottomFrame) {
-      const botV = axisRectVertices(x, y + depthM - fh, widthM, fh);
-      out += solidHatch('RACK_FRAME', botV, TC.RACK_FRAME);
-      out += lwpolyline('RACK_FRAME', botV);
+      // Outer boundary per row
+      const outerV = axisRectVertices(x, rowY, widthM, singleRowDepth);
+      out += solidHatch('RACK_FRAME', outerV, TC.RACK_BAY);
+      out += lwpolyline('RACK_OUTLINE', outerV);
+
+      // Top frame strip
+      const topV = axisRectVertices(x, rowY, widthM, fh);
+      out += solidHatch('RACK_FRAME', topV, TC.RACK_FRAME);
+      out += lwpolyline('RACK_FRAME', topV);
+
+      // Bottom frame strip
+      const isLastRow = r === rowCount - 1;
+      if (!(isLastRow && skipBottomFrame)) {
+        const botV = axisRectVertices(x, rowY + singleRowDepth - fh, widthM, fh);
+        out += solidHatch('RACK_FRAME', botV, TC.RACK_FRAME);
+        out += lwpolyline('RACK_FRAME', botV);
+      }
+
+      // Left beam strip
+      const lbV = axisRectVertices(x, rowY + fh, bw, singleRowDepth - 2 * fh);
+      out += solidHatch('RACK_BEAM', lbV, TC.RACK_BEAM);
+      out += lwpolyline('RACK_BEAM', lbV);
+
+      // Right beam strip
+      const rbV = axisRectVertices(x + widthM - bw, rowY + fh, bw, singleRowDepth - 2 * fh);
+      out += solidHatch('RACK_BEAM', rbV, TC.RACK_BEAM);
+      out += lwpolyline('RACK_BEAM', rbV);
     }
 
-    // Left beam strip
-    const lbV = axisRectVertices(x, y + fh, bw, depthM - 2 * fh);
-    out += solidHatch('RACK_BEAM', lbV, TC.RACK_BEAM);
-    out += lwpolyline('RACK_BEAM', lbV);
-
-    // Right beam strip
-    const rbV = axisRectVertices(x + widthM - bw, y + fh, bw, depthM - 2 * fh);
-    out += solidHatch('RACK_BEAM', rbV, TC.RACK_BEAM);
-    out += lwpolyline('RACK_BEAM', rbV);
-
-    // Label
+    // Label in center of first row
     if (label) {
+      const singleRowDepthL = rowCount > 1
+        ? (depthM - spacerM * (rowCount - 1)) / rowCount
+        : depthM;
       const lx = x + widthM / 2;
-      const ly = y + depthM / 2;
+      const ly = y + singleRowDepthL / 2;
       out += textEntity('RACK_LABEL', label, lx, cadY(ly), 0.0035, 0);
     }
   } else {
     // Horizontal rack
-    const fcw = widthM * FRAME_COL_FRAC;   // upright column width
-    const bsh = depthM * BEAM_H_FRAC;      // beam strip height
+    const singleRowDepth = rowCount > 1
+      ? (depthM - spacerM * (rowCount - 1)) / rowCount
+      : depthM;
 
-    // Outer boundary
-    const outerV = axisRectVertices(x, y, widthM, depthM);
-    out += solidHatch('RACK_FRAME', outerV, TC.RACK_BAY);
-    out += lwpolyline('RACK_OUTLINE', outerV);
+    for (let r = 0; r < rowCount; r++) {
+      const rowY = y + r * (singleRowDepth + spacerM);
 
-    // Left upright
-    const lfV = axisRectVertices(x, y, fcw, depthM);
-    out += solidHatch('RACK_FRAME', lfV, TC.RACK_FRAME);
-    out += lwpolyline('RACK_FRAME', lfV);
+      const fcw = widthM * FRAME_COL_FRAC;
+      const bsh = singleRowDepth * BEAM_H_FRAC;
 
-    // Right upright (skip if shared with adjacent rack)
-    if (!skipRightFrame) {
-      const rfV = axisRectVertices(x + widthM - fcw, y, fcw, depthM);
-      out += solidHatch('RACK_FRAME', rfV, TC.RACK_FRAME);
-      out += lwpolyline('RACK_FRAME', rfV);
+      // Outer boundary per row
+      const outerV = axisRectVertices(x, rowY, widthM, singleRowDepth);
+      out += solidHatch('RACK_FRAME', outerV, TC.RACK_BAY);
+      out += lwpolyline('RACK_OUTLINE', outerV);
+
+      // Left upright
+      const lfV = axisRectVertices(x, rowY, fcw, singleRowDepth);
+      out += solidHatch('RACK_FRAME', lfV, TC.RACK_FRAME);
+      out += lwpolyline('RACK_FRAME', lfV);
+
+      // Right upright (skip only on last row if adjacent)
+      const isLastRow = r === rowCount - 1;
+      if (!(isLastRow && skipRightFrame)) {
+        const rfV = axisRectVertices(x + widthM - fcw, rowY, fcw, singleRowDepth);
+        out += solidHatch('RACK_FRAME', rfV, TC.RACK_FRAME);
+        out += lwpolyline('RACK_FRAME', rfV);
+      }
+
+      // Top beam
+      const tbV = axisRectVertices(x + fcw, rowY, widthM - 2 * fcw, bsh);
+      out += solidHatch('RACK_BEAM', tbV, TC.RACK_BEAM);
+      out += lwpolyline('RACK_BEAM', tbV);
+
+      // Bottom beam
+      const bbV = axisRectVertices(x + fcw, rowY + singleRowDepth - bsh, widthM - 2 * fcw, bsh);
+      out += solidHatch('RACK_BEAM', bbV, TC.RACK_BEAM);
+      out += lwpolyline('RACK_BEAM', bbV);
     }
 
-    // Top beam
-    const tbV = axisRectVertices(x + fcw, y, widthM - 2 * fcw, bsh);
-    out += solidHatch('RACK_BEAM', tbV, TC.RACK_BEAM);
-    out += lwpolyline('RACK_BEAM', tbV);
-
-    // Bottom beam
-    const bbV = axisRectVertices(x + fcw, y + depthM - bsh, widthM - 2 * fcw, bsh);
-    out += solidHatch('RACK_BEAM', bbV, TC.RACK_BEAM);
-    out += lwpolyline('RACK_BEAM', bbV);
-
-    // Label
+    // Label in center of first row
     if (label) {
+      const fcw = widthM * FRAME_COL_FRAC;
+      const bsh = singleRowDepth * BEAM_H_FRAC;
       const lx = x + fcw + (widthM - 2 * fcw) / 2;
-      const ly = y + bsh + (depthM - 2 * bsh) / 2;
+      const ly = y + bsh + (singleRowDepth - 2 * bsh) / 2;
       out += textEntity('RACK_LABEL', label, lx, cadY(ly), 0.0035, 0);
     }
   }

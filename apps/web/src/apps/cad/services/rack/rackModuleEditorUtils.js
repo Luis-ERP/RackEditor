@@ -33,15 +33,22 @@ function eid(prefix) { return `${prefix}_e${++_counter}`; }
  * Compute entity widthM and depthM from beam length, frame spec, and bay count.
  * Used to update the layout entity when the editor changes specs.
  *
+ * For back-to-back configurations the depth includes all rows plus spacer gaps:
+ *   depthM = singleRowDepth × rowCount + spacerSizeM × (rowCount − 1)
+ *
  * @param {{ lengthIn: number }} beamOrLengthProxy
  * @param {import('./models/frame.js').FrameSpec} frameSpec
  * @param {number} bayCount
+ * @param {number} [rowCount=1]     - Number of back-to-back rows (1–4)
+ * @param {number} [spacerSizeIn=0] - Spacer size between rows in inches
  * @returns {{ widthM: number, depthM: number }}
  */
-export function computeEntityDimensions(beamOrLengthProxy, frameSpec, bayCount) {
-  const bayStepM = beamOrLengthProxy.lengthIn * INCH_TO_M - FRAME_WIDTH_M;
-  const widthM   = bayCount * bayStepM + FRAME_WIDTH_M;
-  const depthM   = frameSpec.depthIn * INCH_TO_M;
+export function computeEntityDimensions(beamOrLengthProxy, frameSpec, bayCount, rowCount = 1, spacerSizeIn = 0) {
+  const bayStepM       = beamOrLengthProxy.lengthIn * INCH_TO_M - FRAME_WIDTH_M;
+  const widthM         = bayCount * bayStepM + FRAME_WIDTH_M;
+  const singleRowDepth = frameSpec.depthIn * INCH_TO_M;
+  const spacerM        = spacerSizeIn * INCH_TO_M;
+  const depthM         = singleRowDepth * rowCount + spacerM * Math.max(0, rowCount - 1);
   return { widthM, depthM };
 }
 

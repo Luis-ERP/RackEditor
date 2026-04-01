@@ -16,6 +16,14 @@
 
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { HOLE_STEP_IN, RowConfiguration } from '../../services/rack/constants.js';
+
+const ROW_COUNT_MAP = {
+  [RowConfiguration.SINGLE]:         1,
+  [RowConfiguration.BACK_TO_BACK_2]: 2,
+  [RowConfiguration.BACK_TO_BACK_3]: 3,
+  [RowConfiguration.BACK_TO_BACK_4]: 4,
+};
+
 import {
   FRAME_HEIGHTS_IN,
   FRAME_DEPTHS_IN,
@@ -115,13 +123,17 @@ function ModuleEditorInner({ entity, domain, layoutStore, rackDomainRef, darkMod
       return; // factory rejected (e.g. incompatible specs) — leave canvas unchanged
     }
 
-    // computeEntityDimensions always returns widthM=beamLength, depthM=frameDepth.
-    // Vertical racks (rotation=90) store widthM=frameDepth, depthM=beamLength — swap.
+    // computeEntityDimensions returns widthM=beamLength, depthM=frameDepth (× rows + spacers).
+    // Vertical racks (rotation=90) store widthM=depthM, depthM=widthM — swap.
     const isVertical = entity.transform.rotation === 90;
+    const rowCount = ROW_COUNT_MAP[newDraft.rowConfiguration] ?? 1;
+    const spacerIn = rowCount > 1 ? (newDraft.spacerSizeIn ?? 6) : 0;
     const rawDims = computeEntityDimensions(
       { lengthIn: newDraft.beamLengthIn },
       newDraft.frameSpec,
       newDraft.bayCount,
+      rowCount,
+      spacerIn,
     );
     const widthM = isVertical ? rawDims.depthM : rawDims.widthM;
     const depthM = isVertical ? rawDims.widthM : rawDims.depthM;

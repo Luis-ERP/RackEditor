@@ -341,6 +341,76 @@ function buildRackAdjacencyFlags(entities) {
 
 // ── Rack Module / Rack Line ─────────────────────────────────────────────────
 
+/**
+ * Derive the back-to-back row count from the entity's rowConfiguration string.
+ * Returns 1 for single/unknown configs.
+ */
+function entityRowCount(entity) {
+  switch (entity.rowConfiguration) {
+    case 'BACK_TO_BACK_2': return 2;
+    case 'BACK_TO_BACK_3': return 3;
+    case 'BACK_TO_BACK_4': return 4;
+    default:               return 1;
+  }
+}
+
+/**
+ * Draw a single rack row (uprights + beams) starting at local (0, rowOffsetY)
+ * in the currently-translated context.
+ */
+function paintSingleRackRow(ctx, {
+  lw, rowH, rowOffsetY, bc, fcw, bsh, skipRight,
+  selected, p, subSelectedBayIndex, dk,
+}) {
+  // Beams (top & bottom)
+  ctx.fillStyle = selected ? p.selBeamColor : p.beamColor;
+  ctx.fillRect(fcw, rowOffsetY,              lw - 2 * fcw, bsh);
+  ctx.fillRect(fcw, rowOffsetY + rowH - bsh, lw - 2 * fcw, bsh);
+
+  // Frame uprights (left & right)
+  ctx.fillStyle = selected ? p.selFrameColor : p.frameColor;
+  ctx.fillRect(0, rowOffsetY, fcw, rowH);   // left — always drawn
+  if (!skipRight) {
+    ctx.fillRect(lw - fcw, rowOffsetY, fcw, rowH);
+  }
+
+  // Intermediate frames for multi-bay entities
+  if (bc > 1) {
+    const step = (lw - fcw) / bc;
+    for (let i = 1; i < bc; i++) {
+      ctx.fillRect(i * step, rowOffsetY, fcw, rowH);
+    }
+  }
+
+  // Upright borders
+  ctx.strokeStyle = selected ? p.selBorder : p.frameStroke;
+  ctx.lineWidth = 1;
+  ctx.strokeRect(0, rowOffsetY, fcw, rowH);
+  if (!skipRight) {
+    ctx.strokeRect(lw - fcw, rowOffsetY, fcw, rowH);
+  }
+  if (bc > 1) {
+    const step = (lw - fcw) / bc;
+    for (let i = 1; i < bc; i++) {
+      ctx.strokeRect(i * step, rowOffsetY, fcw, rowH);
+    }
+  }
+
+  // Sub-selected bay highlight
+  if (subSelectedBayIndex !== null && !selected) {
+    const step = (lw - fcw) / bc;
+    const bayLeft  = subSelectedBayIndex * step;
+    const bayRight = bayLeft + step + (subSelectedBayIndex === bc - 1 ? fcw : 0);
+    ctx.save();
+    ctx.fillStyle = dk ? 'rgba(239,68,68,0.22)' : 'rgba(239,68,68,0.18)';
+    ctx.fillRect(bayLeft, rowOffsetY, bayRight - bayLeft, rowH);
+    ctx.strokeStyle = '#ef4444';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(bayLeft + 1, rowOffsetY + 1, bayRight - bayLeft - 2, rowH - 2);
+    ctx.restore();
+  }
+}
+
 function paintRackBox(ctx, entity, cam, selected, dk, { skipRightFrame = false, skipBottomFrame = false } = {}, subSelectedBayIndex = null) {
   const p = pal(dk).rack;
   const { x, y } = entity.transform;
@@ -354,85 +424,78 @@ function paintRackBox(ctx, entity, cam, selected, dk, { skipRightFrame = false, 
 
   ctx.save();
 
-  // For vertical racks, rotate the canvas 90° CW around the visual top-right corner
-  // (sx+sw, sy).  Under this transform a local point (lx, ly) maps to screen:
-  //   screen_x = sx+sw − ly,  screen_y = sy + lx
-  // So local (0, 0)  → visual top-left  (sx, sy)    after offset ✓  [actually →(sx+sw,sy)]
-  //    local (sh,  0) → visual bottom-right           ✓
-  //    local (0,  sw) → visual top-left    (sx, sy)   ✓
-  // We then draw a "horizontal" rack with draw width = sh and draw height = sw,
-  // which makes the local left/right uprights appear as visual top/bottom uprights,
-  // and the local top/bottom beams appear as visual right/left beams.
   let lw = sw, lh = sh, skipRight = skipRightFrame;
   if (isVertical) {
-    // Rotate 90° CW around (sx+sw, sy): local(lx,ly) → screen(sx+sw−ly, sy+lx)
     ctx.translate(sx + sw, sy);
     ctx.rotate(Math.PI / 2);
-    lw = sh;             // draw width  = visual height (96" in screen)
-    lh = sw;             // draw height = visual width  (42" in screen)
-    skipRight = skipBottomFrame;  // local "right frame" = visual "bottom frame"
+    lw = sh;
+    lh = sw;
+    skipRight = skipBottomFrame;
   } else {
     ctx.translate(sx, sy);
   }
 
-  // ── Single horizontal drawing path ───────────────────────────
-  const bc = entity.bayCount ?? 1;
-  const fcw = Math.max(2, (lw / bc) * FRAME_COL_FRAC);   // upright column width (per-bay fraction)
-  const bsh = Math.max(2, lh * BEAM_H_FRAC);       // beam strip height
+  const bc  = entity.bayCount ?? 1;
+  const rowCount   = entityRowCount(entity);
+  const spacerIn   = entity.spacerSizeIn ?? 0;
 
-  // Beams (top & bottom)
-  ctx.fillStyle = selected ? p.selBeamColor : p.beamColor;
-  ctx.fillRect(fcw, 0,        lw - 2 * fcw, bsh);
-  ctx.fillRect(fcw, lh - bsh, lw - 2 * fcw, bsh);
-
-  // Frame uprights (left & right)
-  ctx.fillStyle = selected ? p.selFrameColor : p.frameColor;
-  ctx.fillRect(0, 0, fcw, lh);                     // left — always drawn
-  if (!skipRight) {
-    ctx.fillRect(lw - fcw, 0, fcw, lh);             // right
+  // Compute per-row height and spacer gap in local drawing pixels
+  let rowH, spacerPx;
+  if (rowCount > 1 && spacerIn > 0) {
+    // total lh = rowCount * rowH + (rowCount - 1) * spacerPx
+    // We derive rowH from the single-row proportion:
+    //   spacerPx = spacerIn * (INCH_TO_M constant) * cam.zoom
+    //   but simpler: spacerPx / lh = spacerPortion
+    spacerPx = lh * (spacerIn / (spacerIn * (rowCount - 1) + rowCount * (lh / lw) * (bc / FRAME_COL_FRAC) * FRAME_COL_FRAC)); // fallback below
+    // Simpler correct derivation: total depth = rowCount * singleRowDepth + (rowCount-1) * spacerDepth
+    // singleRowDepth = (totalDepth - (rowCount-1)*spacerDepth) / rowCount
+    // In screen pixels proportionally: spacerPx = (spacerIn / totalDepthIn) * lh
+    // totalDepthIn is not directly available, but we know:
+    //   totalDepth_m = entity.depthM, spacer_m = spacerIn * 0.0254
+    // So spacerPx = (spacerIn * 0.0254 / entity.depthM) * lh  (mapped through the correct axis)
+    const totalDepthM = isVertical ? entity.widthM : entity.depthM;
+    const spacerM     = spacerIn * 0.0254;
+    spacerPx = (spacerM / totalDepthM) * lh;
+    rowH     = (lh - spacerPx * (rowCount - 1)) / rowCount;
+  } else {
+    rowH     = lh;
+    spacerPx = 0;
   }
 
-  // Intermediate frames for multi-bay entities
-  // Position of intermediate frame i: i * (lw - fcw) / bayCount
-  // This equals i * BAY_STEP_M * cam.zoom — the correct shared-frame position.
-  if (bc > 1) {
-    const step = (lw - fcw) / bc;
-    for (let i = 1; i < bc; i++) {
-      ctx.fillRect(i * step, 0, fcw, lh);
+  const fcw = Math.max(2, (lw / bc) * FRAME_COL_FRAC);
+  const bsh = Math.max(2, rowH * BEAM_H_FRAC);
+
+  // Paint each row
+  for (let r = 0; r < rowCount; r++) {
+    const rowOffsetY = r * (rowH + spacerPx);
+    paintSingleRackRow(ctx, {
+      lw, rowH, rowOffsetY, bc, fcw, bsh, skipRight,
+      selected, p, subSelectedBayIndex, dk,
+    });
+  }
+
+  // Draw spacer indicators between rows
+  if (rowCount > 1 && spacerPx > 2) {
+    const spacerColor = selected
+      ? (dk ? '#fbbf24' : '#f59e0b')
+      : (dk ? '#4b5563' : '#d1d5db');
+    ctx.setLineDash([3, 3]);
+    ctx.strokeStyle = spacerColor;
+    ctx.lineWidth = 1;
+    for (let r = 0; r < rowCount - 1; r++) {
+      const gapTop    = r * (rowH + spacerPx) + rowH;
+      const gapCenter = gapTop + spacerPx / 2;
+      ctx.beginPath();
+      ctx.moveTo(0, gapCenter);
+      ctx.lineTo(lw, gapCenter);
+      ctx.stroke();
     }
-  }
-
-  // Upright borders
-  ctx.strokeStyle = selected ? p.selBorder : p.frameStroke;
-  ctx.lineWidth = 1;
-  ctx.strokeRect(0, 0, fcw, lh);
-  if (!skipRight) {
-    ctx.strokeRect(lw - fcw, 0, fcw, lh);
-  }
-  if (bc > 1) {
-    const step = (lw - fcw) / bc;
-    for (let i = 1; i < bc; i++) {
-      ctx.strokeRect(i * step, 0, fcw, lh);
-    }
-  }
-
-  // Sub-selected bay highlight
-  if (subSelectedBayIndex !== null && !selected) {
-    const step = (lw - fcw) / bc;
-    const bayLeft  = subSelectedBayIndex * step;
-    const bayRight = bayLeft + step + (subSelectedBayIndex === bc - 1 ? fcw : 0);
-    ctx.save();
-    ctx.fillStyle = dk ? 'rgba(239,68,68,0.22)' : 'rgba(239,68,68,0.18)';
-    ctx.fillRect(bayLeft, 0, bayRight - bayLeft, lh);
-    ctx.strokeStyle = '#ef4444';
-    ctx.lineWidth = 2;
-    ctx.strokeRect(bayLeft + 1, 1, bayRight - bayLeft - 2, lh - 2);
-    ctx.restore();
+    ctx.setLineDash([]);
   }
 
   // Label dimensions (computed before restore, used after)
   const innerW = lw - 2 * fcw;
-  const innerH = lh - 2 * bsh;
+  const innerH = rowH - 2 * bsh;
 
   ctx.restore();
 
@@ -446,7 +509,30 @@ function paintRackBox(ctx, entity, cam, selected, dk, { skipRightFrame = false, 
     ctx.font = `${Math.max(8, Math.min(11, screenInnerW * 0.07))}px sans-serif`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.fillText(entity.label, sx + sw / 2, sy + sh / 2, screenInnerW - 4);
+    // Position label in the center of the first row
+    const firstRowCenterY = isVertical
+      ? sy + (rowH / 2) * (sw / lh)
+      : sy + rowH / 2;
+    ctx.fillText(entity.label, sx + sw / 2, firstRowCenterY, screenInnerW - 4);
+    ctx.restore();
+  }
+
+  // Row count badge (for B2B)
+  if (rowCount > 1) {
+    ctx.save();
+    const badgeFontSize = Math.max(8, Math.min(10, sw * 0.04));
+    const badgeText = `${rowCount}× B2B`;
+    ctx.font = `600 ${badgeFontSize}px sans-serif`;
+    const badgeW = ctx.measureText(badgeText).width + 8;
+    const badgeH = badgeFontSize + 4;
+    const badgeX = sx + sw - badgeW - 3;
+    const badgeY = sy + sh - badgeH - 3;
+    ctx.fillStyle = dk ? 'rgba(251,191,36,0.2)' : 'rgba(251,191,36,0.25)';
+    ctx.fillRect(badgeX, badgeY, badgeW, badgeH);
+    ctx.fillStyle = dk ? '#fbbf24' : '#92400e';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(badgeText, badgeX + badgeW / 2, badgeY + badgeH / 2);
     ctx.restore();
   }
 }

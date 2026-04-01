@@ -1,15 +1,17 @@
 'use client';
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { Pencil, ClipboardList, Settings, FileDown, FileUp } from 'lucide-react';
+import { Pencil, ClipboardList, Settings } from 'lucide-react';
 import RackModuleEditor from './rack/RackModuleEditor.js';
 import {
   BEAMS_PER_LEVEL,
   SAFETY_PINS_PER_BEAM,
   ANCHORS_PER_FRAME,
   BasePlateType,
+  RowConfiguration,
 } from '../services/rack/constants.js';
 import { resolveFrameSpecAtIndex } from '../services/rack/models/rackModule.js';
+import { BEAMS_CSV, FRAMES_CSV } from '../../../core/rack/catalog_lists/catalogData.js';
 
 /**
  * EditorPanel – left sidebar with two sections:
@@ -33,8 +35,6 @@ export default function EditorPanel({
   columnStoreVersion,
   rackDomainRef,
   subSelActive = false,
-  onExportProjectDocument,
-  onImportProjectDocument,
   children,
 }) {
   const dk = darkMode;
@@ -43,7 +43,7 @@ export default function EditorPanel({
   const VIEW_MODES = [
     { key: 'edition',       label: 'Edition',     Icon: Pencil },
     { key: 'bom',           label: 'BOM & Stats',  Icon: ClipboardList },
-    { key: 'configuration', label: 'Config',        Icon: Settings },
+    { key: 'configuration', label: 'Project',       Icon: Settings },
   ];
 
   return (
@@ -166,8 +166,6 @@ export default function EditorPanel({
           layoutVersion={layoutVersion}
           rackDomainRef={rackDomainRef}
           darkMode={dk}
-          onExportProjectDocument={onExportProjectDocument}
-          onImportProjectDocument={onImportProjectDocument}
         />
       )}
 
@@ -178,9 +176,9 @@ export default function EditorPanel({
             ...sectionHeaderStyle,
             color: dk ? '#9ca3af' : '#6b7280',
             borderBottomColor: dk ? '#2d2f34' : '#f3f4f6',
-          }}>Configuration</div>
+          }}>Project</div>
           <div style={{ ...sectionBodyStyle, color: dk ? '#9ca3af' : '#6b7280', fontSize: 13 }}>
-            <p style={{ margin: 0 }}>Project configuration and settings will appear here.</p>
+            <p style={{ margin: 0 }}>Project settings will appear here.</p>
           </div>
         </div>
       )}
@@ -190,14 +188,52 @@ export default function EditorPanel({
 
 // ── BOMView ─────────────────────────────────────────────────────
 const MAX_NAME_LEN = 28;
+const STANDARD_PALLET_WIDTH_IN = 40;
+
+/** Derive row count from an entity's rowConfiguration property. */
+function entityRowCount(ent) {
+  switch (ent.rowConfiguration) {
+    case RowConfiguration.BACK_TO_BACK_2: return 2;
+    case RowConfiguration.BACK_TO_BACK_3: return 3;
+    case RowConfiguration.BACK_TO_BACK_4: return 4;
+    default:                              return 1;
+  }
+}
+
+const FRAME_WEIGHT_BY_SKU = new Map(FRAMES_CSV.map((row) => [row.sku, row.weight_kg]));
+const BEAM_WEIGHT_BY_SKU = new Map(BEAMS_CSV.map((row) => [row.sku, row.weight_kg]));
+const ITEM_WEIGHT_BY_SKU = new Map([...FRAME_WEIGHT_BY_SKU, ...BEAM_WEIGHT_BY_SKU]);
+
+function formatBomVariantLabel(item) {
+  const frameMatch = item.sku.match(/^frame-(\d+)in-(\d+)in-(\d+)in-g(\d+)$/i);
+  if (frameMatch) {
+    const [, heightIn, depthIn, sepIn, gauge] = frameMatch;
+    return `H ${heightIn}in · D ${depthIn}in · Sep ${sepIn}in · G${gauge}`;
+  }
+
+  const beamMatch = item.sku.match(/^beam-(\d+)g-(\d+)in-([\d.]+)in$/i);
+  if (beamMatch) {
+    const [, gauge, lengthIn, profileIn] = beamMatch;
+    return `L ${lengthIn}in · H ${profileIn}in · G${gauge}`;
+  }
+
+  const anchorMatch = item.sku.match(/^ACC-ANCHOR-(.+)$/i);
+  if (anchorMatch) {
+    const base = anchorMatch[1].replace(/_/g, ' ').toLowerCase();
+    return `Type ${base.charAt(0).toUpperCase()}${base.slice(1)}`;
+  }
+
+  if (item.sku === 'ACC-SAFETY-PIN') return 'Standard pin set';
+  if (item.sku === 'ACC-ROW-SPACER') return 'Back-to-back spacing kit';
+
+  return item.name.replace(/^Frame\s+/i, '').replace(/^Beam\s+/i, '');
+}
 
 function BOMView({
   layoutStore,
   layoutVersion,
   rackDomainRef,
   darkMode,
-  onExportProjectDocument,
-  onImportProjectDocument,
 }) {
   const dk = darkMode;
 
@@ -228,6 +264,9 @@ function BOMView({
       // Normalize: a RACK_LINE domain has modules[]; a RACK_MODULE domain is itself the module.
       const modules = domain.modules ?? [domain];
 
+      // Back-to-back row multiplier — frames, beams, pins, anchors all duplicate per row.
+      const rowCount = entityRowCount(ent);
+
       // Track absolute frame indices across modules to avoid double-counting shared frames.
       const seenFrameIndices = new Set();
 
@@ -242,7 +281,7 @@ function BOMView({
           addItem(
             spec.id,
             `Frame ${spec.heightIn}" × ${spec.depthIn}" (${spec.uprightSeries})`,
-            1,
+            1 * rowCount,
             'Frame',
           );
 
@@ -252,7 +291,7 @@ function BOMView({
           addItem(
             `ACC-ANCHOR-${bpType}`,
             `Anchor (${bpType.charAt(0) + bpType.slice(1).toLowerCase()})`,
-            anchorsPerFrame,
+            anchorsPerFrame * rowCount,
             'Accessory',
           );
         }
@@ -264,7 +303,7 @@ function BOMView({
             addItem(
               bs.id,
               `Beam ${bs.lengthIn}" (${bs.beamSeries})`,
-              BEAMS_PER_LEVEL,
+              BEAMS_PER_LEVEL * rowCount,
               'Beam',
             );
           }
@@ -272,8 +311,15 @@ function BOMView({
 
         const totalBeams = mod.bays.reduce((sum, bay) => sum + bay.levels.length * BEAMS_PER_LEVEL, 0);
         if (totalBeams > 0) {
-          addItem('ACC-SAFETY-PIN', 'Safety Pin', totalBeams * SAFETY_PINS_PER_BEAM, 'Accessory');
+          addItem('ACC-SAFETY-PIN', 'Safety Pin', totalBeams * SAFETY_PINS_PER_BEAM * rowCount, 'Accessory');
         }
+      }
+
+      // Row spacers — one per frame position per row-pair (back-to-back only)
+      if (rowCount > 1) {
+        const framePositionCount = seenFrameIndices.size;
+        const rowSpacerCount = framePositionCount * (rowCount - 1);
+        addItem('ACC-ROW-SPACER', 'Row Spacer', rowSpacerCount, 'Accessory');
       }
     }
 
@@ -284,19 +330,63 @@ function BOMView({
     );
   }, [layoutStore, layoutVersion, rackDomainRef]);
 
+  const drawingStats = useMemo(() => {
+    if (!layoutStore || !rackDomainRef?.current) {
+      return {
+        aisleCount: 0,
+        standardPalletCount: 0,
+        totalWeightKg: 0,
+      };
+    }
+
+    const entities = layoutStore.getAll().filter(
+      (entity) => entity.type === 'RACK_LINE' || entity.type === 'RACK_MODULE',
+    );
+    const rackLineCount = entities.filter((entity) => entity.type === 'RACK_LINE').length;
+    const standaloneModuleCount = entities.filter((entity) => entity.type === 'RACK_MODULE').length;
+
+    let standardPalletCount = 0;
+
+    for (const entity of entities) {
+      const domain = rackDomainRef.current.get(entity.domainId);
+      if (!domain) continue;
+
+      const rowCount = entityRowCount(entity);
+      const modules = domain.modules ?? [domain];
+      for (const mod of modules) {
+        for (const bay of mod.bays) {
+          for (const level of bay.levels) {
+            const lengthIn = level?.beamSpec?.lengthIn ?? bay?.beamSpec?.lengthIn ?? 0;
+            if (lengthIn <= 0) continue;
+            standardPalletCount += Math.max(1, Math.floor(lengthIn / STANDARD_PALLET_WIDTH_IN)) * rowCount;
+          }
+        }
+      }
+    }
+
+    const totalWeightKg = bomItems.reduce((sum, item) => {
+      const unitWeightKg = ITEM_WEIGHT_BY_SKU.get(item.sku) ?? 0;
+      return sum + unitWeightKg * item.quantity;
+    }, 0);
+
+    return {
+      aisleCount: rackLineCount + standaloneModuleCount,
+      standardPalletCount,
+      totalWeightKg,
+    };
+  }, [layoutStore, layoutVersion, rackDomainRef, bomItems]);
+
   const textColor   = dk ? '#e5e7eb' : '#1f2937';
   const textMuted   = dk ? '#6b7280' : '#9ca3af';
   const headerBg    = dk ? '#18191c' : '#f9fafb';
   const borderColor = dk ? '#2d2f34' : '#f3f4f6';
   const rowHoverBg  = dk ? '#25272b' : '#f9fafb';
-  const buttonBg    = dk ? '#1f2937' : '#f3f4f6';
-  const buttonHover = dk ? '#374151' : '#e5e7eb';
-  const tagBg       = {
+  const categoryBg  = {
     Frame:     dk ? '#1e3a5f' : '#dbeafe',
     Beam:      dk ? '#1a3a2a' : '#d1fae5',
     Accessory: dk ? '#3b2f1e' : '#fef3c7',
   };
-  const tagColor = {
+  const categoryBorder = {
     Frame:     dk ? '#93c5fd' : '#1e40af',
     Beam:      dk ? '#6ee7b7' : '#065f46',
     Accessory: dk ? '#fcd34d' : '#92400e',
@@ -319,77 +409,10 @@ function BOMView({
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
       <div style={{
         ...sectionHeaderStyle,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
         color: dk ? '#9ca3af' : '#6b7280',
         borderBottomColor: borderColor,
       }}>
-        <span>Bill of Materials</span>
-        <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-          <button
-            onClick={onImportProjectDocument}
-            disabled={typeof onImportProjectDocument !== 'function'}
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: 6,
-              border: `1px solid ${borderColor}`,
-              borderRadius: 6,
-              background: buttonBg,
-              color: textColor,
-              cursor: typeof onImportProjectDocument === 'function' ? 'pointer' : 'default',
-              fontSize: 11,
-              fontWeight: 600,
-              padding: '5px 8px',
-              opacity: typeof onImportProjectDocument === 'function' ? 1 : 0.55,
-              transition: 'background 0.12s ease',
-            }}
-            onMouseEnter={(e) => {
-              if (typeof onImportProjectDocument === 'function') {
-                e.currentTarget.style.background = buttonHover;
-              }
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.background = buttonBg;
-            }}
-            title="Import project document"
-          >
-            <FileUp size={14} />
-            Import
-          </button>
-          <button
-            onClick={onExportProjectDocument}
-            disabled={typeof onExportProjectDocument !== 'function'}
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: 6,
-              border: `1px solid ${borderColor}`,
-              borderRadius: 6,
-              background: buttonBg,
-              color: textColor,
-              cursor: typeof onExportProjectDocument === 'function' ? 'pointer' : 'default',
-              fontSize: 11,
-              fontWeight: 600,
-              padding: '5px 8px',
-              opacity: typeof onExportProjectDocument === 'function' ? 1 : 0.55,
-              transition: 'background 0.12s ease',
-            }}
-            onMouseEnter={(e) => {
-              if (typeof onExportProjectDocument === 'function') {
-                e.currentTarget.style.background = buttonHover;
-              }
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.background = buttonBg;
-            }}
-            title="Export project document"
-          >
-            <FileDown size={14} />
-            Export
-          </button>
-        </div>
+        Bill of Materials
       </div>
 
       <div style={{ flex: 1, overflow: 'auto', padding: 0 }}>
@@ -424,11 +447,11 @@ function BOMView({
             </div>
 
             {/* Grouped sections */}
-            {['Frame', 'Beam', 'Accessory'].map((cat) => {
+            {['Frame', 'Beam', 'Accessory'].map((cat, index) => {
               const items = grouped.get(cat);
               if (!items || items.length === 0) return null;
               return (
-                <div key={cat}>
+                <div key={cat} style={{ marginTop: index === 0 ? 0 : 12 }}>
                   {/* Category header */}
                   <div style={{
                     padding: '6px 12px',
@@ -449,8 +472,8 @@ function BOMView({
                       width: 8,
                       height: 8,
                       borderRadius: 2,
-                      background: tagBg[cat],
-                      border: `1px solid ${tagColor[cat]}`,
+                      background: categoryBg[cat],
+                      border: `1px solid ${categoryBorder[cat]}`,
                       flexShrink: 0,
                     }} />
                     {cat}s
@@ -473,23 +496,7 @@ function BOMView({
                       onMouseEnter={(e) => { e.currentTarget.style.background = rowHoverBg; }}
                       onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
                     >
-                      {/* Tag */}
-                      <span style={{
-                        flexShrink: 0,
-                        padding: '1px 5px',
-                        borderRadius: 4,
-                        fontSize: 9,
-                        fontWeight: 600,
-                        textTransform: 'uppercase',
-                        letterSpacing: '0.04em',
-                        background: tagBg[item.category],
-                        color: tagColor[item.category],
-                        userSelect: 'none',
-                      }}>
-                        {item.category === 'Accessory' ? 'ACC' : item.category.slice(0, 3).toUpperCase()}
-                      </span>
-
-                      {/* Name + attributes */}
+                      {/* SKU-derived variant label */}
                       <span style={{
                         flex: 1,
                         overflow: 'hidden',
@@ -498,7 +505,7 @@ function BOMView({
                         fontWeight: 500,
                         fontSize: 12,
                       }} title={item.name}>
-                        {cropName(item.name)}
+                        {cropName(formatBomVariantLabel(item))}
                       </span>
 
                       {/* Quantity */}
@@ -520,6 +527,35 @@ function BOMView({
             })}
           </>
         )}
+      </div>
+
+      <div style={{
+        borderTop: `1px solid ${borderColor}`,
+        background: headerBg,
+        padding: '10px 12px',
+      }}>
+        <div style={{
+          fontSize: 10,
+          fontWeight: 600,
+          textTransform: 'uppercase',
+          letterSpacing: '0.06em',
+          color: textMuted,
+          marginBottom: 8,
+        }}>
+          Drawing Stats
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr auto', rowGap: 6, columnGap: 8, fontSize: 12 }}>
+          <span style={{ color: textMuted }}># of aisles</span>
+          <span style={{ color: textColor, fontWeight: 600 }}>{drawingStats.aisleCount}</span>
+
+          <span style={{ color: textMuted }}># of standard pallets</span>
+          <span style={{ color: textColor, fontWeight: 600 }}>{drawingStats.standardPalletCount}</span>
+
+          <span style={{ color: textMuted }}>Total material weight</span>
+          <span style={{ color: textColor, fontWeight: 600 }}>
+            {drawingStats.totalWeightKg.toFixed(1)} kg
+          </span>
+        </div>
       </div>
     </div>
   );

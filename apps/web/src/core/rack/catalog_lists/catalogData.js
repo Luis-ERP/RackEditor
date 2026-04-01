@@ -29,15 +29,16 @@ function parseCsv(raw) {
 
 /**
  * All rows from beams.csv with numeric fields coerced.
- * Columns used: gauge, width_in, height_in, price, load_capacity_kg, sku
+ * Columns used: gauge, width_in, height_in, price, weight_kg, load_capacity_kg, sku
  *
- * @type {{ gauge: number, width_in: number, height_in: number, price: number, load_capacity_kg: number, sku: string }[]}
+ * @type {{ gauge: number, width_in: number, height_in: number, price: number, weight_kg: number, load_capacity_kg: number, sku: string }[]}
  */
 export const BEAMS_CSV = parseCsv(beamsCsvRaw).map((r) => ({
   gauge:             parseInt(r.gauge, 10),
   width_in:          parseFloat(r.width_in),
   height_in:         parseFloat(r.height_in),
   price:             parseFloat(r.price),
+  weight_kg:         parseFloat(r.weight_kg),
   load_capacity_kg:  parseFloat(r.load_capacity_kg),
   sku:               r.sku,
 }));
@@ -46,9 +47,9 @@ export const BEAMS_CSV = parseCsv(beamsCsvRaw).map((r) => ({
 
 /**
  * All rows from frames.csv with numeric fields coerced.
- * Columns used: height_in, depth_in, beam_separation_in, gauge, load_capacity_kg, cost, sku
+ * Columns used: height_in, depth_in, beam_separation_in, gauge, load_capacity_kg, weight_kg, cost, sku
  *
- * @type {{ height_in: number, depth_in: number, beam_separation_in: number, gauge: number, load_capacity_kg: number, cost: number, sku: string }[]}
+ * @type {{ height_in: number, depth_in: number, beam_separation_in: number, gauge: number, load_capacity_kg: number, weight_kg: number, cost: number, sku: string }[]}
  */
 export const FRAMES_CSV = parseCsv(framesCsvRaw).map((r) => ({
   height_in:          parseInt(r.height_in, 10),
@@ -56,6 +57,7 @@ export const FRAMES_CSV = parseCsv(framesCsvRaw).map((r) => ({
   beam_separation_in: parseInt(r.beam_separation_in, 10),
   gauge:              parseInt(r.gauge, 10),
   load_capacity_kg:   parseFloat(r.load_capacity_kg),
+  weight_kg:          parseFloat(r.weight_kg),
   cost:               parseFloat(r.cost),
   sku:                r.sku,
 }));
