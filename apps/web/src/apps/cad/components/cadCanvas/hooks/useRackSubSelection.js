@@ -78,6 +78,12 @@ export default function useRackSubSelection({
     const targetOy = vert ? oy + bayIndex * BAY_STEP_M : oy;
     const rightOx = vert ? ox : targetOx + BAY_STEP_M;
     const rightOy = vert ? targetOy + BAY_STEP_M : oy;
+    const inheritedB2B = {
+      rowConfiguration: ent.rowConfiguration ?? 'SINGLE',
+      spacerSizeIn: ent.spacerSizeIn ?? 6,
+      frameHeightIn: ent.frameHeightIn,
+      spacersPerRowPair: ent.spacersPerRowPair,
+    };
 
     rackDomainRef.current.delete(ent.domainId);
 
@@ -98,6 +104,10 @@ export default function useRackSubSelection({
         widthM: vert ? ent.widthM : growSize(leftCount),
         depthM: vert ? growSize(leftCount) : ent.depthM,
         bayCount: leftCount,
+        rowConfiguration: inheritedB2B.rowConfiguration,
+        spacerSizeIn: inheritedB2B.spacerSizeIn,
+        frameHeightIn: inheritedB2B.frameHeightIn,
+        spacersPerRowPair: inheritedB2B.spacersPerRowPair,
         label: bayLabel(leftCount, vert),
       });
       leftEntityId = ent.id;
@@ -118,6 +128,7 @@ export default function useRackSubSelection({
         depthM: vert ? bayW : ent.depthM,
         label: bayLabel(1, vert),
         bayCount: 1,
+        ...inheritedB2B,
       }));
       targetEntityId = targetEnt.id;
     } else {
@@ -133,6 +144,10 @@ export default function useRackSubSelection({
         widthM: vert ? ent.widthM : bayW,
         depthM: vert ? bayW : ent.depthM,
         bayCount: 1,
+        rowConfiguration: inheritedB2B.rowConfiguration,
+        spacerSizeIn: inheritedB2B.spacerSizeIn,
+        frameHeightIn: inheritedB2B.frameHeightIn,
+        spacersPerRowPair: inheritedB2B.spacersPerRowPair,
         label: bayLabel(1, vert),
       });
       targetEntityId = ent.id;
@@ -155,6 +170,7 @@ export default function useRackSubSelection({
         depthM: vert ? growSize(rightCount) : ent.depthM,
         label: bayLabel(rightCount, vert),
         bayCount: rightCount,
+        ...inheritedB2B,
       }));
       rightEntityId = rightEnt.id;
     }

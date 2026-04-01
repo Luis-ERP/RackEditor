@@ -62,10 +62,26 @@ function baseTransform(x = 0, y = 0, rotation = 0) {
  * @param {number}  p.widthM        - Bay width in metres (derived from domain)
  * @param {number}  p.depthM        - Frame depth in metres (derived from domain)
  * @param {string}  [p.label='']
+ * @param {string}  [p.rowConfiguration='SINGLE']
+ * @param {number}  [p.spacerSizeIn=6]
+ * @param {number}  [p.frameHeightIn]
+ * @param {number}  [p.spacersPerRowPair]
  * @returns {Object}
  */
 export function createRackModuleEntity({
-  id, x, y, rotation = 0, domainId, widthM, depthM, label = '', bayCount = 1,
+  id,
+  x,
+  y,
+  rotation = 0,
+  domainId,
+  widthM,
+  depthM,
+  label = '',
+  bayCount = 1,
+  rowConfiguration = 'SINGLE',
+  spacerSizeIn = 6,
+  frameHeightIn,
+  spacersPerRowPair,
 }) {
   return {
     id:        id ?? nextEntityId('rm'),
@@ -75,6 +91,10 @@ export function createRackModuleEntity({
     widthM,
     depthM,
     bayCount,
+    rowConfiguration,
+    spacerSizeIn,
+    frameHeightIn,
+    spacersPerRowPair,
     label,
     locked:    false,
     visible:   true,
