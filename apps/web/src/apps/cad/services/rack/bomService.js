@@ -18,6 +18,7 @@ import {
   ANCHORS_PER_FRAME,
   BasePlateType,
 } from './constants.js';
+import { rowSpacerCountForModules } from './rowSpacerRules.js';
 
 import { rackLineAllBays, rackLineFrameIndices, rackLineRowCount } from './models/rackLine.js';
 import { bayBeamCount } from './models/bay.js';
@@ -143,14 +144,13 @@ export function deriveRackLineBOM(rackLine, catalogVersion) {
 
   // ── Row Spacers (Back-to-Back only) ───────────────────────────
   if (rowCount > 1) {
-    // Row spacers typically pair frames across rows
-    const rowSpacerCount = frameIndices.length * (rowCount - 1);
+    const rowSpacerCount = rowSpacerCountForModules(rackLine.modules, rowCount);
     items.push({
       sku: 'ACC-ROW-SPACER',
       name: 'Row Spacer',
       quantity: rowSpacerCount,
       unit: 'ea',
-      rule: `frame_positions=${frameIndices.length} × (rows-1)=${rowCount - 1}`,
+      rule: `height_based_spacers × (rows-1)=${rowCount - 1}`,
     });
   }
 

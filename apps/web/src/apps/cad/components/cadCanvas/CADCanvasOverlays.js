@@ -88,7 +88,7 @@ export function CanvasActionsBar({
   );
 }
 
-export function CanvasModeBanners({ drawingMode, wallMode, columnMode, subSel, darkMode, theme }) {
+export function CanvasModeBanners({ drawingMode, wallMode, columnMode, noteMode, subSel, darkMode, theme }) {
   return (
     <>
       {drawingMode && (
@@ -104,6 +104,11 @@ export function CanvasModeBanners({ drawingMode, wallMode, columnMode, subSel, d
       {columnMode && (
         <div style={{ ...drawBannerStyle, background: theme.overlayBanner.bg, borderColor: theme.overlayBanner.border, color: theme.overlayBanner.color }}>
           Placing: Column — click to place · Esc to cancel
+        </div>
+      )}
+      {noteMode && (
+        <div style={{ ...drawBannerStyle, background: theme.overlayBanner.bg, borderColor: theme.overlayBanner.border, color: theme.overlayBanner.color }}>
+          Placing: Note — click to place · Esc to cancel
         </div>
       )}
       {subSel && (
@@ -190,6 +195,8 @@ export function CanvasDrawingToolbar({
   onSetWallMode,
   columnMode,
   onToggleColumnMode,
+  noteMode,
+  onToggleNoteMode,
   darkMode,
   disabled,
 }) {
@@ -201,6 +208,8 @@ export function CanvasDrawingToolbar({
       onSetWallMode={onSetWallMode}
       columnMode={columnMode}
       onToggleColumnMode={onToggleColumnMode}
+      noteMode={noteMode}
+      onToggleNoteMode={onToggleNoteMode}
       darkMode={darkMode}
       disabled={disabled}
     />

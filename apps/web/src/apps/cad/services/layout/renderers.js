@@ -7,6 +7,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { EntityType, entityAABB } from './entities.js';
+import { spacersPerFramePairForHeight } from '../rack/rowSpacerRules.js';
 
 // ── Color palettes (light / dark) ───────────────────────────────────────────
 
@@ -474,21 +475,30 @@ function paintRackBox(ctx, entity, cam, selected, dk, { skipRightFrame = false, 
     });
   }
 
-  // Draw spacer indicators between rows
+  // Draw spacer indicators between rows.
+  // Count scales with frame height (persisted as spacersPerRowPair on entity).
   if (rowCount > 1 && spacerPx > 2) {
     const spacerColor = selected
       ? (dk ? '#fbbf24' : '#f59e0b')
       : (dk ? '#4b5563' : '#d1d5db');
+    const fallbackSpacerCount = spacersPerFramePairForHeight(entity.frameHeightIn ?? 144);
+    const spacerCount = Math.max(1, Math.round(entity.spacersPerRowPair ?? fallbackSpacerCount));
+    const markerStep = Math.min(4, spacerPx / (spacerCount + 1));
+
     ctx.setLineDash([3, 3]);
     ctx.strokeStyle = spacerColor;
     ctx.lineWidth = 1;
     for (let r = 0; r < rowCount - 1; r++) {
       const gapTop    = r * (rowH + spacerPx) + rowH;
       const gapCenter = gapTop + spacerPx / 2;
-      ctx.beginPath();
-      ctx.moveTo(0, gapCenter);
-      ctx.lineTo(lw, gapCenter);
-      ctx.stroke();
+      const startOffset = -((spacerCount - 1) * markerStep) / 2;
+      for (let i = 0; i < spacerCount; i++) {
+        const y = gapCenter + startOffset + i * markerStep;
+        ctx.beginPath();
+        ctx.moveTo(0, y);
+        ctx.lineTo(lw, y);
+        ctx.stroke();
+      }
     }
     ctx.setLineDash([]);
   }
@@ -642,27 +652,100 @@ function paintColumn(ctx, entity, cam, selected, dk) {
 
 // ── Text Note ───────────────────────────────────────────────────────────────
 
+const NOTE_BORDER_RADIUS_FRAC = 0.06; // border-radius as fraction of smaller dimension
+const RESIZE_HANDLE_PX = 6;
+
 function paintTextNote(ctx, entity, cam, selected, dk) {
   const p = pal(dk).textNote;
   const { x, y, rotation } = entity.transform;
   const sx = cam.x + x * cam.zoom;
   const sy = cam.y + y * cam.zoom;
+  const widthM  = entity.widthM ?? 2;
+  const heightM = entity.heightM ?? 1;
+  const sw = widthM * cam.zoom;
+  const sh = heightM * cam.zoom;
+  if (sw < 2 || sh < 2) return;
+
   const fontSize = entity.fontSizeM * cam.zoom;
-  if (fontSize < 3) return;
+  const bgColor   = entity.bgColor   || '#fffde7';
+  const fontColor = entity.fontColor  || p.color;
+  const radius = Math.min(sw, sh) * NOTE_BORDER_RADIUS_FRAC;
 
   ctx.save();
 
   if (rotation !== 0) {
-    ctx.translate(sx, sy);
+    ctx.translate(sx + sw / 2, sy + sh / 2);
     ctx.rotate((rotation * Math.PI) / 180);
-    ctx.translate(-sx, -sy);
+    ctx.translate(-(sx + sw / 2), -(sy + sh / 2));
   }
 
-  ctx.fillStyle = selected ? p.selColor : p.color;
-  ctx.font = `${Math.max(6, fontSize)}px sans-serif`;
-  ctx.textAlign = 'left';
-  ctx.textBaseline = 'top';
-  ctx.fillText(entity.text, sx, sy);
+  // Background fill with border radius
+  ctx.beginPath();
+  ctx.moveTo(sx + radius, sy);
+  ctx.lineTo(sx + sw - radius, sy);
+  ctx.quadraticCurveTo(sx + sw, sy, sx + sw, sy + radius);
+  ctx.lineTo(sx + sw, sy + sh - radius);
+  ctx.quadraticCurveTo(sx + sw, sy + sh, sx + sw - radius, sy + sh);
+  ctx.lineTo(sx + radius, sy + sh);
+  ctx.quadraticCurveTo(sx, sy + sh, sx, sy + sh - radius);
+  ctx.lineTo(sx, sy + radius);
+  ctx.quadraticCurveTo(sx, sy, sx + radius, sy);
+  ctx.closePath();
+
+  ctx.fillStyle = bgColor;
+  ctx.fill();
+
+  // Border
+  ctx.strokeStyle = selected ? (dk ? '#fbbf24' : '#ca8a04') : (dk ? '#555' : '#bbb');
+  ctx.lineWidth = selected ? 2 : 1;
+  ctx.stroke();
+
+  // Text rendering — wrap within the note box  
+  if (fontSize >= 3) {
+    const pad = Math.max(4, sw * 0.06);
+    const maxTextW = sw - pad * 2;
+    const maxTextH = sh - pad * 2;
+    if (maxTextW > 4 && maxTextH > 4) {
+      ctx.fillStyle = fontColor;
+      const clampedFont = Math.max(6, Math.min(fontSize, maxTextH));
+      ctx.font = `${clampedFont}px sans-serif`;
+      ctx.textAlign = 'left';
+      ctx.textBaseline = 'top';
+
+      // Simple word-wrap
+      const lineHeight = clampedFont * 1.25;
+      const words = entity.text.split(/\s+/);
+      let line = '';
+      let ly = sy + pad;
+
+      for (const word of words) {
+        const testLine = line ? `${line} ${word}` : word;
+        if (ctx.measureText(testLine).width > maxTextW && line) {
+          ctx.fillText(line, sx + pad, ly, maxTextW);
+          ly += lineHeight;
+          line = word;
+          if (ly + clampedFont > sy + sh - pad) break; // overflow
+        } else {
+          line = testLine;
+        }
+      }
+      if (line && ly + clampedFont <= sy + sh - pad) {
+        ctx.fillText(line, sx + pad, ly, maxTextW);
+      }
+    }
+  }
+
+  // Resize handle (bottom-right corner) — only for selected notes
+  if (selected) {
+    const hx = sx + sw;
+    const hy = sy + sh;
+    const hs = RESIZE_HANDLE_PX;
+    ctx.fillStyle = dk ? '#fbbf24' : '#ca8a04';
+    ctx.fillRect(hx - hs / 2, hy - hs / 2, hs, hs);
+    ctx.strokeStyle = dk ? '#1f2937' : '#fff';
+    ctx.lineWidth = 1;
+    ctx.strokeRect(hx - hs / 2, hy - hs / 2, hs, hs);
+  }
 
   ctx.restore();
 }

@@ -11,6 +11,7 @@ export default function useSelectionInteraction({
   drawingModeRef,
   wallModeRef,
   columnModeRef,
+  noteModeRef,
   subSelRef,
   setSubSel,
   onSubSelChangeRef,
@@ -24,7 +25,7 @@ export default function useSelectionInteraction({
     if (!canvas || !layoutStore) return;
 
     const onDown = (e) => {
-      if (drawingModeRef.current || wallModeRef.current || columnModeRef.current || e.button !== 0) return;
+      if (drawingModeRef.current || wallModeRef.current || columnModeRef.current || (noteModeRef && noteModeRef.current) || e.button !== 0) return;
 
       const rect = canvas.getBoundingClientRect();
       const sx = e.clientX - rect.left;
@@ -159,6 +160,7 @@ export default function useSelectionInteraction({
     canvasRef,
     columnModeRef,
     drawingModeRef,
+    noteModeRef,
     lastClickInfoRef,
     layoutStore,
     moveDragRef,

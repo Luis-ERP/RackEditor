@@ -11,6 +11,7 @@ import {
   RowConfiguration,
 } from '../services/rack/constants.js';
 import { resolveFrameSpecAtIndex } from '../services/rack/models/rackModule.js';
+import { rowSpacerCountForModules } from '../services/rack/rowSpacerRules.js';
 import { BEAMS_CSV, FRAMES_CSV } from '../../../core/rack/catalog_lists/catalogData.js';
 
 /**
@@ -33,6 +34,9 @@ export default function EditorPanel({
   columnMode = false,
   columnStore = null,
   columnStoreVersion,
+  noteMode = false,
+  noteStore = null,
+  noteStoreVersion,
   rackDomainRef,
   subSelActive = false,
   children,
@@ -143,6 +147,11 @@ export default function EditorPanel({
             />
           )}
           <ColumnEntityEditor
+            layoutStore={layoutStore}
+            layoutVersion={layoutVersion}
+            darkMode={dk}
+          />
+          <NoteEntityEditor
             layoutStore={layoutStore}
             layoutVersion={layoutVersion}
             darkMode={dk}
@@ -266,15 +275,13 @@ function BOMView({
 
       // Back-to-back row multiplier — frames, beams, pins, anchors all duplicate per row.
       const rowCount = entityRowCount(ent);
-
-      // Track absolute frame indices across modules to avoid double-counting shared frames.
       const seenFrameIndices = new Set();
 
       for (const mod of modules) {
         // Frames — resolved per-position to account for per-frame spec overrides.
         for (let localIdx = 0; localIdx < mod.frameCount; localIdx++) {
           const absIdx = mod.startFrameIndex + localIdx;
-          if (seenFrameIndices.has(absIdx)) continue; // shared frame between modules
+          if (seenFrameIndices.has(absIdx)) continue;
           seenFrameIndices.add(absIdx);
 
           const spec = resolveFrameSpecAtIndex(mod, localIdx);
@@ -315,10 +322,9 @@ function BOMView({
         }
       }
 
-      // Row spacers — one per frame position per row-pair (back-to-back only)
+      // Row spacers — height-based per frame position, multiplied by row pairs.
       if (rowCount > 1) {
-        const framePositionCount = seenFrameIndices.size;
-        const rowSpacerCount = framePositionCount * (rowCount - 1);
+        const rowSpacerCount = rowSpacerCountForModules(modules, rowCount);
         addItem('ACC-ROW-SPACER', 'Row Spacer', rowSpacerCount, 'Accessory');
       }
     }
@@ -1141,6 +1147,182 @@ function DimInput({ label, value, onChange, onBlur, inputBg, inputColor, border,
           userSelect: 'none',
           flexShrink: 0,
         }}>m</span>
+      </div>
+    </div>
+  );
+}
+
+// ── Note Entity Editor ─────────────────────────────────────────
+
+const NOTE_BG_PRESETS = [
+  '#fffde7', '#fff9c4', '#e8f5e9', '#e3f2fd', '#fce4ec',
+  '#f3e5f5', '#fff3e0', '#e0f2f1', '#ffffff', '#f5f5f5',
+];
+
+function NoteEntityEditor({ layoutStore, layoutVersion, darkMode }) {
+  const dk = darkMode;
+
+  const selCount  = layoutStore ? layoutStore.selectionCount() : 0;
+  const selected  = layoutStore ? layoutStore.getSelectedEntities() : [];
+  const singleEnt = selCount === 1 ? selected[0] : null;
+  const isNote    = singleEnt?.type === 'TEXT_NOTE';
+
+  const [textVal, setTextVal]       = useState('');
+  const [bgVal, setBgVal]           = useState('#fffde7');
+  const [fontColorVal, setFontColorVal] = useState('#1f2937');
+  const [wVal, setWVal]             = useState('');
+  const [hVal, setHVal]             = useState('');
+
+  useEffect(() => {
+    if (isNote) {
+      setTextVal(singleEnt.text ?? '');
+      setBgVal(singleEnt.bgColor ?? '#fffde7');
+      setFontColorVal(singleEnt.fontColor ?? '#1f2937');
+      setWVal(fmt(singleEnt.widthM ?? 2));
+      setHVal(fmt(singleEnt.heightM ?? 1));
+    } else {
+      setTextVal('');
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isNote, singleEnt?.id, singleEnt?.text, singleEnt?.bgColor, singleEnt?.fontColor, singleEnt?.widthM, singleEnt?.heightM, layoutVersion]);
+
+  const commitText = useCallback(() => {
+    if (!isNote || !layoutStore || !textVal.trim()) return;
+    layoutStore.update(singleEnt.id, { text: textVal.trim() });
+  }, [isNote, layoutStore, singleEnt, textVal]);
+
+  const commitBg = useCallback((c) => {
+    if (!isNote || !layoutStore) return;
+    setBgVal(c);
+    layoutStore.update(singleEnt.id, { bgColor: c });
+  }, [isNote, layoutStore, singleEnt]);
+
+  const commitFontColor = useCallback((c) => {
+    if (!isNote || !layoutStore) return;
+    setFontColorVal(c);
+    layoutStore.update(singleEnt.id, { fontColor: c });
+  }, [isNote, layoutStore, singleEnt]);
+
+  const commitW = useCallback(() => {
+    if (!isNote || !layoutStore) return;
+    const num = parseFloat(wVal);
+    if (!isNaN(num) && num > 0 && num <= 50) {
+      layoutStore.update(singleEnt.id, { widthM: num });
+    } else {
+      setWVal(fmt(singleEnt.widthM ?? 2));
+    }
+  }, [isNote, layoutStore, singleEnt, wVal]);
+
+  const commitH = useCallback(() => {
+    if (!isNote || !layoutStore) return;
+    const num = parseFloat(hVal);
+    if (!isNaN(num) && num > 0 && num <= 50) {
+      layoutStore.update(singleEnt.id, { heightM: num });
+    } else {
+      setHVal(fmt(singleEnt.heightM ?? 1));
+    }
+  }, [isNote, layoutStore, singleEnt, hVal]);
+
+  if (!isNote) return null;
+
+  const textMuted  = dk ? '#6b7280' : '#9ca3af';
+  const inputBg    = dk ? '#2d2f34' : '#f9fafb';
+  const inputColor = dk ? '#e5e7eb' : '#111827';
+  const border     = dk ? '#374151' : '#e5e7eb';
+
+  const sectionLabel = {
+    fontSize: 11,
+    fontWeight: 600,
+    textTransform: 'uppercase',
+    letterSpacing: '0.05em',
+    color: textMuted,
+    marginBottom: 8,
+  };
+
+  return (
+    <div style={{ marginTop: 12 }}>
+      <div style={sectionLabel}>Note</div>
+
+      {/* Text */}
+      <div style={{ marginBottom: 8 }}>
+        <label style={{ fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', color: textMuted, display: 'block', marginBottom: 3 }}>
+          Text
+        </label>
+        <textarea
+          value={textVal}
+          onChange={(e) => setTextVal(e.target.value)}
+          onBlur={commitText}
+          onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { commitText(); e.target.blur(); } }}
+          rows={3}
+          style={{
+            width: '100%',
+            border: `1px solid ${border}`,
+            borderRadius: 6,
+            background: inputBg,
+            color: inputColor,
+            fontSize: 12,
+            fontFamily: 'sans-serif',
+            padding: '6px 8px',
+            resize: 'vertical',
+            outline: 'none',
+            boxSizing: 'border-box',
+          }}
+        />
+      </div>
+
+      {/* Size */}
+      <div style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
+        <DimInput label="Width" value={wVal} onChange={setWVal} onBlur={commitW}
+          inputBg={inputBg} inputColor={inputColor} border={border} labelColor={textMuted} />
+        <DimInput label="Height" value={hVal} onChange={setHVal} onBlur={commitH}
+          inputBg={inputBg} inputColor={inputColor} border={border} labelColor={textMuted} />
+      </div>
+
+      {/* Background Color */}
+      <div style={{ marginBottom: 8 }}>
+        <label style={{ fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', color: textMuted, display: 'block', marginBottom: 4 }}>
+          Background
+        </label>
+        <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', alignItems: 'center' }}>
+          {NOTE_BG_PRESETS.map((c) => (
+            <button
+              key={c}
+              onClick={() => commitBg(c)}
+              style={{
+                width: 20,
+                height: 20,
+                borderRadius: 4,
+                border: bgVal === c ? '2px solid #3b82f6' : `1px solid ${border}`,
+                background: c,
+                cursor: 'pointer',
+                padding: 0,
+                flexShrink: 0,
+              }}
+              title={c}
+            />
+          ))}
+          <input
+            type="color"
+            value={bgVal}
+            onChange={(e) => commitBg(e.target.value)}
+            style={{ width: 20, height: 20, border: 'none', padding: 0, cursor: 'pointer', borderRadius: 4 }}
+            title="Custom background color"
+          />
+        </div>
+      </div>
+
+      {/* Font Color */}
+      <div>
+        <label style={{ fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', color: textMuted, display: 'block', marginBottom: 4 }}>
+          Font Color
+        </label>
+        <input
+          type="color"
+          value={fontColorVal}
+          onChange={(e) => commitFontColor(e.target.value)}
+          style={{ width: 28, height: 22, border: `1px solid ${border}`, padding: 0, cursor: 'pointer', borderRadius: 4 }}
+          title="Font color"
+        />
       </div>
     </div>
   );

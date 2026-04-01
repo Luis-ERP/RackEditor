@@ -101,3 +101,28 @@ export function ColumnIcon({ size = 24 }) {
     </svg>
   );
 }
+
+// ── Note / Annotation icon ─────────────────────────────────────
+// Sticky-note shape with a folded corner and horizontal text lines.
+export function NoteIcon({ size = 24 }) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      {/* Note body with folded corner */}
+      <path d="M4 4h16v12l-4 4H4z" />
+      <path d="M16 16v4" />
+      <path d="M16 16h4" />
+      {/* Text lines */}
+      <line x1="8" y1="9" x2="16" y2="9" />
+      <line x1="8" y1="13" x2="13" y2="13" />
+    </svg>
+  );
+}

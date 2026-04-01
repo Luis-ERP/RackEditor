@@ -20,6 +20,7 @@ import {
 
 import { createAccessorySpec, createAccessory } from './models/accessory.js';
 import { rackLineAllBays, rackLineFrameIndices, rackLineRowCount } from './models/rackLine.js';
+import { rowSpacerCountForModules } from './rowSpacerRules.js';
 
 let _accIdCounter = 0;
 function nextAccId(prefix = 'acc') {
@@ -128,9 +129,9 @@ export function derivedAccessories(rackLine) {
   }
 
   // ── Row Spacers (Back-to-Back only) ─────────────────────────────
-  // row_spacers_per_frame_pair = 1 per frame position per row pair
+  // Height-based spacers per frame position, then multiplied by row pairs.
   if (rowCount > 1) {
-    const rowSpacerCount = frameIndices.length * (rowCount - 1);
+    const rowSpacerCount = rowSpacerCountForModules(rackLine.modules, rowCount);
     accessories.push(createAccessory({
       id: nextAccId('rs'),
       spec: DERIVED_SPECS.rowSpacer,

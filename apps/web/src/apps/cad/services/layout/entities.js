@@ -180,11 +180,18 @@ export function createColumnEntity({
  * @param {number}  [p.rotation=0]
  * @param {string}  p.text
  * @param {number}  [p.fontSizeM=0.3]  - Font size in world metres
+ * @param {number}  [p.widthM=2]       - Note container width in world metres
+ * @param {number}  [p.heightM=1]      - Note container height in world metres
+ * @param {string}  [p.bgColor='#fffde7']   - Background fill colour
+ * @param {string}  [p.fontColor='#1f2937'] - Text colour
  * @param {string}  [p.label='']
  * @returns {Object}
  */
 export function createTextNoteEntity({
-  id, x, y, rotation = 0, text, fontSizeM = 0.3, label = '',
+  id, x, y, rotation = 0, text, fontSizeM = 0.3,
+  widthM = 2, heightM = 1,
+  bgColor = '#fffde7', fontColor = '#1f2937',
+  label = '',
 }) {
   if (!text) throw new Error('Text note must have non-empty text.');
   return {
@@ -193,6 +200,10 @@ export function createTextNoteEntity({
     transform: baseTransform(x, y, rotation),
     text,
     fontSizeM,
+    widthM,
+    heightM,
+    bgColor,
+    fontColor,
     label,
     locked:    false,
     visible:   true,
@@ -252,12 +263,11 @@ export function entityAABB(entity) {
       };
 
     case EntityType.TEXT_NOTE:
-      // approximate text bounds (width guessed as 5× font)
       return {
         minX: x,
-        minY: y - entity.fontSizeM,
-        maxX: x + entity.fontSizeM * Math.max(entity.text.length * 0.6, 1),
-        maxY: y,
+        minY: y,
+        maxX: x + (entity.widthM ?? entity.fontSizeM * Math.max(entity.text.length * 0.6, 1)),
+        maxY: y + (entity.heightM ?? entity.fontSizeM),
       };
 
     default:

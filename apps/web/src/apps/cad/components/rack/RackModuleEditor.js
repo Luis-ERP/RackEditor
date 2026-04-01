@@ -16,14 +16,6 @@
 
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { HOLE_STEP_IN, RowConfiguration } from '../../services/rack/constants.js';
-
-const ROW_COUNT_MAP = {
-  [RowConfiguration.SINGLE]:         1,
-  [RowConfiguration.BACK_TO_BACK_2]: 2,
-  [RowConfiguration.BACK_TO_BACK_3]: 3,
-  [RowConfiguration.BACK_TO_BACK_4]: 4,
-};
-
 import {
   FRAME_HEIGHTS_IN,
   FRAME_DEPTHS_IN,
@@ -49,6 +41,14 @@ import {
   bindingFrameSpec,
   applyFrameOverrideAtIndex,
 } from '../../services/rack/rackModuleEditorUtils.js';
+import { draftSpacersPerRowPair } from '../../services/rack/rowSpacerRules.js';
+
+const ROW_COUNT_MAP = {
+  [RowConfiguration.SINGLE]:         1,
+  [RowConfiguration.BACK_TO_BACK_2]: 2,
+  [RowConfiguration.BACK_TO_BACK_3]: 3,
+  [RowConfiguration.BACK_TO_BACK_4]: 4,
+};
 
 // ── Entry point: reads selection, renders editor or null ─────────────────────
 
@@ -141,6 +141,8 @@ function ModuleEditorInner({ entity, domain, layoutStore, rackDomainRef, darkMod
     const bayCount = newDraft.bayCount || 1;
     const depthIn = newDraft.frameSpec.depthIn;
     const beamLengthIn = newDraft.beamLengthIn;
+    const bindingSpec = bindingFrameSpec(newDraft);
+    const spacersPerRowPair = draftSpacersPerRowPair(newDraft);
     const dims = isVertical
       ? `${depthIn}" × ${beamLengthIn}"`
       : `${beamLengthIn}" × ${depthIn}"`;
@@ -154,6 +156,8 @@ function ModuleEditorInner({ entity, domain, layoutStore, rackDomainRef, darkMod
       depthM,
       rowConfiguration: newDraft.rowConfiguration,
       spacerSizeIn:     newDraft.spacerSizeIn,
+      frameHeightIn:    bindingSpec?.heightIn ?? newDraft.frameSpec.heightIn,
+      spacersPerRowPair,
       label,
     });
   }, [domain, entity, layoutStore, rackDomainRef]);
@@ -882,6 +886,9 @@ function RowConfigControl({ draft, onChange, onSpacerChange, dk, c }) {
   };
 
   const isBackToBack = draft.rowConfiguration !== RowConfiguration.SINGLE;
+  const rowCount = ROW_COUNT_MAP[draft.rowConfiguration] ?? 1;
+  const spacersPerPair = draftSpacersPerRowPair(draft);
+  const totalSpacers = rowCount > 1 ? spacersPerPair * (rowCount - 1) : 0;
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
@@ -892,40 +899,45 @@ function RowConfigControl({ draft, onChange, onSpacerChange, dk, c }) {
         dk={dk} c={c}
       />
       {isBackToBack && (
-        <AttrRow label="Spacer">
-          <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            border: `1px solid ${c.border}`,
-            borderRadius: 6,
-            overflow: 'hidden',
-            background: c.inputBg,
-            maxWidth: 100,
-          }}>
-            <input
-              type="number"
-              step="1"
-              min="3"
-              max="24"
-              value={spacerVal}
-              onChange={(e) => setSpacerVal(e.target.value)}
-              onBlur={commitSpacer}
-              onKeyDown={(e) => { if (e.key === 'Enter') { commitSpacer(); e.target.blur(); } }}
-              style={{
-                flex: 1,
-                border: 'none',
-                outline: 'none',
-                background: 'transparent',
-                color: c.text,
-                fontSize: 12,
-                fontFamily: 'monospace',
-                padding: '4px 6px',
-                width: 0,
-              }}
-            />
-            <span style={{ fontSize: 10, color: c.muted, paddingRight: 6 }}>in</span>
+        <>
+          <AttrRow label="Spacer">
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              border: `1px solid ${c.border}`,
+              borderRadius: 6,
+              overflow: 'hidden',
+              background: c.inputBg,
+              maxWidth: 100,
+            }}>
+              <input
+                type="number"
+                step="1"
+                min="3"
+                max="24"
+                value={spacerVal}
+                onChange={(e) => setSpacerVal(e.target.value)}
+                onBlur={commitSpacer}
+                onKeyDown={(e) => { if (e.key === 'Enter') { commitSpacer(); e.target.blur(); } }}
+                style={{
+                  flex: 1,
+                  border: 'none',
+                  outline: 'none',
+                  background: 'transparent',
+                  color: c.text,
+                  fontSize: 12,
+                  fontFamily: 'monospace',
+                  padding: '4px 6px',
+                  width: 0,
+                }}
+              />
+              <span style={{ fontSize: 10, color: c.muted, paddingRight: 6 }}>in</span>
+            </div>
+          </AttrRow>
+          <div style={{ fontSize: 10, color: c.muted, lineHeight: 1.35 }}>
+            Spacer connectors: {spacersPerPair} per frame pair per row pair ({totalSpacers} total for current rows).
           </div>
-        </AttrRow>
+        </>
       )}
     </div>
   );

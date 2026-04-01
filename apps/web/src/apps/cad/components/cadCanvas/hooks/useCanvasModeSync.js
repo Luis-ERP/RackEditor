@@ -14,6 +14,10 @@ export default function useCanvasModeSync({
   columnModeRef,
   columnStore,
   columnStoreRef,
+  noteMode,
+  noteModeRef,
+  noteStore,
+  noteStoreRef,
   subSelRef,
   setSubSel,
   onSubSelChangeRef,
@@ -86,4 +90,23 @@ export default function useCanvasModeSync({
       scheduleRedraw();
     }
   }, [dragRef, drawingMode, drawingModeRef, layoutStore, onSubSelChangeRef, scheduleRedraw, selDragRef, selRectRef, setSubSel, subSelRef]);
+
+  useEffect(() => {
+    if (noteStoreRef) noteStoreRef.current = noteStore;
+  }, [noteStore, noteStoreRef]);
+
+  useEffect(() => {
+    if (noteModeRef) noteModeRef.current = noteMode;
+    if (noteMode && layoutStore) {
+      if (subSelRef.current) {
+        subSelRef.current = null;
+        setSubSel(null);
+        onSubSelChangeRef.current?.(null);
+      }
+      layoutStore.deselectAll();
+      selDragRef.current = null;
+      selRectRef.current = null;
+      scheduleRedraw();
+    }
+  }, [noteMode, noteModeRef, layoutStore, onSubSelChangeRef, scheduleRedraw, selDragRef, selRectRef, setSubSel, subSelRef]);
 }

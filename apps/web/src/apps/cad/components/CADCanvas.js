@@ -17,6 +17,8 @@ import useRackDrawingInteraction from './cadCanvas/hooks/useRackDrawingInteracti
 import useWallDrawingInteraction from './cadCanvas/hooks/useWallDrawingInteraction';
 import useColumnPlacementInteraction from './cadCanvas/hooks/useColumnPlacementInteraction';
 import useSelectionInteraction from './cadCanvas/hooks/useSelectionInteraction';
+import useNotePlacementInteraction from './cadCanvas/hooks/useNotePlacementInteraction';
+import useNoteResizeInteraction from './cadCanvas/hooks/useNoteResizeInteraction';
 import { useAppTheme } from '@/src/shared/theme/AppThemeProvider';
 
 export default function CADCanvas(props) {
@@ -31,10 +33,13 @@ export default function CADCanvas(props) {
     wallStore = null,
     columnMode = false,
     columnStore = null,
+    noteMode = false,
+    noteStore = null,
     showMeasurements = false,
     onToggleDrawingMode,
     onSetWallMode,
     onToggleColumnMode,
+    onToggleNoteMode,
     onToggleMeasurements,
   } = props;
 
@@ -57,6 +62,9 @@ export default function CADCanvas(props) {
 
   const columnModeRef = useRef(columnMode);
   const columnStoreRef = useRef(columnStore);
+
+  const noteModeRef = useRef(noteMode);
+  const noteStoreRef = useRef(noteStore);
 
   const selDragRef = useRef(null);
   const selRectRef = useRef(null);
@@ -137,6 +145,10 @@ export default function CADCanvas(props) {
     columnModeRef,
     columnStore,
     columnStoreRef,
+    noteMode,
+    noteModeRef,
+    noteStore,
+    noteStoreRef,
     subSelRef,
     setSubSel,
     onSubSelChangeRef,
@@ -151,6 +163,7 @@ export default function CADCanvas(props) {
     drawingModeRef,
     wallModeRef,
     columnModeRef,
+    noteModeRef,
     subSelRef,
     setSubSel,
     onSubSelChangeRef,
@@ -190,6 +203,22 @@ export default function CADCanvas(props) {
     scheduleRedraw,
   });
 
+  useNotePlacementInteraction({
+    canvasRef,
+    layoutStore,
+    worldAt,
+    noteModeRef,
+    noteStoreRef,
+    scheduleRedraw,
+  });
+
+  useNoteResizeInteraction({
+    canvasRef,
+    layoutStore,
+    camera,
+    scheduleRedraw,
+  });
+
   useSelectionInteraction({
     canvasRef,
     layoutStore,
@@ -199,6 +228,7 @@ export default function CADCanvas(props) {
     drawingModeRef,
     wallModeRef,
     columnModeRef,
+    noteModeRef,
     subSelRef,
     setSubSel,
     onSubSelChangeRef,
@@ -260,7 +290,7 @@ export default function CADCanvas(props) {
         ref={canvasRef}
         style={{
           display: 'block',
-          cursor: (drawingMode || wallMode || columnMode) ? 'cell' : 'crosshair',
+          cursor: (drawingMode || wallMode || columnMode || noteMode) ? 'cell' : 'crosshair',
           touchAction: 'none',
         }}
       />
@@ -284,6 +314,7 @@ export default function CADCanvas(props) {
         drawingMode={drawingMode}
         wallMode={wallMode}
         columnMode={columnMode}
+        noteMode={noteMode}
         subSel={subSel}
         darkMode={isDark}
         theme={theme}
@@ -296,6 +327,8 @@ export default function CADCanvas(props) {
         onSetWallMode={onSetWallMode}
         columnMode={columnMode}
         onToggleColumnMode={onToggleColumnMode}
+        noteMode={noteMode}
+        onToggleNoteMode={onToggleNoteMode}
         darkMode={isDark}
         disabled={!!subSel}
       />

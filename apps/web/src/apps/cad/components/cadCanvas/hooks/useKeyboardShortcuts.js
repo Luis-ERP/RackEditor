@@ -4,6 +4,7 @@ export default function useKeyboardShortcuts({
   drawingModeRef,
   wallModeRef,
   columnModeRef,
+  noteModeRef,
   subSelRef,
   setSubSel,
   onSubSelChangeRef,
@@ -41,7 +42,7 @@ export default function useKeyboardShortcuts({
   useEffect(() => {
     const onKey = (e) => {
       if (e.key !== 'Delete' && e.key !== 'Backspace') return;
-      if (drawingModeRef.current || wallModeRef.current || columnModeRef.current) return;
+      if (drawingModeRef.current || wallModeRef.current || columnModeRef.current || (noteModeRef && noteModeRef.current)) return;
 
       e.preventDefault();
       if (subSelRef.current) {

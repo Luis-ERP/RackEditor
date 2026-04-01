@@ -8,7 +8,7 @@
  */
 
 import { MousePointer2 } from 'lucide-react';
-import { RackIcon, WallRectIcon, WallLineIcon, ColumnIcon } from './icons/ToolIcons';
+import { RackIcon, WallRectIcon, WallLineIcon, ColumnIcon, NoteIcon } from './icons/ToolIcons';
 
 // ── tool definitions ───────────────────────────────────────────
 const TOOLS = [
@@ -20,6 +20,8 @@ const TOOLS = [
   { id: 'wallLine', label: 'Wall — Line',         Icon: WallLineIcon },
   'divider',
   { id: 'column',   label: 'Column',             Icon: ColumnIcon },
+  'divider',
+  { id: 'note',     label: 'Note',               Icon: NoteIcon },
 ];
 
 // ────────────────────────────────────────────────────────────────
@@ -30,6 +32,8 @@ export default function DrawingToolbar({
   onSetWallMode,
   columnMode,
   onToggleColumnMode,
+  noteMode = false,
+  onToggleNoteMode,
   darkMode = false,
   disabled = false,
 }) {
@@ -44,7 +48,9 @@ export default function DrawingToolbar({
         ? 'wallLine'
         : columnMode
           ? 'column'
-          : 'select';
+          : noteMode
+            ? 'note'
+            : 'select';
 
   const handleClick = (tool) => {
     if (disabled) return;
@@ -54,6 +60,7 @@ export default function DrawingToolbar({
       if (drawingMode) onToggleDrawingMode();
       else if (wallMode) onSetWallMode(wallMode); // same mode → toggles off
       else if (columnMode) onToggleColumnMode();
+      else if (noteMode) onToggleNoteMode();
       return;
     }
 
@@ -63,6 +70,7 @@ export default function DrawingToolbar({
       case 'wallRect': onSetWallMode('rect'); break;
       case 'wallLine': onSetWallMode('line'); break;
       case 'column':   onToggleColumnMode();  break;
+      case 'note':     onToggleNoteMode();    break;
     }
   };
 
