@@ -1,7 +1,8 @@
 import axios from 'axios';
 import { getAccessToken, clearAccessToken } from '@/src/core/auth/tokenStorage';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? 'http://localhost:4000';
+// Default to same-origin so web and API can run in a single Next.js app.
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? '';
 
 export const httpClient = axios.create({
   baseURL: API_BASE_URL,

@@ -74,10 +74,15 @@ Permissions govern editing, revision creation, discounts, overrides, and quote s
 
 ## 6) System Architecture (High-Level)
 
-- **Backend:** Django
-- **Database:** PostgreSQL
-- **Frontend:** Next.js
+- **Application (Frontend + Backend):** Next.js (single codebase)
+- **Backend Pattern:** Next.js API routes / server handlers
+- **Database:** Transitional phase from PostgreSQL toward a non-relational model with simpler entities
 - **2D Rendering:** Canvas-based interaction engine
+
+Architecture direction:
+- Consolidate all product modules into the Next.js application to keep UI and API evolution in one place.
+- Keep endpoint contracts stable via centralized route mapping while business logic migrates module by module.
+- Simplify domain models as part of the non-relational migration, without changing product behavior expectations.
 
 Domain engines:
 - **Design Engine:** Rack semantics and geometric representation
