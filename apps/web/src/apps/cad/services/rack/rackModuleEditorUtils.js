@@ -134,7 +134,6 @@ export function clampHoleIndicesToFrame(holeIndices, beamSpecs, newFrameSpec) {
  */
 export function computeDraftValidation(draft) {
   const {
-    frameSpec,
     beamLengthIn,
     beamSpecs        = [],
     holeIndices,
@@ -143,6 +142,9 @@ export function computeDraftValidation(draft) {
     spacerSizeIn     = 6,
   } = draft;
 
+  // Validate against the binding (shortest) frame so that any per-frame override
+  // which tightens the height constraint is correctly reflected.
+  const frameSpec = bindingFrameSpec(draft);
   if (!frameSpec || !beamLengthIn) {
     return { state: 'INCOMPLETE', errors: [], warnings: [] };
   }
@@ -178,12 +180,14 @@ export function computeDraftValidation(draft) {
     }));
   }
 
-  // Build module
+  // Build module — use the binding frame as default so the validation engine
+  // sees the tightest height constraint; pass through any overrides.
   let mod;
   try {
     mod = createRackModule({
       id:              eid('mod'),
       frameSpec,
+      frameOverrides:  draft.frameOverrides ?? {},
       bays,
       levelUnion,
       startFrameIndex: 0,
@@ -227,19 +231,68 @@ export function computeDraftValidation(draft) {
 
 // ── Draft mutation helpers ────────────────────────────────────────────────────
 
+// ── Per-frame override helpers ────────────────────────────────────────────────
+
+/**
+ * Return the frame spec that imposes the tightest height constraint across
+ * the module's default spec and all per-frame overrides.
+ * This is the binding constraint for beam level placement — no level may exceed
+ * the max allowed hole index of this spec.
+ *
+ * @param {Object} draft
+ * @returns {import('./models/frame.js').FrameSpec|null}
+ */
+export function bindingFrameSpec(draft) {
+  const { frameSpec, frameOverrides = {} } = draft;
+  if (!frameSpec) return null;
+  let binding = frameSpec;
+  for (const spec of Object.values(frameOverrides)) {
+    if (spec && spec.heightIn < binding.heightIn) binding = spec;
+  }
+  return binding;
+}
+
+/**
+ * Apply (or remove) a per-frame spec override at a given local frame index.
+ * After the change the beam levels are clamped against the new binding frame.
+ *
+ * @param {Object} draft
+ * @param {number} localFrameIndex - 0-based index within this module
+ * @param {import('./models/frame.js').FrameSpec|null} newFrameSpec
+ *   Pass a FrameSpec to set/replace the override; pass null to clear it.
+ * @returns {Object} New draft
+ */
+export function applyFrameOverrideAtIndex(draft, localFrameIndex, newFrameSpec) {
+  const frameOverrides = { ...draft.frameOverrides };
+  if (newFrameSpec === null) {
+    delete frameOverrides[localFrameIndex];
+  } else {
+    frameOverrides[localFrameIndex] = newFrameSpec;
+  }
+  const newDraft = { ...draft, frameOverrides };
+  const binding = bindingFrameSpec(newDraft);
+  const { holeIndices, beamSpecs } = clampHoleIndicesToFrame(
+    newDraft.holeIndices, newDraft.beamSpecs, binding,
+  );
+  return { ...newDraft, holeIndices, beamSpecs };
+}
+
 /**
  * Produce a new draft with a different frame spec applied.
- * Clamps hole indices to remain within the new frame's valid range.
+ * Clamps hole indices to remain within the new binding frame's valid range
+ * (considering all per-frame overrides in the draft).
  *
  * @param {Object} draft
  * @param {import('./models/frame.js').FrameSpec} newFrameSpec
  * @returns {Object} New draft
  */
 export function applyFrameSpec(draft, newFrameSpec) {
+  const newDraft = { ...draft, frameSpec: newFrameSpec };
+  const binding = bindingFrameSpec(newDraft);
   const { holeIndices, beamSpecs } = clampHoleIndicesToFrame(
-    draft.holeIndices, draft.beamSpecs, newFrameSpec,
+    draft.holeIndices, draft.beamSpecs, binding,
   );
-  return { ...draft, frameSpec: newFrameSpec, holeIndices, beamSpecs };
+  return { ...newDraft, holeIndices, beamSpecs };
 }
 
 /**
@@ -377,7 +430,7 @@ export function moveLevel(draft, levelIndex, newHoleIndex) {
  * @returns {import('./models/rackModule.js').RackModule}
  */
 export function commitDraftToModule(draft, startFrameIndex = 0) {
-  const { frameSpec, beamLengthIn, beamSpecs, holeIndices, bayCount, rowConfiguration } = draft;
+  const { frameSpec, frameOverrides = {}, beamLengthIn, beamSpecs, holeIndices, bayCount, rowConfiguration } = draft;
   const fallbackSpec = findBeamSpec(beamLengthIn, 'standard');
   const sorted = [...holeIndices].sort((a, b) => a - b);
 
@@ -404,6 +457,7 @@ export function commitDraftToModule(draft, startFrameIndex = 0) {
   return createRackModule({
     id:             eid('mod'),
     frameSpec,
+    frameOverrides,
     bays,
     levelUnion,
     startFrameIndex,

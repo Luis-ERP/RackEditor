@@ -269,6 +269,97 @@ function validateBeamFrameCompatibility(levels, uprightSeries) {
 }
 
 /**
+ * Rule: All beam levels must be compatible with every per-frame spec override.
+ * (Sections 7, 12.1, 12.2, 12.4 — applied to each overridden frame spec)
+ *
+ * Since levelUnion is shared across all frames in a module, each beam level must
+ * satisfy height, connector-type, capacity-class, and upright-series constraints
+ * for every frame spec override, not just the module default.
+ *
+ * Override-specific error codes allow callers to distinguish these from the
+ * default-spec violations reported by the individual rule validators above.
+ *
+ * @param {import('./models/rackModule.js').RackModule} mod
+ * @returns {ValidationError[]}
+ */
+function validateBeamOverrideCompatibility(mod) {
+  const errors = [];
+  const levels = mod.levelUnion;
+  if (!levels.length || !mod.frameOverrides) return errors;
+
+  const defaultSpecId = mod.frameSpec?.id;
+
+  for (const [localIdxStr, overrideSpec] of Object.entries(mod.frameOverrides)) {
+    if (!overrideSpec) continue;
+    // Skip if the override happens to be the same spec as the module default —
+    // those violations are already reported by the standard validators above.
+    if (overrideSpec.id === defaultSpecId) continue;
+
+    const localFrameIndex = Number(localIdxStr);
+    const frameLabel = `frame override F${localFrameIndex} ("${overrideSpec.id}")`;
+
+    // Section 7: Height constraint for this override frame
+    const maxHole = maxHoleIndex(overrideSpec);
+    const maxAllowedElevation = overrideSpec.heightIn - overrideSpec.minimumTopClearanceIn;
+    for (const level of levels) {
+      if (level.holeIndex > maxHole) {
+        errors.push({
+          code: 'FRAME_HEIGHT_EXCEEDED_OVERRIDE',
+          message: `Level ${level.levelIndex}: holeIndex ${level.holeIndex} exceeds the max hole (${maxHole}) of ${frameLabel} (height ${overrideSpec.heightIn}").`,
+          severity: 'error',
+          context: { levelIndex: level.levelIndex, localFrameIndex, holeIndex: level.holeIndex, maxHole, overrideSpecId: overrideSpec.id },
+        });
+      } else if (level.elevationIn > maxAllowedElevation) {
+        errors.push({
+          code: 'TOP_CLEARANCE_VIOLATED_OVERRIDE',
+          message: `Level ${level.levelIndex}: elevation ${level.elevationIn}" exceeds the top-clearance limit (${maxAllowedElevation}") of ${frameLabel}.`,
+          severity: 'error',
+          context: { levelIndex: level.levelIndex, localFrameIndex, elevationIn: level.elevationIn, maxAllowedElevation, overrideSpecId: overrideSpec.id },
+        });
+      }
+    }
+
+    for (const level of levels) {
+      // Section 12.1: Connector type
+      if (!overrideSpec.compatibleConnectorTypes.includes(level.beamSpec.connectorType)) {
+        errors.push({
+          code: 'CONNECTOR_TYPE_MISMATCH_OVERRIDE',
+          message: `Level ${level.levelIndex}: connector type "${level.beamSpec.connectorType}" is not compatible with ${frameLabel}. Allowed: [${overrideSpec.compatibleConnectorTypes.join(', ')}].`,
+          severity: 'error',
+          context: { levelIndex: level.levelIndex, localFrameIndex, connectorType: level.beamSpec.connectorType, compatibleConnectorTypes: overrideSpec.compatibleConnectorTypes, overrideSpecId: overrideSpec.id },
+        });
+      }
+
+      // Section 12.2: Capacity class
+      const frameRank = CAPACITY_CLASS_RANK[(overrideSpec.capacityClass || '').toUpperCase()];
+      if (frameRank != null) {
+        const beamRank = CAPACITY_CLASS_RANK[(level.beamSpec.capacityClass || '').toUpperCase()];
+        if (beamRank != null && beamRank > frameRank) {
+          errors.push({
+            code: 'CAPACITY_CLASS_EXCEEDED_OVERRIDE',
+            message: `Level ${level.levelIndex}: beam capacity class "${level.beamSpec.capacityClass}" exceeds ${frameLabel} allowable class "${overrideSpec.capacityClass}".`,
+            severity: 'error',
+            context: { levelIndex: level.levelIndex, localFrameIndex, beamCapacityClass: level.beamSpec.capacityClass, frameCapacityClass: overrideSpec.capacityClass, overrideSpecId: overrideSpec.id },
+          });
+        }
+      }
+
+      // Section 12.4: Upright series
+      if (!isBeamCompatibleWithFrame(level.beamSpec, overrideSpec.uprightSeries)) {
+        errors.push({
+          code: 'BEAM_INCOMPATIBLE_WITH_FRAME_OVERRIDE',
+          message: `Level ${level.levelIndex}: beam "${level.beamSpec.id}" is not compatible with ${frameLabel} (upright series "${overrideSpec.uprightSeries}").`,
+          severity: 'error',
+          context: { levelIndex: level.levelIndex, localFrameIndex, beamId: level.beamSpec.id, uprightSeries: overrideSpec.uprightSeries, overrideSpecId: overrideSpec.id },
+        });
+      }
+    }
+  }
+
+  return errors;
+}
+
+/**
  * Rule: Beam length must match bay width. (Section 12.3)
  *
  * @param {import('./models/bay.js').Bay[]} bays
@@ -513,6 +604,9 @@ export function validateRackLine(rackLine, options = {}) {
 
     // Section 12.4: Beam upright series compatibility
     allErrors.push(...validateBeamFrameCompatibility(levels, frameSpec.uprightSeries));
+
+    // Sections 7, 12.1, 12.2, 12.4: Same checks against each per-frame override spec
+    allErrors.push(...validateBeamOverrideCompatibility(mod));
 
     // Warnings
     allWarnings.push(...checkWarnings(levels, frameSpec));

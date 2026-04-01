@@ -104,3 +104,21 @@ export {
 export {
   computePricing,
 } from './pricingService.js';
+
+// ── Editor Utils ─────────────────────────────────────────────────────────────
+export {
+  bindingFrameSpec,
+  applyFrameOverrideAtIndex,
+  applyFrameSpec,
+  applyBeamLength,
+  applyLevelBeamSpec,
+  addLevel,
+  removeLevel,
+  moveLevel,
+  commitDraftToModule,
+  computeDraftValidation,
+  computeEntityDimensions,
+  maxAllowedHoleIndex,
+  autoPositionNewLevel,
+  clampHoleIndicesToFrame,
+} from './rackModuleEditorUtils.js';

@@ -38,6 +38,8 @@ import {
   applyBeamLength,
   applyLevelBeamSpec,
   commitDraftToModule,
+  bindingFrameSpec,
+  applyFrameOverrideAtIndex,
 } from '../../services/rack/rackModuleEditorUtils.js';
 
 // ── Entry point: reads selection, renders editor or null ─────────────────────
@@ -80,6 +82,7 @@ function ModuleEditorInner({ entity, domain, layoutStore, rackDomainRef, darkMod
     const refSpec     = beamSpecs[0] ?? domain.bays[0]?.beamSpec ?? domain.levelUnion[0]?.beamSpec;
     return {
       frameSpec:        domain.frameSpec,
+      frameOverrides:   { ...domain.frameOverrides },
       beamLengthIn:     refSpec?.lengthIn ?? 96,
       beamSpecs,
       holeIndices,
@@ -112,11 +115,24 @@ function ModuleEditorInner({ entity, domain, layoutStore, rackDomainRef, darkMod
       return; // factory rejected (e.g. incompatible specs) — leave canvas unchanged
     }
 
-    const { widthM, depthM } = computeEntityDimensions(
+    // computeEntityDimensions always returns widthM=beamLength, depthM=frameDepth.
+    // Vertical racks (rotation=90) store widthM=frameDepth, depthM=beamLength — swap.
+    const isVertical = entity.transform.rotation === 90;
+    const rawDims = computeEntityDimensions(
       { lengthIn: newDraft.beamLengthIn },
       newDraft.frameSpec,
       newDraft.bayCount,
     );
+    const widthM = isVertical ? rawDims.depthM : rawDims.widthM;
+    const depthM = isVertical ? rawDims.widthM : rawDims.depthM;
+
+    const bayCount = newDraft.bayCount || 1;
+    const depthIn = newDraft.frameSpec.depthIn;
+    const beamLengthIn = newDraft.beamLengthIn;
+    const dims = isVertical
+      ? `${depthIn}" × ${beamLengthIn}"`
+      : `${beamLengthIn}" × ${depthIn}"`;
+    const label = bayCount > 1 ? `${bayCount}× ${dims}` : dims;
 
     rackDomainRef.current.delete(entity.domainId);
     rackDomainRef.current.set(newMod.id, newMod);
@@ -126,6 +142,7 @@ function ModuleEditorInner({ entity, domain, layoutStore, rackDomainRef, darkMod
       depthM,
       rowConfiguration: newDraft.rowConfiguration,
       spacerSizeIn:     newDraft.spacerSizeIn,
+      label,
     });
   }, [domain, entity, layoutStore, rackDomainRef]);
 
@@ -147,11 +164,29 @@ function ModuleEditorInner({ entity, domain, layoutStore, rackDomainRef, darkMod
       {/* ── Validation Banner ───────────────────────────────────────────── */}
       <ValidationBanner validation={validation} dk={dk} c={c} />
 
-      {/* ── Frame Configuration ─────────────────────────────────────────── */}
+      {/* ── Frame Configuration (default) ───────────────────────────────── */}
       <CollapsibleSection label="Frame" dk={dk} c={c} defaultOpen>
         <FramePicker
           draft={draft}
           onChange={(newFrameSpec) => update((d) => applyFrameSpec(d, newFrameSpec))}
+          dk={dk}
+          c={c}
+        />
+      </CollapsibleSection>
+
+      {/* ── Per-Frame Overrides ──────────────────────────────────────────── */}
+      <CollapsibleSection
+        label="Per-Frame Overrides"
+        dk={dk}
+        c={c}
+        badge={Object.keys(draft.frameOverrides ?? {}).length > 0
+          ? `${Object.keys(draft.frameOverrides).length} custom`
+          : null}
+      >
+        <FrameOverrideList
+          draft={draft}
+          onOverride={(localIdx, spec) => update((d) => applyFrameOverrideAtIndex(d, localIdx, spec))}
+          onResetAll={() => update((d) => ({ ...d, frameOverrides: {} }))}
           dk={dk}
           c={c}
         />
@@ -619,6 +654,195 @@ function BeamLevelList({ draft, validation, onMove, onRemove, onAdd, onLevelCapa
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+//  FrameOverrideList  (per-frame spec customisation)
+// ─────────────────────────────────────────────────────────────────────────────
+
+function FrameOverrideList({ draft, onOverride, onResetAll, dk, c }) {
+  const { frameSpec, frameOverrides = {}, bayCount = 1 } = draft;
+  const frameCount  = bayCount + 1;
+  const binding     = bindingFrameSpec(draft);
+  const customCount = Object.keys(frameOverrides).length;
+
+  // Find the local index of the binding frame (for the constraint indicator).
+  let bindingIdx = null;
+  if (customCount > 0) {
+    let min = frameSpec.heightIn;
+    for (const [k, spec] of Object.entries(frameOverrides)) {
+      if (spec.heightIn < min) { min = spec.heightIn; bindingIdx = Number(k); }
+    }
+  }
+
+  return (
+    <div>
+      {/* Binding constraint indicator */}
+      {customCount > 0 && (
+        <div style={{
+          fontSize: 10,
+          color: dk ? '#fbbf24' : '#b45309',
+          background: dk ? 'rgba(251,191,36,0.08)' : 'rgba(251,191,36,0.1)',
+          border: `1px solid ${dk ? 'rgba(251,191,36,0.3)' : 'rgba(251,191,36,0.4)'}`,
+          borderRadius: 5,
+          padding: '4px 8px',
+          marginBottom: 8,
+          lineHeight: 1.4,
+        }}>
+          Binding height: {binding.heightIn}"
+          {bindingIdx !== null ? ` (Frame ${bindingIdx})` : ' (default)'}
+          {' '}— beam levels constrained to this frame.
+        </div>
+      )}
+
+      {Array.from({ length: frameCount }, (_, localIdx) => {
+        const isCustom  = frameOverrides[localIdx] != null;
+        const resolved  = isCustom ? frameOverrides[localIdx] : frameSpec;
+        return (
+          <FrameOverrideRow
+            key={localIdx}
+            localIdx={localIdx}
+            spec={resolved}
+            defaultSpec={frameSpec}
+            isCustom={isCustom}
+            onOverride={(spec) => onOverride(localIdx, spec)}
+            onReset={() => onOverride(localIdx, null)}
+            dk={dk}
+            c={c}
+          />
+        );
+      })}
+
+      {/* Reset-all action */}
+      {customCount > 0 && (
+        <button
+          onClick={onResetAll}
+          style={{
+            marginTop: 6,
+            width: '100%',
+            padding: '4px 0',
+            border: `1px solid ${dk ? '#4b5563' : '#d1d5db'}`,
+            borderRadius: 5,
+            background: 'transparent',
+            color: c.muted,
+            fontSize: 10,
+            cursor: 'pointer',
+          }}
+          onMouseEnter={(e) => { e.currentTarget.style.color = '#ef4444'; e.currentTarget.style.borderColor = '#ef4444'; }}
+          onMouseLeave={(e) => { e.currentTarget.style.color = c.muted; e.currentTarget.style.borderColor = dk ? '#4b5563' : '#d1d5db'; }}
+        >
+          Reset all to default
+        </button>
+      )}
+    </div>
+  );
+}
+
+function FrameOverrideRow({ localIdx, spec, defaultSpec, isCustom, onOverride, onReset, dk, c }) {
+  const [expanded, setExpanded] = useState(false);
+
+  // Depth is locked to the module default — only height and capacity can be overridden per frame.
+  const lockedDepth = defaultSpec.depthIn;
+
+  // Local picker state — initialised from current resolved spec.
+  const [selHeight,   setSelHeight]   = useState(spec.heightIn);
+  const [selCapacity, setSelCapacity] = useState(spec.capacityClass);
+
+  // Keep local picker in sync when the resolved spec changes externally.
+  useEffect(() => {
+    setSelHeight(spec.heightIn);
+    setSelCapacity(spec.capacityClass);
+  }, [spec.id]);  // eslint-disable-line react-hooks/exhaustive-deps
+
+  const tryApply = (h, cap) => {
+    const newSpec = findFrameSpec(h, lockedDepth, cap);
+    if (newSpec) onOverride(newSpec);
+  };
+
+  const matched = findFrameSpec(selHeight, lockedDepth, selCapacity);
+
+  return (
+    <div style={{ borderBottom: `1px solid ${c.divider}`, paddingBottom: 6, marginBottom: 6 }}>
+      {/* Summary row */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+        {/* Frame index badge */}
+        <span style={{
+          width: 20, height: 20, borderRadius: 4, flexShrink: 0,
+          background: isCustom ? (dk ? '#1e3a5f' : '#dbeafe') : (dk ? '#2d2f34' : '#f3f4f6'),
+          color: isCustom ? (dk ? '#93c5fd' : '#1e40af') : c.muted,
+          fontSize: 9, fontWeight: 700,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+        }}>F{localIdx}</span>
+
+        {/* Spec summary */}
+        <span style={{ flex: 1, fontSize: 11, color: c.text, fontFamily: 'monospace' }}>
+          {spec.heightIn}"
+        </span>
+
+        {/* Custom badge + reset */}
+        {isCustom && (
+          <>
+            <span style={{
+              fontSize: 9, fontWeight: 600, padding: '1px 5px', borderRadius: 8,
+              background: dk ? '#1e3a5f' : '#dbeafe', color: dk ? '#93c5fd' : '#1e40af',
+            }}>custom</span>
+            <button
+              onClick={onReset}
+              title="Reset to module default"
+              style={{
+                width: 20, height: 20, border: 'none', borderRadius: 4, padding: 0,
+                background: 'transparent', color: c.muted, cursor: 'pointer', fontSize: 13,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+              }}
+              onMouseEnter={(e) => { e.currentTarget.style.color = '#ef4444'; }}
+              onMouseLeave={(e) => { e.currentTarget.style.color = c.muted; }}
+            >↺</button>
+          </>
+        )}
+
+        {/* Expand toggle */}
+        <button
+          onClick={() => setExpanded((x) => !x)}
+          title={expanded ? 'Collapse' : 'Edit this frame'}
+          style={{
+            width: 20, height: 20, border: `1px solid ${c.border}`, borderRadius: 4, padding: 0,
+            background: expanded ? (dk ? '#1e3a5f' : '#eff6ff') : 'transparent',
+            color: expanded ? (dk ? '#93c5fd' : '#1d4ed8') : c.muted,
+            cursor: 'pointer', fontSize: 11,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+          }}
+        >{expanded ? '▲' : '✎'}</button>
+      </div>
+
+      {/* Inline spec picker */}
+      {expanded && (
+        <div style={{ paddingTop: 10, paddingLeft: 26, display: 'flex', flexDirection: 'column', gap: 8 }}>
+          <AttrRow label="Height">
+            <SegmentedControl
+              options={FRAME_HEIGHTS_IN.map((h) => ({ value: h, label: `${h}"` }))}
+              value={selHeight}
+              onChange={(h) => { setSelHeight(h); tryApply(h, selCapacity); }}
+              dk={dk} c={c}
+            />
+          </AttrRow>
+          <AttrRow label="Capacity">
+            <SegmentedControl
+              options={FRAME_CAPACITY_CLASSES.map((cap) => ({ value: cap, label: CAPACITY_LABELS[cap] }))}
+              value={selCapacity}
+              onChange={(cap) => { setSelCapacity(cap); tryApply(selHeight, cap); }}
+              dk={dk} c={c}
+            />
+          </AttrRow>
+          <SpecMatchBadge matched={matched} label="Frame" dk={dk} c={c} />
+          {!isCustom && matched && matched.id !== defaultSpec.id && (
+            <div style={{ fontSize: 10, color: c.muted }}>
+              Differs from default — will be saved as an override.
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 //  RowConfigControl
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -775,7 +999,7 @@ function ValidationBanner({ validation, dk, c }) {
 //  Shared UI primitives
 // ─────────────────────────────────────────────────────────────────────────────
 
-function CollapsibleSection({ label, dk, c, defaultOpen = false, children }) {
+function CollapsibleSection({ label, dk, c, defaultOpen = false, badge = null, children }) {
   const [open, setOpen] = useState(defaultOpen);
   return (
     <div style={{ marginBottom: 10 }}>
@@ -794,8 +1018,20 @@ function CollapsibleSection({ label, dk, c, defaultOpen = false, children }) {
           borderBottom: `1px solid ${c.divider}`,
         }}
       >
-        <span style={{ fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-          {label}
+        <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <span style={{ fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+            {label}
+          </span>
+          {badge && (
+            <span style={{
+              fontSize: 9,
+              fontWeight: 600,
+              padding: '1px 5px',
+              borderRadius: 8,
+              background: dk ? '#1e3a5f' : '#dbeafe',
+              color: dk ? '#93c5fd' : '#1e40af',
+            }}>{badge}</span>
+          )}
         </span>
         <span style={{ fontSize: 10 }}>{open ? '▲' : '▼'}</span>
       </button>

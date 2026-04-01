@@ -430,19 +430,25 @@ function paintRackBox(ctx, entity, cam, selected, dk, { skipRightFrame = false, 
     ctx.restore();
   }
 
-  // Label
+  // Label dimensions (computed before restore, used after)
   const innerW = lw - 2 * fcw;
   const innerH = lh - 2 * bsh;
-  if (innerW > 30 && innerH > 12 && entity.label) {
-    ctx.globalAlpha = 0.75;
-    ctx.fillStyle = selected ? p.selLabel : p.labelColor;
-    ctx.font = `${Math.max(8, Math.min(11, innerW * 0.07))}px sans-serif`;
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText(entity.label, fcw + innerW / 2, bsh + innerH / 2, innerW - 4);
-  }
 
   ctx.restore();
+
+  // Draw label after restore so text is always horizontal regardless of rack rotation
+  const screenInnerW = isVertical ? innerH : innerW;
+  const screenInnerH = isVertical ? innerW : innerH;
+  if (screenInnerW > 30 && screenInnerH > 12 && entity.label) {
+    ctx.save();
+    ctx.globalAlpha = 0.75;
+    ctx.fillStyle = selected ? p.selLabel : p.labelColor;
+    ctx.font = `${Math.max(8, Math.min(11, screenInnerW * 0.07))}px sans-serif`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(entity.label, sx + sw / 2, sy + sh / 2, screenInnerW - 4);
+    ctx.restore();
+  }
 }
 
 // ── Wall ────────────────────────────────────────────────────────────────────

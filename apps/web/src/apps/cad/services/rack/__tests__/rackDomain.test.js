@@ -72,6 +72,14 @@ import {
   computePricing,
 } from '../index.js';
 
+import {
+  bindingFrameSpec,
+  applyFrameOverrideAtIndex,
+  applyFrameSpec,
+  commitDraftToModule,
+  clampHoleIndicesToFrame,
+} from '../rackModuleEditorUtils.js';
+
 // ── Test Helpers ────────────────────────────────────────────────────────────
 
 let passed = 0;
@@ -759,6 +767,227 @@ section('Additional — Design Revision Validation');
   const { overallState, lineResults } = validateDesignRevision(rev);
   assertEqual(overallState, ValidationState.INVALID, 'Revision with any invalid line → INVALID');
   assert(lineResults.size === 2, 'Validation results for each line');
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+//  EDITOR UTILS: bindingFrameSpec & applyFrameOverrideAtIndex
+// ═══════════════════════════════════════════════════════════════════════
+section('Editor Utils — bindingFrameSpec');
+
+{
+  const short = makeFrameSpec({ id: 'FRM-SHORT', heightIn: 120 });
+  const tall  = makeFrameSpec({ id: 'FRM-TALL',  heightIn: 240 });
+  const beam  = makeBeamSpec();
+
+  // No overrides → binding is the default spec
+  const draft1 = { frameSpec: tall, frameOverrides: {}, beamLengthIn: 96, beamSpecs: [beam], holeIndices: [10] };
+  assert(bindingFrameSpec(draft1) === tall, 'bindingFrameSpec: no overrides → default');
+
+  // Override shorter than default → override is binding
+  const draft2 = { ...draft1, frameOverrides: { 1: short } };
+  assert(bindingFrameSpec(draft2) === short, 'bindingFrameSpec: shorter override → override is binding');
+
+  // Override taller than default → default remains binding
+  const draft3 = { ...draft1, frameSpec: short, frameOverrides: { 2: tall } };
+  assert(bindingFrameSpec(draft3) === short, 'bindingFrameSpec: taller override → default is binding');
+
+  // Multiple overrides → shortest wins
+  const medium = makeFrameSpec({ id: 'FRM-MED', heightIn: 180 });
+  const draft4 = { ...draft1, frameOverrides: { 0: medium, 2: short, 3: tall } };
+  assert(bindingFrameSpec(draft4) === short, 'bindingFrameSpec: multiple overrides → shortest wins');
+
+  // Missing frameSpec → null
+  assert(bindingFrameSpec({ frameSpec: null, frameOverrides: {} }) === null, 'bindingFrameSpec: null frameSpec → null');
+}
+
+section('Editor Utils — applyFrameOverrideAtIndex');
+
+{
+  const default144 = makeFrameSpec({ id: 'FRM-144', heightIn: 144 });
+  const tall192    = makeFrameSpec({ id: 'FRM-192', heightIn: 192 });
+  const short96    = makeFrameSpec({ id: 'FRM-96',  heightIn: 96  });
+  const beam       = makeBeamSpec();
+
+  // Draft: 3 frames (2 bays), 2 beam levels at holes 10 and 20
+  const baseDraft = {
+    frameSpec: default144,
+    frameOverrides: {},
+    beamLengthIn: 96,
+    beamSpecs: [beam, beam],
+    holeIndices: [10, 20],
+    bayCount: 2,
+  };
+
+  // Set a taller override — no beam level clamping expected
+  const afterTall = applyFrameOverrideAtIndex(baseDraft, 1, tall192);
+  assert(afterTall.frameOverrides[1] === tall192, 'applyFrameOverrideAtIndex: override stored at correct index');
+  assertEqual(afterTall.holeIndices.length, 2, 'applyFrameOverrideAtIndex: taller override preserves all levels');
+  assert(afterTall.frameSpec === default144, 'applyFrameOverrideAtIndex: default spec unchanged');
+
+  // Set a shorter override (96") — beam levels at holes 10 and 20 exceed 96" frame max
+  // 96" frame: maxHoleIndex = 48, minimumTopClearanceIn=6 → clearanceHoles=3 → maxAllowed=45
+  // holes 10 and 20 both ≤ 45, so neither should be removed
+  const afterShort = applyFrameOverrideAtIndex(baseDraft, 2, short96);
+  assert(afterShort.frameOverrides[2] === short96, 'applyFrameOverrideAtIndex: short override stored');
+  // Verify binding is now the short frame
+  assert(bindingFrameSpec(afterShort) === short96, 'applyFrameOverrideAtIndex: binding updated to short override');
+
+  // Set a very short override that forces level clamping
+  // Frame 60" height → maxHoleIndex=30, minimumTopClearanceIn=6 → clearance=3 → maxAllowed=27
+  // Level at hole 20 survives; hypothetical level at hole 30 would be removed
+  const tiny60 = makeFrameSpec({ id: 'FRM-60', heightIn: 60, minimumTopClearanceIn: 6 });
+  const draftWithHigh = { ...baseDraft, holeIndices: [10, 30], beamSpecs: [beam, beam] };
+  const afterTiny = applyFrameOverrideAtIndex(draftWithHigh, 0, tiny60);
+  // maxAllowed for 60" = 30 - ceil(6/2) = 30 - 3 = 27 → hole 30 is removed
+  assert(!afterTiny.holeIndices.includes(30), 'applyFrameOverrideAtIndex: levels exceeding short frame are clamped');
+  assert(afterTiny.holeIndices.includes(10),  'applyFrameOverrideAtIndex: levels within short frame are kept');
+
+  // Clear an override (pass null) — default is restored
+  const withOverride = applyFrameOverrideAtIndex(baseDraft, 1, tall192);
+  const cleared = applyFrameOverrideAtIndex(withOverride, 1, null);
+  assert(cleared.frameOverrides[1] == null, 'applyFrameOverrideAtIndex: null clears override');
+  assert(Object.keys(cleared.frameOverrides).length === 0, 'applyFrameOverrideAtIndex: no overrides remain after clear');
+}
+
+section('Editor Utils — applyFrameSpec respects existing overrides');
+
+{
+  const default144 = makeFrameSpec({ id: 'FRM-144', heightIn: 144 });
+  const short96    = makeFrameSpec({ id: 'FRM-96',  heightIn: 96  });
+  const newDefault = makeFrameSpec({ id: 'FRM-192', heightIn: 192 });
+  const beam       = makeBeamSpec();
+
+  // Draft with a short override and levels that fit in 96"
+  const draft = {
+    frameSpec:      default144,
+    frameOverrides: { 1: short96 },
+    beamLengthIn:   96,
+    beamSpecs:      [beam, beam],
+    holeIndices:    [10, 20],
+    bayCount:       2,
+  };
+
+  // Raising the default should keep the short override as binding — levels preserved
+  const raised = applyFrameSpec(draft, newDefault);
+  assertEqual(raised.holeIndices.length, 2, 'applyFrameSpec: raising default keeps levels (short override still binds)');
+  assert(bindingFrameSpec(raised) === short96, 'applyFrameSpec: short override remains binding after default raised');
+}
+
+section('Editor Utils — commitDraftToModule preserves frameOverrides');
+
+{
+  resetIdCounter();
+  const defaultSpec = makeFrameSpec({ id: 'FRM-144', heightIn: 144 });
+  const overrideSpec = makeFrameSpec({ id: 'FRM-192', heightIn: 192 });
+  const beam = makeBeamSpec();
+
+  const draft = {
+    frameSpec:        defaultSpec,
+    frameOverrides:   { 1: overrideSpec },
+    beamLengthIn:     96,
+    beamSpecs:        [beam],
+    holeIndices:      [10],
+    bayCount:         2,
+    rowConfiguration: RowConfiguration.SINGLE,
+  };
+
+  const mod = commitDraftToModule(draft, 0);
+  assert(Object.isFrozen(mod), 'commitDraftToModule with overrides: module is frozen');
+  assert(mod.frameSpec === defaultSpec, 'commitDraftToModule: default frameSpec stored');
+  assert(mod.frameOverrides[1] === overrideSpec, 'commitDraftToModule: frameOverride at index 1 stored');
+  assertEqual(mod.frameCount, 3, 'commitDraftToModule: 2 bays → 3 frames');
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+//  Validation — validateBeamOverrideCompatibility
+// ═══════════════════════════════════════════════════════════════════════
+section('Validation — beam/frame-override compatibility');
+
+function makeLineWithOverride({ defaultSpec, overrideSpec, localFrameIndex = 1, beamSpec, holeIndices = [5] }) {
+  resetIdCounter();
+  const beam = beamSpec ?? makeBeamSpec();
+  const bayBeamSpec = makeBeamSpec({ lengthIn: 96 });
+  const levels = holeIndices.map((hi, i) =>
+    createBeamLevel({ id: `lvl${i}`, levelIndex: i, holeIndex: hi, beamSpec: beam }),
+  );
+  const bays = [
+    createBay({ id: 'bay0', leftFrameIndex: 0, beamSpec: bayBeamSpec, levels }),
+    createBay({ id: 'bay1', leftFrameIndex: 1, beamSpec: bayBeamSpec, levels }),
+  ];
+  const frameOverrides = overrideSpec ? { [localFrameIndex]: overrideSpec } : {};
+  const mod = createRackModule({
+    id: 'mod0', frameSpec: defaultSpec, frameOverrides, bays, levelUnion: levels,
+    startFrameIndex: 0, rowIndex: null,
+  });
+  return createRackLine({ id: 'line0', modules: [mod], rowConfiguration: RowConfiguration.SINGLE, levelMode: LevelMode.UNIFORM, backToBackConfig: null });
+}
+
+{
+  // Compatible with both default and override → no override errors
+  const defaultSpec = makeFrameSpec({ id: 'FRM-DEF', uprightSeries: 'T-BOLT', capacityClass: 'STANDARD', compatibleConnectorTypes: ['T-BOLT'] });
+  const overrideSpec = makeFrameSpec({ id: 'FRM-OVR', uprightSeries: 'T-BOLT', capacityClass: 'STANDARD', compatibleConnectorTypes: ['T-BOLT'], heightIn: 192 });
+  const beam = makeBeamSpec({ compatibleUprightSeries: ['T-BOLT'], connectorType: 'T-BOLT', capacityClass: 'STANDARD' });
+  const line = makeLineWithOverride({ defaultSpec, overrideSpec, beamSpec: beam });
+  const result = validateRackLine(line);
+  const overrideCodes = result.errors.filter((e) => e.code.endsWith('_OVERRIDE'));
+  assert(overrideCodes.length === 0, 'Override compat: no errors when beam compatible with both default and override');
+}
+
+{
+  // Override has different uprightSeries — beam incompatible with override
+  const defaultSpec = makeFrameSpec({ id: 'FRM-DEF', uprightSeries: 'T-BOLT', compatibleConnectorTypes: ['T-BOLT'] });
+  const overrideSpec = makeFrameSpec({ id: 'FRM-TEAR', uprightSeries: 'TEARDROP', compatibleConnectorTypes: ['TEARDROP'] });
+  const beam = makeBeamSpec({ compatibleUprightSeries: ['T-BOLT'], connectorType: 'T-BOLT' });
+  const line = makeLineWithOverride({ defaultSpec, overrideSpec, beamSpec: beam });
+  const result = validateRackLine(line);
+  const seriesErr = result.errors.find((e) => e.code === 'BEAM_INCOMPATIBLE_WITH_FRAME_OVERRIDE');
+  assert(seriesErr != null, 'Override compat: BEAM_INCOMPATIBLE_WITH_FRAME_OVERRIDE when upright series clashes');
+  assertEqual(seriesErr.context.localFrameIndex, 1, 'Override compat: localFrameIndex in error context');
+}
+
+{
+  // Override has different connector type — connector mismatch with override
+  const defaultSpec = makeFrameSpec({ id: 'FRM-DEF', uprightSeries: 'T-BOLT', compatibleConnectorTypes: ['T-BOLT'] });
+  const overrideSpec = makeFrameSpec({ id: 'FRM-CLIP', uprightSeries: 'T-BOLT', compatibleConnectorTypes: ['CLIP-IN'] });
+  const beam = makeBeamSpec({ compatibleUprightSeries: ['T-BOLT'], connectorType: 'T-BOLT' });
+  const line = makeLineWithOverride({ defaultSpec, overrideSpec, beamSpec: beam });
+  const result = validateRackLine(line);
+  const connErr = result.errors.find((e) => e.code === 'CONNECTOR_TYPE_MISMATCH_OVERRIDE');
+  assert(connErr != null, 'Override compat: CONNECTOR_TYPE_MISMATCH_OVERRIDE when connector type clashes');
+}
+
+{
+  // Override has lower capacity class — beam capacity exceeds override
+  const defaultSpec = makeFrameSpec({ id: 'FRM-HEAVY', capacityClass: 'HEAVY', uprightSeries: 'T-BOLT', compatibleConnectorTypes: ['T-BOLT'] });
+  const overrideSpec = makeFrameSpec({ id: 'FRM-STD', capacityClass: 'STANDARD', uprightSeries: 'T-BOLT', compatibleConnectorTypes: ['T-BOLT'] });
+  const beam = makeBeamSpec({ capacityClass: 'HEAVY', compatibleUprightSeries: ['T-BOLT'], connectorType: 'T-BOLT' });
+  const line = makeLineWithOverride({ defaultSpec, overrideSpec, beamSpec: beam });
+  const result = validateRackLine(line);
+  const capErr = result.errors.find((e) => e.code === 'CAPACITY_CLASS_EXCEEDED_OVERRIDE');
+  assert(capErr != null, 'Override compat: CAPACITY_CLASS_EXCEEDED_OVERRIDE when beam capacity exceeds override');
+  assertEqual(capErr.context.frameCapacityClass, 'STANDARD', 'Override compat: override capacity class in context');
+}
+
+{
+  // Override is shorter than default — level exceeds override height
+  const defaultSpec = makeFrameSpec({ id: 'FRM-TALL', heightIn: 240, minimumTopClearanceIn: 6, uprightSeries: 'T-BOLT', compatibleConnectorTypes: ['T-BOLT'] });
+  const overrideSpec = makeFrameSpec({ id: 'FRM-SHORT', heightIn: 96, minimumTopClearanceIn: 6, uprightSeries: 'T-BOLT', compatibleConnectorTypes: ['T-BOLT'] });
+  const beam = makeBeamSpec({ compatibleUprightSeries: ['T-BOLT'], connectorType: 'T-BOLT' });
+  // holeIndex 50 fits in 240" frame but not in 96" frame (maxHole ~= 96/3 = ~32 minus clearance)
+  const line = makeLineWithOverride({ defaultSpec, overrideSpec, beamSpec: beam, holeIndices: [50] });
+  const result = validateRackLine(line);
+  const heightErr = result.errors.find((e) => e.code === 'FRAME_HEIGHT_EXCEEDED_OVERRIDE');
+  assert(heightErr != null, 'Override compat: FRAME_HEIGHT_EXCEEDED_OVERRIDE when level exceeds override frame height');
+  assertEqual(heightErr.context.localFrameIndex, 1, 'Override compat: localFrameIndex in height error context');
+}
+
+{
+  // Override same spec as default → no duplicate errors
+  const defaultSpec = makeFrameSpec({ id: 'FRM-SAME' });
+  const line = makeLineWithOverride({ defaultSpec, overrideSpec: defaultSpec });
+  const result = validateRackLine(line);
+  const overrideCodes = result.errors.filter((e) => e.code.endsWith('_OVERRIDE'));
+  assert(overrideCodes.length === 0, 'Override compat: no override errors when override spec === default spec');
 }
 
 // ═══════════════════════════════════════════════════════════════════════
