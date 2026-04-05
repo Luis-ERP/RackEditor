@@ -185,5 +185,4 @@ export function logDrawnObjectSemantics(layoutStore, rackDomainRef) {
   const semantics = visibleEntities.map((entity) =>
     describeEntitySemantics(entity, selection.has(entity.id), rackDomainRef),
   );
-  console.log('[CADCanvas] Drawn object semantics', semantics);
 }
