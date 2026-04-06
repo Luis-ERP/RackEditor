@@ -284,6 +284,19 @@
   font-size: 1rem;
 }
 
+.summaryLabelSub {
+  color: var(--muted-text);
+  font-size: 0.75rem;
+  padding-left: 12px;
+}
+
+.summaryValueSub {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  color: var(--muted-text);
+  font-size: 0.75rem;
+}
+
 /* ── Buttons ─────────────────────────────────────────────────────────────── */
 
 .btn {

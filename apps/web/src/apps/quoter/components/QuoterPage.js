@@ -714,19 +714,17 @@ export default function QuoterPage() {
 
                 <div className={css.summaryDivider} />
 
-                {quote.tax_rates.map((r) => (
-                  <React.Fragment key={r.id}>
-                    <span className={css.summaryLabel}>{r.name} ({fmtPercent(r.rate)})</span>
-                    <span className={css.summaryValue}>
-                      {fmtCurrency((quote.subtotal - quote.total_discounts + quote.shipping + quote.total_fees) * r.rate)}
-                    </span>
-                  </React.Fragment>
-                ))}
-
                 {quote.total_tax_rates > 0 && <>
-                  <div className={css.summaryDivider} />
                   <span className={css.summaryLabel}>Tax Total ({fmtPercent(quote.total_tax_rates)})</span>
                   <span className={css.summaryValue}>{fmtCurrency(quote.tax_amount)}</span>
+                  {quote.tax_rates.map((r) => (
+                    <React.Fragment key={r.id}>
+                      <span className={css.summaryLabelSub}>↳ {r.name} ({fmtPercent(r.rate)})</span>
+                      <span className={css.summaryValueSub}>
+                        {fmtCurrency((quote.subtotal - quote.total_discounts + quote.shipping + quote.total_fees) * r.rate)}
+                      </span>
+                    </React.Fragment>
+                  ))}
                 </>}
 
                 <div className={css.summaryDivider} />
