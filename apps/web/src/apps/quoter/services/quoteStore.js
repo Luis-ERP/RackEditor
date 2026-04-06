@@ -167,8 +167,10 @@ export function createQuoteStore(initialQuoteParams) {
     if (fields.client !== undefined) allowed.client = fields.client;
     if (fields.cad !== undefined) allowed.cad = fields.cad;
     if (fields.quote_template !== undefined) allowed.quote_template = fields.quote_template;
+    if (fields.quote_format_settings !== undefined) allowed.quote_format_settings = fields.quote_format_settings;
     // Legacy compat
     if (fields.quoteNumber !== undefined) allowed.order_number = fields.quoteNumber;
+    if (fields.quoteFormatSettings !== undefined) allowed.quote_format_settings = fields.quoteFormatSettings;
 
     _setQuote(createQuote({
       ..._quote,

@@ -338,12 +338,15 @@ export default function QuoterPage() {
   const [addModalOpen, setAddModalOpen] = useState(false);
   const [compareVersions, setCompareVersions] = useState(null); // { a, b }
   const [importError, setImportError] = useState(null);
+  const [isFormatSettingsCollapsed, setIsFormatSettingsCollapsed] = useState(true);
   const fileInputRef = useRef(null);
 
   const quote = store.getQuote();
   const cadItems = useMemo(() => store.getCadLineItems(), [store, version]);
   const manualItems = useMemo(() => store.getManualLineItems(), [store, version]);
   const versions = useMemo(() => store.getVersions(), [store, version]);
+  const formatDisplay = quote.quote_format_settings?.display_values;
+  const formatLineItems = formatDisplay?.line_items;
 
   // ── Quote field handlers ─────────────────────────────────────────────────
 
@@ -680,7 +683,7 @@ export default function QuoterPage() {
         </div>
 
         {/* ── Row 4: Summary + Template (side by side) ───────────────── */}
-        <div className={css.gridRow2Uneven}>
+        <div className={css.gridRowBottom}>
           <div className={css.section}>
             <div className={css.sectionHeader}>
               <span className={css.sectionTitle}>Quote Summary</span>
@@ -749,52 +752,287 @@ export default function QuoterPage() {
 
             <div className={css.section}>
               <div className={css.sectionHeader}>
-                <span className={css.sectionTitle}>Version History ({versions.length})</span>
-                <button className={`${css.btn} ${css.btnSmall}`} onClick={handleSaveVersion}>
-                  Save Version
+                <span className={css.sectionTitle}>Quote Format Settings</span>
+                <button
+                  className={`${css.btn} ${css.btnSmall}`}
+                  onClick={() => setIsFormatSettingsCollapsed((prev) => !prev)}
+                >
+                  {isFormatSettingsCollapsed ? 'Show' : 'Hide'}
                 </button>
               </div>
+              {!isFormatSettingsCollapsed && (
               <div className={css.sectionBody}>
-                {versions.length === 0 ? (
-                  <span className={css.emptyText}>No saved versions yet.</span>
-                ) : (
-                  <div className={css.versionList}>
-                    {[...versions].reverse().map((v, i) => (
-                      <div key={v.id} className={css.versionRow}>
-                        <div className={css.versionInfo}>
-                          <span className={css.versionNumber}>v{v.version}</span>
-                          <span className={css.versionMeta}>
-                            {fmtDateTime(v.updated_at)}
-                            {v.updated_by ? ` by ${v.updated_by}` : ''}
-                          </span>
-                          <span className={css.versionTotal}>
-                            {fmtCurrency(v.data?.total ?? 0)}
-                          </span>
-                        </div>
-                        <div className={css.versionActions}>
-                          {versions.length >= 2 && i < versions.length - 1 && (
-                            <button
-                              className={`${css.btn} ${css.btnSmall}`}
-                              onClick={() => setCompareVersions({
-                                a: versions[versions.length - 1 - i],
-                                b: versions[versions.length - 2 - i],
-                              })}
-                            >
-                              Compare ↑
-                            </button>
-                          )}
+                <div className={css.formatSettingsList}>
+                  <label className={css.formatSettingRow}>
+                    <input
+                      type="checkbox"
+                      checked={Boolean(formatDisplay?.client)}
+                      onChange={(e) => store.updateQuoteFields({
+                        quote_format_settings: {
+                          display_values: {
+                            ...formatDisplay,
+                            line_items: { ...formatLineItems },
+                            client: e.target.checked,
+                          },
+                        },
+                      })}
+                    />
+                    <span>Client</span>
+                  </label>
+
+                  <label className={css.formatSettingRow}>
+                    <input
+                      type="checkbox"
+                      checked={Boolean(formatDisplay?.cad_line_items)}
+                      onChange={(e) => store.updateQuoteFields({
+                        quote_format_settings: {
+                          display_values: {
+                            ...formatDisplay,
+                            line_items: { ...formatLineItems },
+                            cad_line_items: e.target.checked,
+                          },
+                        },
+                      })}
+                    />
+                    <span>CAD Line Items</span>
+                  </label>
+
+                  <div className={css.formatSubGroup}>
+                    <span className={css.formatSubTitle}>Line Items</span>
+
+                    <label className={css.formatSettingRow}>
+                      <input
+                        type="checkbox"
+                        checked={Boolean(formatLineItems?.name)}
+                        onChange={(e) => store.updateQuoteFields({
+                          quote_format_settings: {
+                            display_values: {
+                              ...formatDisplay,
+                              line_items: { ...formatLineItems, name: e.target.checked },
+                            },
+                          },
+                        })}
+                      />
+                      <span>Name</span>
+                    </label>
+
+                    <label className={css.formatSettingRow}>
+                      <input
+                        type="checkbox"
+                        checked={Boolean(formatLineItems?.description)}
+                        onChange={(e) => store.updateQuoteFields({
+                          quote_format_settings: {
+                            display_values: {
+                              ...formatDisplay,
+                              line_items: { ...formatLineItems, description: e.target.checked },
+                            },
+                          },
+                        })}
+                      />
+                      <span>Description</span>
+                    </label>
+
+                    <label className={css.formatSettingRow}>
+                      <input
+                        type="checkbox"
+                        checked={Boolean(formatLineItems?.cost)}
+                        onChange={(e) => store.updateQuoteFields({
+                          quote_format_settings: {
+                            display_values: {
+                              ...formatDisplay,
+                              line_items: { ...formatLineItems, cost: e.target.checked },
+                            },
+                          },
+                        })}
+                      />
+                      <span>Cost</span>
+                    </label>
+
+                    <label className={css.formatSettingRow}>
+                      <input
+                        type="checkbox"
+                        checked={Boolean(formatLineItems?.unit_price)}
+                        onChange={(e) => store.updateQuoteFields({
+                          quote_format_settings: {
+                            display_values: {
+                              ...formatDisplay,
+                              line_items: { ...formatLineItems, unit_price: e.target.checked },
+                            },
+                          },
+                        })}
+                      />
+                      <span>Unit Price</span>
+                    </label>
+
+                    <label className={css.formatSettingRow}>
+                      <input
+                        type="checkbox"
+                        checked={Boolean(formatLineItems?.quantity)}
+                        onChange={(e) => store.updateQuoteFields({
+                          quote_format_settings: {
+                            display_values: {
+                              ...formatDisplay,
+                              line_items: { ...formatLineItems, quantity: e.target.checked },
+                            },
+                          },
+                        })}
+                      />
+                      <span>Quantity</span>
+                    </label>
+
+                    <label className={css.formatSettingRow}>
+                      <input
+                        type="checkbox"
+                        checked={Boolean(formatLineItems?.discount)}
+                        onChange={(e) => store.updateQuoteFields({
+                          quote_format_settings: {
+                            display_values: {
+                              ...formatDisplay,
+                              line_items: { ...formatLineItems, discount: e.target.checked },
+                            },
+                          },
+                        })}
+                      />
+                      <span>Discount</span>
+                    </label>
+
+                    <label className={css.formatSettingRow}>
+                      <input
+                        type="checkbox"
+                        checked={Boolean(formatLineItems?.total)}
+                        onChange={(e) => store.updateQuoteFields({
+                          quote_format_settings: {
+                            display_values: {
+                              ...formatDisplay,
+                              line_items: { ...formatLineItems, total: e.target.checked },
+                            },
+                          },
+                        })}
+                      />
+                      <span>Total</span>
+                    </label>
+                  </div>
+
+                  <label className={css.formatSettingRow}>
+                    <input
+                      type="checkbox"
+                      checked={Boolean(formatDisplay?.tax_rates)}
+                      onChange={(e) => store.updateQuoteFields({
+                        quote_format_settings: {
+                          display_values: {
+                            ...formatDisplay,
+                            line_items: { ...formatLineItems },
+                            tax_rates: e.target.checked,
+                          },
+                        },
+                      })}
+                    />
+                    <span>Tax Rates</span>
+                  </label>
+
+                  <label className={css.formatSettingRow}>
+                    <input
+                      type="checkbox"
+                      checked={Boolean(formatDisplay?.discounts)}
+                      onChange={(e) => store.updateQuoteFields({
+                        quote_format_settings: {
+                          display_values: {
+                            ...formatDisplay,
+                            line_items: { ...formatLineItems },
+                            discounts: e.target.checked,
+                          },
+                        },
+                      })}
+                    />
+                    <span>Discounts</span>
+                  </label>
+
+                  <label className={css.formatSettingRow}>
+                    <input
+                      type="checkbox"
+                      checked={Boolean(formatDisplay?.fees)}
+                      onChange={(e) => store.updateQuoteFields({
+                        quote_format_settings: {
+                          display_values: {
+                            ...formatDisplay,
+                            line_items: { ...formatLineItems },
+                            fees: e.target.checked,
+                          },
+                        },
+                      })}
+                    />
+                    <span>Fees</span>
+                  </label>
+
+                  <label className={css.formatSettingRow}>
+                    <input
+                      type="checkbox"
+                      checked={Boolean(formatDisplay?.shipping)}
+                      onChange={(e) => store.updateQuoteFields({
+                        quote_format_settings: {
+                          display_values: {
+                            ...formatDisplay,
+                            line_items: { ...formatLineItems },
+                            shipping: e.target.checked,
+                          },
+                        },
+                      })}
+                    />
+                    <span>Shipping</span>
+                  </label>
+                </div>
+              </div>
+              )}
+            </div>
+          </div>
+
+          <div className={css.section}>
+            <div className={css.sectionHeader}>
+              <span className={css.sectionTitle}>Version History ({versions.length})</span>
+              <button className={`${css.btn} ${css.btnSmall}`} onClick={handleSaveVersion}>
+                Save Version
+              </button>
+            </div>
+            <div className={css.sectionBody}>
+              {versions.length === 0 ? (
+                <span className={css.emptyText}>No saved versions yet.</span>
+              ) : (
+                <div className={css.versionList}>
+                  {[...versions].reverse().map((v, i) => (
+                    <div key={v.id} className={css.versionRow}>
+                      <div className={css.versionInfo}>
+                        <span className={css.versionNumber}>v{v.version}</span>
+                        <span className={css.versionMeta}>
+                          {fmtDateTime(v.updated_at)}
+                          {v.updated_by ? ` by ${v.updated_by}` : ''}
+                        </span>
+                        <span className={css.versionTotal}>
+                          {fmtCurrency(v.data?.total ?? 0)}
+                        </span>
+                      </div>
+                      <div className={css.versionActions}>
+                        {versions.length >= 2 && i < versions.length - 1 && (
                           <button
                             className={`${css.btn} ${css.btnSmall}`}
-                            onClick={() => handleSwitchToVersion(v.id)}
+                            onClick={() => setCompareVersions({
+                              a: versions[versions.length - 1 - i],
+                              b: versions[versions.length - 2 - i],
+                            })}
                           >
-                            Restore
+                            Compare ↑
                           </button>
-                        </div>
+                        )}
+                        <button
+                          className={`${css.btn} ${css.btnSmall}`}
+                          onClick={() => handleSwitchToVersion(v.id)}
+                        >
+                          Restore
+                        </button>
                       </div>
-                    ))}
-                  </div>
-                )}
-              </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
         </div>

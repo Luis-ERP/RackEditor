@@ -84,6 +84,12 @@
   gap: 20px;
 }
 
+.gridRowBottom {
+  display: grid;
+  grid-template-columns: 3fr 2fr 2fr;
+  gap: 20px;
+}
+
 .gridRow3 {
   display: grid;
   grid-template-columns: 1fr 1fr 1fr;
@@ -100,12 +106,17 @@
   .gridRow3 {
     grid-template-columns: 1fr 1fr;
   }
+
+  .gridRowBottom {
+    grid-template-columns: 1fr 1fr;
+  }
 }
 
 @media (max-width: 768px) {
   .gridRow2,
   .gridRow2Uneven,
-  .gridRow3 {
+  .gridRow3,
+  .gridRowBottom {
     grid-template-columns: 1fr;
   }
 }
@@ -623,6 +634,46 @@
   display: flex;
   gap: 6px;
   flex-shrink: 0;
+}
+
+/* ── Quote format settings ──────────────────────────────────────────────── */
+
+.formatSettingsList {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.formatSubGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 2px;
+  padding: 8px;
+  border: 1px solid var(--surface-border);
+  border-radius: 6px;
+  background: var(--surface-muted);
+}
+
+.formatSubTitle {
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--muted-text);
+}
+
+.formatSettingRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.82rem;
+  color: var(--app-text);
+}
+
+.formatSettingRow input[type='checkbox'] {
+  width: 14px;
+  height: 14px;
 }
 
 /* ── Diff row in comparison table ────────────────────────────────────────── */

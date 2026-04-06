@@ -87,6 +87,41 @@ function normalizeEntries(entries) {
   return Object.freeze(entries.map(normalizeEntry));
 }
 
+function normalizeBool(value, fallback) {
+  return typeof value === 'boolean' ? value : fallback;
+}
+
+/**
+ * Normalize quote format settings used to control export/display options.
+ *
+ * @param {Object|null|undefined} settings
+ * @returns {Readonly<{ display_values: Readonly<Record<string, unknown>> }>}
+ */
+function normalizeQuoteFormatSettings(settings) {
+  const display = settings?.display_values ?? {};
+  const lineItems = display?.line_items ?? {};
+
+  return Object.freeze({
+    display_values: Object.freeze({
+      client: normalizeBool(display.client, true),
+      cad_line_items: normalizeBool(display.cad_line_items, true),
+      line_items: Object.freeze({
+        name: normalizeBool(lineItems.name, true),
+        description: normalizeBool(lineItems.description, true),
+        cost: normalizeBool(lineItems.cost, false),
+        unit_price: normalizeBool(lineItems.unit_price, true),
+        quantity: normalizeBool(lineItems.quantity, true),
+        discount: normalizeBool(lineItems.discount, false),
+        total: normalizeBool(lineItems.total, true),
+      }),
+      tax_rates: normalizeBool(display.tax_rates, true),
+      discounts: normalizeBool(display.discounts, true),
+      fees: normalizeBool(display.fees, true),
+      shipping: normalizeBool(display.shipping, true),
+    }),
+  });
+}
+
 /**
  * Create a quote aggregate.
  *
@@ -104,6 +139,7 @@ function normalizeEntries(entries) {
  * @param {Object|null} [params.cad]     — { project_file }
  * @param {Object|null} [params.quote_template]
  *   { template_file, template_variables_mapping }
+ * @param {Object|null} [params.quote_format_settings]
  * @param {Array} [params.versioning=[]] — [{ id, version, updated_at, updated_by, data }]
  * @param {Object|null} [params.audit=null]
  * @param {Record<string, unknown>} [params.extras]
@@ -123,6 +159,7 @@ export function createQuote({
   shipping = 0,
   cad = null,
   quote_template = null,
+  quote_format_settings = null,
   versioning = [],
   audit = null,
   extras = {},
@@ -135,6 +172,7 @@ export function createQuote({
   discount,
   freight,
   linkedDesign,
+  quoteFormatSettings,
 }) {
   // Merge legacy aliases
   const resolvedOrderNumber = order_number || quoteNumber || '';
@@ -157,6 +195,7 @@ export function createQuote({
 
   // cad: legacy linkedDesign → cad
   const resolvedCad = cad ?? (linkedDesign ? { project_file: linkedDesign.designId ?? '' } : null);
+  const resolvedQuoteFormatSettings = quote_format_settings ?? quoteFormatSettings;
 
   const normalizedLineItems = resolvedLineItems.map((li) => createQuoteLineItem(li));
 
@@ -201,6 +240,8 @@ export function createQuote({
       })
     : null;
 
+  const normalizedQuoteFormatSettings = normalizeQuoteFormatSettings(resolvedQuoteFormatSettings);
+
   const normalizedVersioning = Array.isArray(versioning)
     ? Object.freeze(versioning.map((v) => Object.freeze({ ...v })))
     : Object.freeze([]);
@@ -217,6 +258,7 @@ export function createQuote({
     shipping: roundCurrency(resolvedShipping),
     cad: normalizedCad,
     quote_template: normalizedTemplate,
+    quote_format_settings: normalizedQuoteFormatSettings,
     versioning: normalizedVersioning,
 
     // Calculated (read-only)
