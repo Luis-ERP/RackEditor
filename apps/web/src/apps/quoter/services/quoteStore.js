@@ -2,30 +2,35 @@
 //  Quote Store
 //
 //  Framework-agnostic store that manages a single quote lifecycle.
-//  Provides quote CRUD, line-item management, discount handling,
-//  CAD-BOM sync, and undo-friendly snapshot capabilities.
+//  Provides quote CRUD, line-item management, tax/discount/fee array management,
+//  versioning, CAD-BOM sync, and undo-friendly snapshot capabilities.
 //
 //  Follows the same subscribe/notify pattern as the CAD LayoutStore.
 // ─────────────────────────────────────────────────────────────────────────────
 
 import {
+  QUOTE_STATUS,
+  ENTRY_TYPE,
   createQuote,
   withAddedQuoteLineItem,
   withRemovedQuoteLineItem,
   withUpdatedQuoteLineItemById,
+  withAddedTaxRate,
+  withRemovedTaxRate,
+  withUpdatedTaxRate,
+  withAddedDiscount,
+  withRemovedDiscount,
+  withUpdatedDiscount,
+  withAddedFee,
+  withRemovedFee,
+  withUpdatedFee,
+  withSavedVersion,
+  withRestoredVersion,
   withSyncedCadBom,
   getCadReadOnlyLineItems,
-  createQuoteLineItem,
-  DISCOUNT_KIND,
 } from './schemas/index.js';
 
-const QUOTE_STATUS = Object.freeze({
-  DRAFT: 'DRAFT',
-  SENT: 'SENT',
-  APPROVED: 'APPROVED',
-  REJECTED: 'REJECTED',
-  CANCELLED: 'CANCELLED',
-});
+export { QUOTE_STATUS, ENTRY_TYPE };
 
 /**
  * Create a new QuoteStore instance.
@@ -74,57 +79,96 @@ export function createQuoteStore(initialQuoteParams) {
 
   // ── Read ────────────────────────────────────────────────────────
 
-  function getQuote() {
-    return _quote;
-  }
+  function getQuote() { return _quote; }
 
-  function getLineItems() {
-    return _quote.lineItems;
-  }
+  function getLineItems() { return _quote.line_items; }
 
-  function getCadLineItems() {
-    return getCadReadOnlyLineItems(_quote);
-  }
+  function getCadLineItems() { return getCadReadOnlyLineItems(_quote); }
 
-  function getManualLineItems() {
-    return _quote.lineItems.filter((li) => !li.isDesignLinked);
-  }
+  function getManualLineItems() { return _quote.line_items.filter((li) => !li.isDesignLinked); }
+
+  function getVersions() { return _quote.versioning; }
 
   // ── Line Item Operations ────────────────────────────────────────
 
   function addLineItem(lineItemParams, updatedBy = null) {
-    _setQuote(
-      withAddedQuoteLineItem(_quote, lineItemParams, { updatedBy }),
-    );
+    _setQuote(withAddedQuoteLineItem(_quote, lineItemParams, { updatedBy }));
     return _quote;
   }
 
   function removeLineItem(lineItemId, updatedBy = null) {
-    _setQuote(
-      withRemovedQuoteLineItem(_quote, lineItemId, { updatedBy }),
-    );
+    _setQuote(withRemovedQuoteLineItem(_quote, lineItemId, { updatedBy }));
     return _quote;
   }
 
   function updateLineItem(lineItemId, updates, { allowCadOverrides = false, updatedBy = null } = {}) {
-    _setQuote(
-      withUpdatedQuoteLineItemById(_quote, lineItemId, updates, { allowCadOverrides, updatedBy }),
-    );
+    _setQuote(withUpdatedQuoteLineItemById(_quote, lineItemId, updates, { allowCadOverrides, updatedBy }));
     return _quote;
   }
 
-  // ── Quote-Level Operations ──────────────────────────────────────
+  // ── Tax Rates Array ─────────────────────────────────────────────
+
+  function addTaxRate(taxRate, updatedBy = null) {
+    _setQuote(withAddedTaxRate(_quote, taxRate, { updatedBy }));
+    return _quote;
+  }
+
+  function removeTaxRate(taxRateId, updatedBy = null) {
+    _setQuote(withRemovedTaxRate(_quote, taxRateId, { updatedBy }));
+    return _quote;
+  }
+
+  function updateTaxRate(taxRateId, updates, updatedBy = null) {
+    _setQuote(withUpdatedTaxRate(_quote, taxRateId, updates, { updatedBy }));
+    return _quote;
+  }
+
+  // ── Discounts Array ─────────────────────────────────────────────
+
+  function addDiscount(discount, updatedBy = null) {
+    _setQuote(withAddedDiscount(_quote, discount, { updatedBy }));
+    return _quote;
+  }
+
+  function removeDiscount(discountId, updatedBy = null) {
+    _setQuote(withRemovedDiscount(_quote, discountId, { updatedBy }));
+    return _quote;
+  }
+
+  function updateDiscount(discountId, updates, updatedBy = null) {
+    _setQuote(withUpdatedDiscount(_quote, discountId, updates, { updatedBy }));
+    return _quote;
+  }
+
+  // ── Fees Array ──────────────────────────────────────────────────
+
+  function addFee(fee, updatedBy = null) {
+    _setQuote(withAddedFee(_quote, fee, { updatedBy }));
+    return _quote;
+  }
+
+  function removeFee(feeId, updatedBy = null) {
+    _setQuote(withRemovedFee(_quote, feeId, { updatedBy }));
+    return _quote;
+  }
+
+  function updateFee(feeId, updates, updatedBy = null) {
+    _setQuote(withUpdatedFee(_quote, feeId, updates, { updatedBy }));
+    return _quote;
+  }
+
+  // ── Quote-Level Fields ──────────────────────────────────────────
 
   function updateQuoteFields(fields) {
     const allowed = {};
-    if (fields.quoteNumber !== undefined) allowed.quoteNumber = fields.quoteNumber;
+    if (fields.order_number !== undefined) allowed.order_number = fields.order_number;
     if (fields.status !== undefined) allowed.status = fields.status;
     if (fields.shipping !== undefined) allowed.shipping = fields.shipping;
-    if (fields.freight !== undefined) allowed.freight = fields.freight;
-    if (fields.taxRate !== undefined) allowed.taxRate = fields.taxRate;
-    if (fields.discount !== undefined) allowed.discount = fields.discount;
-    if (fields.clientRef !== undefined) allowed.clientRef = fields.clientRef;
-    if (fields.extras !== undefined) allowed.extras = fields.extras;
+    if (fields.client !== undefined) allowed.client = fields.client;
+    if (fields.cad !== undefined) allowed.cad = fields.cad;
+    if (fields.quote_template !== undefined) allowed.quote_template = fields.quote_template;
+    // Legacy compat
+    if (fields.quoteNumber !== undefined) allowed.order_number = fields.quoteNumber;
 
     _setQuote(createQuote({
       ..._quote,
@@ -140,25 +184,27 @@ export function createQuoteStore(initialQuoteParams) {
 
   function setStatus(status) {
     if (!Object.values(QUOTE_STATUS).includes(status)) {
-      throw new Error(`Invalid status: ${status}`);
+      throw new Error(`Invalid status: ${status}. Valid: ${Object.values(QUOTE_STATUS).join(', ')}`);
     }
     return updateQuoteFields({ status });
   }
 
-  function setClientRef(clientRef) {
-    return updateQuoteFields({ clientRef });
+  // ── Versioning ──────────────────────────────────────────────────
+
+  function saveVersion(updatedBy = null) {
+    _setQuote(withSavedVersion(_quote, { updatedBy }));
+    return _quote;
   }
 
-  function setDiscount(discount) {
-    return updateQuoteFields({ discount });
+  function switchToVersion(versionId, updatedBy = null) {
+    _setQuote(withRestoredVersion(_quote, versionId, { updatedBy }));
+    return _quote;
   }
 
   // ── CAD-BOM Sync ────────────────────────────────────────────────
 
   function syncFromBom(bomSnapshot, options = {}) {
-    _setQuote(
-      withSyncedCadBom(_quote, bomSnapshot, options),
-    );
+    _setQuote(withSyncedCadBom(_quote, bomSnapshot, options));
     return _quote;
   }
 
@@ -171,9 +217,7 @@ export function createQuoteStore(initialQuoteParams) {
     return _quote;
   }
 
-  function canUndo() {
-    return _history.length > 0;
-  }
+  function canUndo() { return _history.length > 0; }
 
   // ── Reset / Load ────────────────────────────────────────────────
 
@@ -191,11 +235,7 @@ export function createQuoteStore(initialQuoteParams) {
     return _quote;
   }
 
-  // ── Snapshot ────────────────────────────────────────────────────
-
-  function snapshot() {
-    return JSON.parse(JSON.stringify(_quote));
-  }
+  function snapshot() { return JSON.parse(JSON.stringify(_quote)); }
 
   // ── Public API ──────────────────────────────────────────────────
 
@@ -207,17 +247,36 @@ export function createQuoteStore(initialQuoteParams) {
     getLineItems,
     getCadLineItems,
     getManualLineItems,
+    getVersions,
 
     // Line items
     addLineItem,
     removeLineItem,
     updateLineItem,
 
+    // Tax rates
+    addTaxRate,
+    removeTaxRate,
+    updateTaxRate,
+
+    // Discounts
+    addDiscount,
+    removeDiscount,
+    updateDiscount,
+
+    // Fees
+    addFee,
+    removeFee,
+    updateFee,
+
     // Quote-level
     updateQuoteFields,
     setStatus,
-    setClientRef,
-    setDiscount,
+
+    // Versioning
+    saveVersion,
+    switchToVersion,
+    getVersions,
 
     // BOM sync
     syncFromBom,
@@ -233,7 +292,6 @@ export function createQuoteStore(initialQuoteParams) {
 
     // Constants
     QUOTE_STATUS,
+    ENTRY_TYPE,
   });
 }
-
-export { QUOTE_STATUS };

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { useRouter } from 'next/navigation';
 import EditorPanel from './components/EditorPanel';
 import CADCanvas from './components/CADCanvas';
 import useLayoutStore from './hooks/useLayoutStore';
@@ -18,6 +19,7 @@ import {
 } from './services/export/projectDocumentExporter';
 
 export default function CadWorkspacePage() {
+  const router = useRouter();
   const [drawingMode, setDrawingMode] = useState(false);
   const [rackOrientation, setRackOrientation] = useState('horizontal');
   const [wallMode, setWallMode] = useState(null); // null | 'line' | 'rect'
@@ -110,6 +112,26 @@ export default function CadWorkspacePage() {
 
     input.click();
   }, [store, wallSt, colSt, rackDomainRef]);
+
+  const handleSendToQuoter = useCallback(() => {
+    if (typeof window === 'undefined') return;
+    const doc = serializeProjectDocument({
+      layoutStore: store,
+      wallStore: wallSt,
+      columnStore: colSt,
+      rackDomainRef,
+      canvas: {
+        darkMode: isDark,
+        rackOrientation,
+        drawingMode,
+        wallMode,
+        columnMode,
+        showMeasurements,
+      },
+    });
+    sessionStorage.setItem('quoter:pendingCadImport', JSON.stringify(doc));
+    router.push('/quoter');
+  }, [store, wallSt, colSt, rackDomainRef, isDark, rackOrientation, drawingMode, wallMode, columnMode, showMeasurements, router]);
 
   /** Toggle wall mode (rect or line). Clicking the active mode deactivates it. */
   const handleSetWallMode = useCallback((mode) => {
@@ -257,6 +279,7 @@ export default function CadWorkspacePage() {
         subSelActive={subSel !== null}
         onExportProjectDocument={handleExportProjectDocument}
         onImportProjectDocument={handleImportProjectDocument}
+        onSendToQuoter={handleSendToQuoter}
       />
       <CADCanvas
         drawingMode={drawingMode}

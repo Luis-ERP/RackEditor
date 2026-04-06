@@ -16,6 +16,20 @@ export const QUOTE_LINE_SOURCE = Object.freeze({
   MANUAL: 'MANUAL',
 });
 
+/** Quote lifecycle states (matches requirements: draft, sent, rejected, closed) */
+export const QUOTE_STATUS = Object.freeze({
+  DRAFT: 'draft',
+  SENT: 'sent',
+  REJECTED: 'rejected',
+  CLOSED: 'closed',
+});
+
+/** Type options for discounts and fees arrays */
+export const ENTRY_TYPE = Object.freeze({
+  PERCENTAGE: 'percentage',
+  FIXED: 'fixed',
+});
+
 export const DEFAULT_MARGIN_RATE = 0.2;
 export const DEFAULT_TAX_RATE = 0.16;
 
@@ -76,6 +90,54 @@ export function computeDiscountAmount(baseAmount, discount) {
   }
 
   return roundCurrency(Math.min(safeDiscount.value, safeBase));
+}
+
+/**
+ * Compute total amount from an array of discount/fee entries.
+ *
+ * @param {number} base - The base amount that percentage entries are applied to
+ * @param {Array<{ type: string, value: number }>} entries
+ * @returns {number}
+ */
+export function computeEntriesTotal(base, entries) {
+  if (!Array.isArray(entries) || entries.length === 0) return 0;
+  const safeBase = Math.max(0, Number(base) || 0);
+  let total = 0;
+  for (const entry of entries) {
+    const val = Number(entry.value) || 0;
+    if (entry.type === ENTRY_TYPE.PERCENTAGE) {
+      total += roundCurrency(safeBase * (Math.min(val, 100) / 100));
+    } else {
+      total += roundCurrency(val);
+    }
+  }
+  return roundCurrency(total);
+}
+
+/**
+ * Normalize a single discount/fee entry.
+ *
+ * @param {{ id?: string, name?: string, type?: string, value?: number }} entry
+ * @returns {{ id: string, name: string, type: string, value: number }}
+ */
+export function normalizeEntry(entry) {
+  if (!entry || typeof entry !== 'object') {
+    throw new Error('Entry must be a valid object.');
+  }
+  const type = entry.type ?? ENTRY_TYPE.FIXED;
+  if (!Object.values(ENTRY_TYPE).includes(type)) {
+    throw new Error(`Unsupported entry type: ${type}`);
+  }
+  const value = Number(entry.value ?? 0);
+  if (!Number.isFinite(value) || value < 0) {
+    throw new RangeError('Entry value must be a finite non-negative number.');
+  }
+  return Object.freeze({
+    id: entry.id ?? `ent-${Math.random().toString(36).slice(2, 10)}`,
+    name: String(entry.name ?? ''),
+    type,
+    value,
+  });
 }
 
 /**

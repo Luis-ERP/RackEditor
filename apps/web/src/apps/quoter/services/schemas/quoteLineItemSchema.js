@@ -26,12 +26,13 @@ function createLineItemId(prefix = 'qli') {
  * @param {string} params.name
  * @param {string} [params.description='']
  * @param {number} params.cost
- * @param {number} [params.marginRate=0.2]
+ * @param {number} [params.marginRate=0.2]  — margin 0-1 (e.g. 0.2 = 20%)
  * @param {number} [params.quantity=1]
  * @param {{ kind?: string, value?: number }} [params.discount]
  * @param {string} [params.source='MANUAL']
  * @param {boolean} [params.isReadOnlyFromCad=false]
  * @param {boolean} [params.isDesignLinked=false]
+ * @param {{ name: string, sku: string, weight_kg: number }|null} [params.variant]
  * @param {Object|null} [params.traceability=null]
  * @param {Object|null} [params.catalogRef=null]
  * @param {Object|null} [params.audit=null]
@@ -48,6 +49,7 @@ export function createQuoteLineItem({
   source = QUOTE_LINE_SOURCE.MANUAL,
   isReadOnlyFromCad = false,
   isDesignLinked = false,
+  variant = null,
   traceability = null,
   catalogRef = null,
   audit = null,
@@ -77,16 +79,28 @@ export function createQuoteLineItem({
   }
 
   const normalizedDiscount = normalizeDiscount(discount);
-  const price = roundCurrency(safeCost + safeCost * safeMarginRate);
+  // price = cost * (1 + margin)
+  const price = roundCurrency(safeCost * (1 + safeMarginRate));
+  // subtotal = price * quantity
   const lineBaseTotal = roundCurrency(price * safeQuantity);
   const discountAmount = computeDiscountAmount(lineBaseTotal, normalizedDiscount);
+  // total = subtotal - discount
   const total = roundCurrency(Math.max(0, lineBaseTotal - discountAmount));
+
+  const normalizedVariant = variant
+    ? Object.freeze({
+        name: String(variant.name ?? ''),
+        sku: String(variant.sku ?? ''),
+        weight_kg: Number(variant.weight_kg ?? 0),
+      })
+    : null;
 
   return Object.freeze({
     id,
     name,
     description,
     source,
+    variant: normalizedVariant,
     traceability: traceability ? Object.freeze({ ...traceability }) : null,
     catalogRef: catalogRef ? Object.freeze({ ...catalogRef }) : null,
     cost: roundCurrency(safeCost),
@@ -107,7 +121,8 @@ export function createQuoteLineItem({
  * @param {Object} bomLine
  * @param {number} bomLineIndex
  * @param {Object} options
- * @param {(sku: string, bomLine: Object) => number} [options.resolveCost]
+ * @param {(sku: string, bomLine: Object) => { cost: number, weight_kg?: number }} [options.resolveCatalog]
+ * @param {(sku: string, bomLine: Object) => number} [options.resolveCost]  — legacy, use resolveCatalog
  * @param {string} [options.designId]
  * @param {string} [options.designRevisionId]
  * @param {string} [options.catalogVersion]
@@ -118,6 +133,7 @@ export function createQuoteLineItemFromBomLine(
   bomLine,
   bomLineIndex,
   {
+    resolveCatalog,
     resolveCost,
     designId,
     designRevisionId,
@@ -140,16 +156,24 @@ export function createQuoteLineItemFromBomLine(
     throw new RangeError('bomLine.quantity must be a finite positive number.');
   }
 
-  const resolvedCost = typeof resolveCost === 'function'
-    ? Number(resolveCost(sku, bomLine))
-    : 0;
+  // Resolve cost and variant data from catalog
+  let resolvedCost = 0;
+  let resolvedWeight = 0;
+  if (typeof resolveCatalog === 'function') {
+    const catalogEntry = resolveCatalog(sku, bomLine);
+    if (catalogEntry) {
+      resolvedCost = Number(catalogEntry.cost ?? catalogEntry.price ?? 0);
+      resolvedWeight = Number(catalogEntry.weight_kg ?? 0);
+    }
+  } else if (typeof resolveCost === 'function') {
+    resolvedCost = Number(resolveCost(sku, bomLine));
+  }
 
   const safeCost = Number.isFinite(resolvedCost) && resolvedCost >= 0 ? resolvedCost : 0;
+  const safeWeight = Number.isFinite(resolvedWeight) && resolvedWeight >= 0 ? resolvedWeight : 0;
 
   const lineItemName = String(bomLine.name ?? sku);
-  const lineItemDescription = String(
-    bomLine.description ?? `${lineItemName} | SKU ${sku} | Unit ${bomLine.unit ?? 'ea'}`,
-  );
+  const lineItemDescription = String(bomLine.description ?? lineItemName);
 
   return createQuoteLineItem({
     name: lineItemName,
@@ -159,6 +183,11 @@ export function createQuoteLineItemFromBomLine(
     source: QUOTE_LINE_SOURCE.CAD_BOM,
     isReadOnlyFromCad: true,
     isDesignLinked: true,
+    variant: {
+      name: lineItemName,
+      sku,
+      weight_kg: safeWeight,
+    },
     traceability: {
       bomLineIndex,
       sku,
@@ -181,7 +210,7 @@ export function createQuoteLineItemFromBomLine(
  * @returns {boolean}
  */
 export function canRemoveQuoteLineItem(lineItem) {
-  return !lineItem.isDesignLinked;
+  return Boolean(lineItem && lineItem.id);
 }
 
 /**
@@ -205,6 +234,7 @@ export function withUpdatedQuoteLineItem(
     ...updates,
     id: lineItem.id,
     source: lineItem.source,
+    variant: updates.variant !== undefined ? updates.variant : lineItem.variant,
     traceability: lineItem.traceability,
     isReadOnlyFromCad: lineItem.isReadOnlyFromCad,
     isDesignLinked: lineItem.isDesignLinked,

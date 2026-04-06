@@ -24,13 +24,16 @@ export default function useRackSubSelection({
   const rebuildCellMap = useCallback(() => {
     const cm = cellMapRef.current;
     cm.clear();
+    const domainMap = rackDomainRef?.current;
+    if (!domainMap || typeof domainMap.get !== 'function') return;
+
     const currentVert = rackOrientationRef.current === 'vertical';
     const entities = layoutStore ? layoutStore.getAllByType('RACK_MODULE') : [];
 
     for (const ent of entities) {
       const entVert = ent.transform.rotation === 90;
       if (entVert !== currentVert) continue;
-      const mod = rackDomainRef.current.get(ent.domainId);
+      const mod = domainMap.get(ent.domainId);
       if (!mod) continue;
 
       const bayCount = mod.bays.length;

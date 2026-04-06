@@ -39,6 +39,9 @@ export default function EditorPanel({
   noteStoreVersion,
   rackDomainRef,
   subSelActive = false,
+  onExportProjectDocument,
+  onImportProjectDocument,
+  onSendToQuoter,
   children,
 }) {
   const dk = darkMode;
@@ -186,8 +189,65 @@ export default function EditorPanel({
             color: dk ? '#9ca3af' : '#6b7280',
             borderBottomColor: dk ? '#2d2f34' : '#f3f4f6',
           }}>Project</div>
-          <div style={{ ...sectionBodyStyle, color: dk ? '#9ca3af' : '#6b7280', fontSize: 13 }}>
-            <p style={{ margin: 0 }}>Project settings will appear here.</p>
+          <div style={{ ...sectionBodyStyle }}>
+
+            {/* ── Send to Quoter ─────────────────────────────── */}
+            <div style={{ marginBottom: 16 }}>
+              <div style={{
+                fontSize: 10,
+                fontWeight: 600,
+                textTransform: 'uppercase',
+                letterSpacing: '0.06em',
+                color: dk ? '#6b7280' : '#9ca3af',
+                marginBottom: 6,
+              }}>
+                Quoter
+              </div>
+              <button
+                style={projectBtnStyle(dk, true)}
+                onClick={onSendToQuoter}
+                disabled={!onSendToQuoter}
+                title="Serialize this design and open it as a new quote in the Quoter"
+              >
+                Send to Quoter →
+              </button>
+              <p style={{ margin: '6px 0 0', fontSize: 11, color: dk ? '#6b7280' : '#9ca3af' }}>
+                Opens the Quoter with this design's BOM pre-loaded.
+              </p>
+            </div>
+
+            {/* ── File operations ────────────────────────────── */}
+            <div>
+              <div style={{
+                fontSize: 10,
+                fontWeight: 600,
+                textTransform: 'uppercase',
+                letterSpacing: '0.06em',
+                color: dk ? '#6b7280' : '#9ca3af',
+                marginBottom: 6,
+              }}>
+                File
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                <button
+                  style={projectBtnStyle(dk, false)}
+                  onClick={onExportProjectDocument}
+                  disabled={!onExportProjectDocument}
+                  title="Download this project as a .json file"
+                >
+                  Export JSON…
+                </button>
+                <button
+                  style={projectBtnStyle(dk, false)}
+                  onClick={onImportProjectDocument}
+                  disabled={!onImportProjectDocument}
+                  title="Load a previously exported .json project file"
+                >
+                  Import JSON…
+                </button>
+              </div>
+            </div>
+
           </div>
         </div>
       )}
@@ -790,6 +850,23 @@ const sectionBodyStyle = {
   overflow: 'auto',
   padding: 12,
 };
+
+function projectBtnStyle(dk, primary) {
+  return {
+    display: 'block',
+    width: '100%',
+    padding: '7px 10px',
+    borderRadius: 6,
+    fontSize: 12,
+    fontWeight: primary ? 600 : 400,
+    cursor: 'pointer',
+    textAlign: 'left',
+    border: `1px solid ${primary ? '#3b82f6' : (dk ? '#374151' : '#e5e7eb')}`,
+    background: primary ? '#3b82f6' : (dk ? '#2d2f34' : '#f9fafb'),
+    color: primary ? '#ffffff' : (dk ? '#d1d5db' : '#374151'),
+    transition: 'opacity 0.15s',
+  };
+}
 
 // ── OrientationToggle ──────────────────────────────────────────
 function OrientationToggle({ rackOrientation, onToggleOrientation, darkMode }) {

@@ -48,6 +48,20 @@ export default function useRackDrawingInteraction({
     const placedCells = new Set();
     const cellKey = (cx, cy) => `${cx},${cy}`;
 
+    const getDomainMap = () => {
+      const map = rackDomainRef?.current;
+      if (!map || typeof map.get !== 'function' || typeof map.set !== 'function') return null;
+      return map;
+    };
+
+    const isValidRackModule = (mod) => (
+      !!mod &&
+      !!mod.frameSpec &&
+      Array.isArray(mod.bays) &&
+      mod.bays.length > 0 &&
+      Array.isArray(mod.levelUnion)
+    );
+
     const bayLabel = (bayCount, vert) => {
       const dims = vert ? '42" × 96"' : '96" × 42"';
       return bayCount > 1 ? `${bayCount}× ${dims}` : dims;
@@ -77,28 +91,41 @@ export default function useRackDrawingInteraction({
 
       const prevEnt = prevInfo ? layoutStore.get(prevInfo.entityId) : null;
       const nextEnt = nextInfo ? layoutStore.get(nextInfo.entityId) : null;
-      const prevMod = prevEnt ? rackDomainRef.current.get(prevEnt.domainId) : null;
-      const nextMod = nextEnt ? rackDomainRef.current.get(nextEnt.domainId) : null;
+      const domainMap = getDomainMap();
+      if (!domainMap) return false;
+
+      const prevMod = prevEnt ? domainMap.get(prevEnt.domainId) : null;
+      const nextMod = nextEnt ? domainMap.get(nextEnt.domainId) : null;
       const hasPrev = !!(prevEnt && prevMod);
       const hasNext = !!(nextEnt && nextMod);
 
-      const modHoleIndices = (mod) => mod.levelUnion.map((l) => l.holeIndex);
-      const frameSpecsMatch = (a, b) => a.frameSpec.id === b.frameSpec.id;
+      const modHoleIndices = (mod) => {
+        const holes = Array.isArray(mod?.levelUnion)
+          ? mod.levelUnion
+            .map((l) => l?.holeIndex)
+            .filter((idx) => Number.isInteger(idx))
+          : [];
+        return holes.length > 0 ? holes : DEFAULT_HOLE_INDICES;
+      };
+
+      const moduleBeamSpec = (mod) => mod?.bays?.[0]?.beamSpec ?? DEFAULT_BEAM_SPEC;
+      const frameSpecsMatch = (a, b) => !!a?.frameSpec?.id && a.frameSpec.id === b?.frameSpec?.id;
 
       if (hasPrev && hasNext && prevInfo.entityId !== nextInfo.entityId) {
+        if (!isValidRackModule(prevMod) || !isValidRackModule(nextMod)) return false;
         if (!frameSpecsMatch(prevMod, nextMod)) return false;
 
         const totalBays = prevMod.bays.length + 1 + nextMod.bays.length;
         const newMod = buildRackModule({
           frameSpec: prevMod.frameSpec,
-          beamSpec: prevMod.bays[0].beamSpec,
+          beamSpec: moduleBeamSpec(prevMod),
           bayCount: totalBays,
           holeIndices: modHoleIndices(prevMod),
         });
 
-        rackDomainRef.current.delete(prevEnt.domainId);
-        rackDomainRef.current.delete(nextEnt.domainId);
-        rackDomainRef.current.set(newMod.id, newMod);
+        domainMap.delete(prevEnt.domainId);
+        domainMap.delete(nextEnt.domainId);
+        domainMap.set(newMod.id, newMod);
 
         const newGrow = growSize(totalBays);
         layoutStore.update(prevEnt.id, {
@@ -118,16 +145,17 @@ export default function useRackDrawingInteraction({
         }
         cm.set(key, newRef);
       } else if (hasPrev) {
+        if (!isValidRackModule(prevMod)) return false;
         const newBayCount = prevMod.bays.length + 1;
         const newMod = buildRackModule({
           frameSpec: prevMod.frameSpec,
-          beamSpec: prevMod.bays[0].beamSpec,
+          beamSpec: moduleBeamSpec(prevMod),
           bayCount: newBayCount,
           holeIndices: modHoleIndices(prevMod),
         });
 
-        rackDomainRef.current.delete(prevEnt.domainId);
-        rackDomainRef.current.set(newMod.id, newMod);
+        domainMap.delete(prevEnt.domainId);
+        domainMap.set(newMod.id, newMod);
 
         const newGrow = growSize(newBayCount);
         layoutStore.update(prevEnt.id, {
@@ -144,16 +172,17 @@ export default function useRackDrawingInteraction({
         }
         cm.set(key, newRef);
       } else if (hasNext) {
+        if (!isValidRackModule(nextMod)) return false;
         const newBayCount = nextMod.bays.length + 1;
         const newMod = buildRackModule({
           frameSpec: nextMod.frameSpec,
-          beamSpec: nextMod.bays[0].beamSpec,
+          beamSpec: moduleBeamSpec(nextMod),
           bayCount: newBayCount,
           holeIndices: modHoleIndices(nextMod),
         });
 
-        rackDomainRef.current.delete(nextEnt.domainId);
-        rackDomainRef.current.set(newMod.id, newMod);
+        domainMap.delete(nextEnt.domainId);
+        domainMap.set(newMod.id, newMod);
 
         const newGrow = growSize(newBayCount);
         layoutStore.moveTo(
@@ -181,7 +210,7 @@ export default function useRackDrawingInteraction({
           bayCount: 1,
           holeIndices: DEFAULT_HOLE_INDICES,
         });
-        rackDomainRef.current.set(rackModule.id, rackModule);
+        domainMap.set(rackModule.id, rackModule);
 
         const ent = layoutStore.add(createRackModuleEntity({
           x: w.x,
