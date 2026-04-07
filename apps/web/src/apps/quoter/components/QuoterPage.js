@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useCallback, useMemo, useRef, useEffect } from 'react';
+import React, { useState, useCallback, useMemo, useRef, useEffect, useId } from 'react';
 import { Trash2 } from 'lucide-react';
 import useQuoteStore from '../hooks/useQuoteStore';
 import { DISCOUNT_KIND, ENTRY_TYPE, roundCurrency } from '../services/schemas/common.js';
@@ -11,6 +11,7 @@ import {
   readPendingCadImportFromSession,
   clearPendingCadImportFromSession,
 } from '../services/cadImportService.js';
+import { downloadQuotePdf } from '../services/pdfQuoteGenerator.js';
 import css from '../styles/quoter.module.css';
 
 // ─── Formatting helpers ──────────────────────────────────────────────────────
@@ -339,7 +340,21 @@ export default function QuoterPage() {
   const [compareVersions, setCompareVersions] = useState(null); // { a, b }
   const [importError, setImportError] = useState(null);
   const [isFormatSettingsCollapsed, setIsFormatSettingsCollapsed] = useState(true);
+  const [loadError, setLoadError] = useState(null);
+  const [menuOpen, setMenuOpen] = useState(false);
   const fileInputRef = useRef(null);
+  const quoteFileInputRef = useRef(null);
+  const menuRef = useRef(null);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    if (!menuOpen) return;
+    function handleOutside(e) {
+      if (menuRef.current && !menuRef.current.contains(e.target)) setMenuOpen(false);
+    }
+    document.addEventListener('mousedown', handleOutside);
+    return () => document.removeEventListener('mousedown', handleOutside);
+  }, [menuOpen]);
 
   const quote = store.getQuote();
   const cadItems = useMemo(() => store.getCadLineItems(), [store, version]);
@@ -443,6 +458,45 @@ export default function QuoterPage() {
   const handleSwitchToVersion = useCallback(
     (versionId) => store.switchToVersion(versionId), [store]);
 
+  // ── Quote JSON export / import ───────────────────────────────────────────
+
+  const handleDownloadPdf = useCallback(() => {
+    downloadQuotePdf(quote);
+  }, [quote]);
+
+  const handleDownloadJson = useCallback(() => {
+    const data = {
+      _schema: 'rack-editor-quote',
+      _version: 1,
+      exportedAt: new Date().toISOString(),
+      quote: store.snapshot(),
+    };
+    const slug = (quote.order_number || 'quote').replace(/[^a-zA-Z0-9_-]/g, '_');
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${slug}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }, [store, quote.order_number]);
+
+  const handleLoadJsonFile = useCallback(async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setLoadError(null);
+    try {
+      const text = await file.text();
+      const parsed = JSON.parse(text);
+      const quoteData = parsed._schema === 'rack-editor-quote' ? parsed.quote : parsed;
+      store.loadQuote(quoteData);
+    } catch (err) {
+      setLoadError(`Failed to load quote: ${err.message}`);
+    } finally {
+      e.target.value = '';
+    }
+  }, [store]);
+
   // ─────────────────────────────────────────────────────────────────────────
 
   const statusColor = STATUS_COLORS[quote.status] ?? '#6b7280';
@@ -461,9 +515,6 @@ export default function QuoterPage() {
           </span>
         </div>
         <div className={css.headerRight}>
-          <button className={css.btn} onClick={() => store.undo()} disabled={!store.canUndo()} title="Undo">
-            Undo
-          </button>
           <select className={css.select} value={quote.status}
             onChange={(e) => store.setStatus(e.target.value)}>
             {Object.values(QUOTE_STATUS).map((s) => (
@@ -471,14 +522,75 @@ export default function QuoterPage() {
             ))}
           </select>
           <button className={`${css.btn} ${css.btnPrimary} ${css.btnSmall}`}
+            onClick={handleDownloadPdf} title="Generate and download PDF quote">
+            Download PDF
+          </button>
+          <button className={`${css.btn} ${css.btnPrimary} ${css.btnSmall}`}
             onClick={handleSaveVersion} title="Save current state as a new version">
             Save Version
           </button>
-          <button className={css.btn} onClick={() => store.resetQuote({})} title="New empty quote">
-            New Quote
-          </button>
+
+          {/* ── Three-dot menu ── */}
+          <div className={css.menuWrap} ref={menuRef}>
+            <button
+              className={css.menuTrigger}
+              onClick={() => setMenuOpen((v) => !v)}
+              aria-label="More options"
+              aria-expanded={menuOpen}
+              aria-haspopup="menu"
+            >
+              <span className={css.menuDot} />
+              <span className={css.menuDot} />
+              <span className={css.menuDot} />
+            </button>
+
+            {menuOpen && (
+              <div className={css.menuDropdown} role="menu">
+                <button
+                  className={css.menuItem}
+                  role="menuitem"
+                  onClick={() => { store.resetQuote({}); setMenuOpen(false); }}
+                >
+                  New Quote
+                </button>
+                <div className={css.menuDivider} />
+                <button
+                  className={css.menuItem}
+                  role="menuitem"
+                  onClick={() => { handleDownloadPdf(); setMenuOpen(false); }}
+                >
+                  Download PDF
+                </button>
+                <button
+                  className={css.menuItem}
+                  role="menuitem"
+                  onClick={() => { handleDownloadJson(); setMenuOpen(false); }}
+                >
+                  Download JSON
+                </button>
+                <button
+                  className={css.menuItem}
+                  role="menuitem"
+                  onClick={() => { quoteFileInputRef.current?.click(); setMenuOpen(false); }}
+                >
+                  Load JSON
+                </button>
+              </div>
+            )}
+          </div>
+
+          <input
+            ref={quoteFileInputRef}
+            type="file"
+            accept=".json"
+            style={{ display: 'none' }}
+            onChange={handleLoadJsonFile}
+          />
         </div>
       </div>
+      {loadError && (
+        <div className={css.errorBanner} style={{ borderRadius: 0 }}>{loadError}</div>
+      )}
 
       {/* ── Content ──────────────────────────────────────────────────────── */}
       <div className={css.content}>
