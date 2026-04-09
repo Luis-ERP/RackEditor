@@ -17,6 +17,10 @@ import {
   restoreProjectDocument,
   serializeProjectDocument,
 } from './services/export/projectDocumentExporter';
+import { downloadDrawingImage } from './services/export/imageExporter';
+import { downloadDrawingPDF } from './services/export/pdfExporter';
+import { downloadDrawingSVG } from './services/export/svgExporter';
+import { downloadDXF } from './services/export/dxfExporter';
 
 export default function CadWorkspacePage() {
   const router = useRouter();
@@ -132,6 +136,32 @@ export default function CadWorkspacePage() {
     sessionStorage.setItem('quoter:pendingCadImport', JSON.stringify(doc));
     router.push('/quoter');
   }, [store, wallSt, colSt, rackDomainRef, isDark, rackOrientation, drawingMode, wallMode, columnMode, showMeasurements, router]);
+
+  // ── Drawing export handlers ──────────────────────────────────────────────
+  const handleExportPNG = useCallback(async () => {
+    try { await downloadDrawingImage(store, { title: 'Rack Layout', format: 'png' }); }
+    catch (e) { window.alert(e.message); }
+  }, [store]);
+
+  const handleExportJPEG = useCallback(async () => {
+    try { await downloadDrawingImage(store, { title: 'Rack Layout', format: 'jpeg' }); }
+    catch (e) { window.alert(e.message); }
+  }, [store]);
+
+  const handleExportPDF = useCallback(async () => {
+    try { await downloadDrawingPDF(store, { title: 'Rack Layout' }); }
+    catch (e) { window.alert(e.message); }
+  }, [store]);
+
+  const handleExportSVG = useCallback(async () => {
+    try { await downloadDrawingSVG(store, { title: 'Rack Layout' }); }
+    catch (e) { window.alert(e.message); }
+  }, [store]);
+
+  const handleExportDXF = useCallback(() => {
+    try { downloadDXF(store); }
+    catch (e) { window.alert(e.message); }
+  }, [store]);
 
   /** Toggle wall mode (rect or line). Clicking the active mode deactivates it. */
   const handleSetWallMode = useCallback((mode) => {
@@ -280,6 +310,11 @@ export default function CadWorkspacePage() {
         onExportProjectDocument={handleExportProjectDocument}
         onImportProjectDocument={handleImportProjectDocument}
         onSendToQuoter={handleSendToQuoter}
+        onExportPNG={handleExportPNG}
+        onExportJPEG={handleExportJPEG}
+        onExportPDF={handleExportPDF}
+        onExportSVG={handleExportSVG}
+        onExportDXF={handleExportDXF}
       />
       <CADCanvas
         drawingMode={drawingMode}
