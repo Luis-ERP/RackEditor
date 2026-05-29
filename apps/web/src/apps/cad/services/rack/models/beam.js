@@ -121,11 +121,20 @@ export function createBeamLevel({ id, levelIndex, holeIndex, beamSpec, isBeamSpe
  * @returns {number} Minimum hole index difference required
  */
 export function minimumGapSteps(lowerBeamSpec, upperBeamSpec) {
+  // Defensive fallback: UI draft states can temporarily carry a missing spec
+  // when a selected length/capacity combination is not available in catalog.
+  // In that case, fall back to whichever adjacent level spec exists.
+  const resolvedLower = lowerBeamSpec ?? upperBeamSpec;
+  const resolvedUpper = upperBeamSpec ?? lowerBeamSpec;
+  if (!resolvedLower || !resolvedUpper) {
+    return 1;
+  }
+
   const governingEnvelope = Math.max(
-    lowerBeamSpec.verticalEnvelopeIn,
-    upperBeamSpec.verticalEnvelopeIn,
+    resolvedLower.verticalEnvelopeIn,
+    resolvedUpper.verticalEnvelopeIn,
   );
-  const minimumGapIn = HOLE_STEP_IN + governingEnvelope + lowerBeamSpec.profileHeightIn;
+  const minimumGapIn = HOLE_STEP_IN + governingEnvelope + resolvedLower.profileHeightIn;
   return Math.ceil(minimumGapIn / HOLE_STEP_IN);
 }
 

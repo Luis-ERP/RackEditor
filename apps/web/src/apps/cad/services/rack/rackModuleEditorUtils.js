@@ -80,6 +80,10 @@ export function maxAllowedHoleIndex(frameSpec) {
 export function autoPositionNewLevel(holeIndices, frameSpec, topBeamSpec, newBeamSpec) {
   const maxAllowed = maxAllowedHoleIndex(frameSpec);
 
+  if (!newBeamSpec) {
+    return null;
+  }
+
   if (holeIndices.length === 0) {
     return maxAllowed >= 1 ? 1 : null;
   }

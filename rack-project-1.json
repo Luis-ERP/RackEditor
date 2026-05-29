@@ -1,0 +1,1550 @@
+{
+  "documentType": "rack-editor-project",
+  "schemaVersion": "1.0.0",
+  "exportedAt": "2026-05-29T22:09:03.882Z",
+  "app": {
+    "name": "RackEditor",
+    "version": "web-v1"
+  },
+  "layout": {
+    "entities": [
+      {
+        "id": "wl_175",
+        "type": "WALL",
+        "transform": {
+          "x": -30,
+          "y": -20,
+          "rotation": 0
+        },
+        "lengthM": 60,
+        "thicknessM": 0.2,
+        "label": "",
+        "locked": false,
+        "visible": true
+      },
+      {
+        "id": "wl_176",
+        "type": "WALL",
+        "transform": {
+          "x": -30,
+          "y": 20,
+          "rotation": 0
+        },
+        "lengthM": 60,
+        "thicknessM": 0.2,
+        "label": "",
+        "locked": false,
+        "visible": true
+      },
+      {
+        "id": "wl_177",
+        "type": "WALL",
+        "transform": {
+          "x": -30,
+          "y": -20,
+          "rotation": 90
+        },
+        "lengthM": 40,
+        "thicknessM": 0.2,
+        "label": "",
+        "locked": false,
+        "visible": true
+      },
+      {
+        "id": "wl_178",
+        "type": "WALL",
+        "transform": {
+          "x": 30,
+          "y": -20,
+          "rotation": 90
+        },
+        "lengthM": 40,
+        "thicknessM": 0.2,
+        "label": "",
+        "locked": false,
+        "visible": true
+      },
+      {
+        "id": "col_179",
+        "type": "COLUMN",
+        "transform": {
+          "x": -20,
+          "y": -10,
+          "rotation": 0
+        },
+        "widthM": 0.4,
+        "depthM": 0.4,
+        "shape": "RECT",
+        "label": "",
+        "locked": false,
+        "visible": true
+      },
+      {
+        "id": "col_180",
+        "type": "COLUMN",
+        "transform": {
+          "x": -20,
+          "y": 0,
+          "rotation": 0
+        },
+        "widthM": 0.4,
+        "depthM": 0.4,
+        "shape": "RECT",
+        "label": "",
+        "locked": false,
+        "visible": true
+      },
+      {
+        "id": "col_181",
+        "type": "COLUMN",
+        "transform": {
+          "x": -20,
+          "y": 10,
+          "rotation": 0
+        },
+        "widthM": 0.4,
+        "depthM": 0.4,
+        "shape": "RECT",
+        "label": "",
+        "locked": false,
+        "visible": true
+      },
+      {
+        "id": "col_182",
+        "type": "COLUMN",
+        "transform": {
+          "x": -10,
+          "y": -10,
+          "rotation": 0
+        },
+        "widthM": 0.4,
+        "depthM": 0.4,
+        "shape": "RECT",
+        "label": "",
+        "locked": false,
+        "visible": true
+      },
+      {
+        "id": "col_183",
+        "type": "COLUMN",
+        "transform": {
+          "x": -10,
+          "y": 0,
+          "rotation": 0
+        },
+        "widthM": 0.4,
+        "depthM": 0.4,
+        "shape": "RECT",
+        "label": "",
+        "locked": false,
+        "visible": true
+      },
+      {
+        "id": "col_184",
+        "type": "COLUMN",
+        "transform": {
+          "x": -10,
+          "y": 10,
+          "rotation": 0
+        },
+        "widthM": 0.4,
+        "depthM": 0.4,
+        "shape": "RECT",
+        "label": "",
+        "locked": false,
+        "visible": true
+      },
+      {
+        "id": "col_185",
+        "type": "COLUMN",
+        "transform": {
+          "x": 0,
+          "y": -10,
+          "rotation": 0
+        },
+        "widthM": 0.4,
+        "depthM": 0.4,
+        "shape": "RECT",
+        "label": "",
+        "locked": false,
+        "visible": true
+      },
+      {
+        "id": "col_186",
+        "type": "COLUMN",
+        "transform": {
+          "x": 0,
+          "y": 0,
+          "rotation": 0
+        },
+        "widthM": 0.4,
+        "depthM": 0.4,
+        "shape": "RECT",
+        "label": "",
+        "locked": false,
+        "visible": true
+      },
+      {
+        "id": "col_187",
+        "type": "COLUMN",
+        "transform": {
+          "x": 0,
+          "y": 10,
+          "rotation": 0
+        },
+        "widthM": 0.4,
+        "depthM": 0.4,
+        "shape": "RECT",
+        "label": "",
+        "locked": false,
+        "visible": true
+      },
+      {
+        "id": "col_188",
+        "type": "COLUMN",
+        "transform": {
+          "x": 10,
+          "y": -10,
+          "rotation": 0
+        },
+        "widthM": 0.4,
+        "depthM": 0.4,
+        "shape": "RECT",
+        "label": "",
+        "locked": false,
+        "visible": true
+      },
+      {
+        "id": "col_189",
+        "type": "COLUMN",
+        "transform": {
+          "x": 10,
+          "y": 0,
+          "rotation": 0
+        },
+        "widthM": 0.4,
+        "depthM": 0.4,
+        "shape": "RECT",
+        "label": "",
+        "locked": false,
+        "visible": true
+      },
+      {
+        "id": "col_190",
+        "type": "COLUMN",
+        "transform": {
+          "x": 10,
+          "y": 10,
+          "rotation": 0
+        },
+        "widthM": 0.4,
+        "depthM": 0.4,
+        "shape": "RECT",
+        "label": "",
+        "locked": false,
+        "visible": true
+      },
+      {
+        "id": "col_191",
+        "type": "COLUMN",
+        "transform": {
+          "x": 20,
+          "y": -10,
+          "rotation": 0
+        },
+        "widthM": 0.4,
+        "depthM": 0.4,
+        "shape": "RECT",
+        "label": "",
+        "locked": false,
+        "visible": true
+      },
+      {
+        "id": "col_192",
+        "type": "COLUMN",
+        "transform": {
+          "x": 20,
+          "y": 0,
+          "rotation": 0
+        },
+        "widthM": 0.4,
+        "depthM": 0.4,
+        "shape": "RECT",
+        "label": "",
+        "locked": false,
+        "visible": true
+      },
+      {
+        "id": "col_193",
+        "type": "COLUMN",
+        "transform": {
+          "x": 20,
+          "y": 10,
+          "rotation": 0
+        },
+        "widthM": 0.4,
+        "depthM": 0.4,
+        "shape": "RECT",
+        "label": "",
+        "locked": false,
+        "visible": true
+      },
+      {
+        "id": "rm_194",
+        "type": "RACK_MODULE",
+        "transform": {
+          "x": -29.7368,
+          "y": -18.897599999999997,
+          "rotation": 90
+        },
+        "domainId": "mod_799",
+        "widthM": 1.0668,
+        "depthM": 37.871399999999994,
+        "bayCount": 16,
+        "rowConfiguration": "SINGLE",
+        "spacerSizeIn": 6,
+        "label": "16× 42\" × 96\"",
+        "locked": false,
+        "visible": true
+      },
+      {
+        "id": "rac_195",
+        "type": "RACK_MODULE",
+        "transform": {
+          "x": -23.7368,
+          "y": -18.897599999999997,
+          "rotation": 90
+        },
+        "domainId": "mod_e939",
+        "widthM": 3.5052000000000003,
+        "depthM": 30.784799999999997,
+        "bayCount": 13,
+        "rowConfiguration": "BACK_TO_BACK_3",
+        "spacerSizeIn": 6,
+        "frameHeightIn": 144,
+        "spacersPerRowPair": 28,
+        "label": "13× 42\" × 96\"",
+        "locked": false,
+        "visible": true
+      },
+      {
+        "id": "rac_198",
+        "type": "RACK_MODULE",
+        "transform": {
+          "x": -14.736799999999999,
+          "y": -18.897599999999997,
+          "rotation": 90
+        },
+        "domainId": "mod_e939",
+        "widthM": 3.5052000000000003,
+        "depthM": 30.784799999999997,
+        "bayCount": 13,
+        "rowConfiguration": "BACK_TO_BACK_3",
+        "spacerSizeIn": 6,
+        "frameHeightIn": 144,
+        "spacersPerRowPair": 28,
+        "label": "13× 42\" × 96\"",
+        "locked": false,
+        "visible": true
+      },
+      {
+        "id": "rac_199",
+        "type": "RACK_MODULE",
+        "transform": {
+          "x": -5.736799999999999,
+          "y": -18.897599999999997,
+          "rotation": 90
+        },
+        "domainId": "mod_e1369",
+        "widthM": 3.5052000000000003,
+        "depthM": 29.463999999999995,
+        "bayCount": 13,
+        "rowConfiguration": "BACK_TO_BACK_3",
+        "spacerSizeIn": 6,
+        "frameHeightIn": 144,
+        "spacersPerRowPair": 28,
+        "label": "13× 42\" × 92\"",
+        "locked": false,
+        "visible": true
+      },
+      {
+        "id": "rac_200",
+        "type": "RACK_MODULE",
+        "transform": {
+          "x": 5.263200000000001,
+          "y": -18.897599999999997,
+          "rotation": 90
+        },
+        "domainId": "mod_e939",
+        "widthM": 3.5052000000000003,
+        "depthM": 30.784799999999997,
+        "bayCount": 13,
+        "rowConfiguration": "BACK_TO_BACK_3",
+        "spacerSizeIn": 6,
+        "frameHeightIn": 144,
+        "spacersPerRowPair": 28,
+        "label": "13× 42\" × 96\"",
+        "locked": false,
+        "visible": true
+      },
+      {
+        "id": "rac_201",
+        "type": "RACK_MODULE",
+        "transform": {
+          "x": 14.263200000000001,
+          "y": -18.897599999999997,
+          "rotation": 90
+        },
+        "domainId": "mod_e939",
+        "widthM": 3.5052000000000003,
+        "depthM": 30.784799999999997,
+        "bayCount": 13,
+        "rowConfiguration": "BACK_TO_BACK_3",
+        "spacerSizeIn": 6,
+        "frameHeightIn": 144,
+        "spacersPerRowPair": 28,
+        "label": "13× 42\" × 96\"",
+        "locked": false,
+        "visible": true
+      },
+      {
+        "id": "rac_202",
+        "type": "RACK_MODULE",
+        "transform": {
+          "x": 24.2632,
+          "y": -18.897599999999997,
+          "rotation": 90
+        },
+        "domainId": "mod_e939",
+        "widthM": 3.5052000000000003,
+        "depthM": 30.784799999999997,
+        "bayCount": 13,
+        "rowConfiguration": "BACK_TO_BACK_3",
+        "spacerSizeIn": 6,
+        "frameHeightIn": 144,
+        "spacersPerRowPair": 28,
+        "label": "13× 42\" × 96\"",
+        "locked": false,
+        "visible": true
+      }
+    ]
+  },
+  "semantics": {
+    "rackDomain": {
+      "modules": [
+        {
+          "id": "mod_e1369",
+          "frameSpec": {
+            "id": "frame-144in-42in-60in-g14",
+            "heightIn": 144,
+            "depthIn": 42,
+            "gauge": "14",
+            "capacityClass": "standard",
+            "uprightSeries": "standard",
+            "compatibleConnectorTypes": [
+              "standard"
+            ],
+            "minimumTopClearanceIn": 6,
+            "basePlateType": "STANDARD"
+          },
+          "frameOverrides": {},
+          "bays": [
+            {
+              "id": "bay_e1356",
+              "leftFrameIndex": 0,
+              "rightFrameIndex": 1,
+              "beamSpec": {
+                "id": "beam-16g-92in-4.5in",
+                "lengthIn": 92,
+                "capacityClass": "standard",
+                "beamSeries": "standard",
+                "connectorType": "standard",
+                "verticalEnvelopeIn": 4.5,
+                "profileHeightIn": 4.5,
+                "compatibleUprightSeries": [
+                  "standard"
+                ]
+              },
+              "isBeamSpecCustomized": false,
+              "levels": [
+                {
+                  "id": "lvl_e1353",
+                  "levelIndex": 0,
+                  "holeIndex": 18,
+                  "elevationIn": 36,
+                  "beamSpec": {
+                    "id": "beam-16g-92in-4.5in",
+                    "lengthIn": 92,
+                    "capacityClass": "standard",
+                    "beamSeries": "standard",
+                    "connectorType": "standard",
+                    "verticalEnvelopeIn": 4.5,
+                    "profileHeightIn": 4.5,
+                    "compatibleUprightSeries": [
+                      "standard"
+                    ]
+                  },
+                  "isBeamSpecCustomized": false
+                },
+                {
+                  "id": "lvl_e1354",
+                  "levelIndex": 1,
+                  "holeIndex": 36,
+                  "elevationIn": 72,
+                  "beamSpec": {
+                    "id": "beam-16g-92in-4.5in",
+                    "lengthIn": 92,
+                    "capacityClass": "standard",
+                    "beamSeries": "standard",
+                    "connectorType": "standard",
+                    "verticalEnvelopeIn": 4.5,
+                    "profileHeightIn": 4.5,
+                    "compatibleUprightSeries": [
+                      "standard"
+                    ]
+                  },
+                  "isBeamSpecCustomized": false
+                },
+                {
+                  "id": "lvl_e1355",
+                  "levelIndex": 2,
+                  "holeIndex": 54,
+                  "elevationIn": 108,
+                  "beamSpec": {
+                    "id": "beam-16g-92in-4.5in",
+                    "lengthIn": 92,
+                    "capacityClass": "standard",
+                    "beamSeries": "standard",
+                    "connectorType": "standard",
+                    "verticalEnvelopeIn": 4.5,
+                    "profileHeightIn": 4.5,
+                    "compatibleUprightSeries": [
+                      "standard"
+                    ]
+                  },
+                  "isBeamSpecCustomized": false
+                }
+              ],
+              "accessoryIds": []
+            },
+            {
+              "id": "bay_e1357",
+              "leftFrameIndex": 1,
+              "rightFrameIndex": 2,
+              "beamSpec": {
+                "id": "beam-16g-92in-4.5in",
+                "lengthIn": 92,
+                "capacityClass": "standard",
+                "beamSeries": "standard",
+                "connectorType": "standard",
+                "verticalEnvelopeIn": 4.5,
+                "profileHeightIn": 4.5,
+                "compatibleUprightSeries": [
+                  "standard"
+                ]
+              },
+              "isBeamSpecCustomized": false,
+              "levels": [
+                {
+                  "id": "lvl_e1353",
+                  "levelIndex": 0,
+                  "holeIndex": 18,
+                  "elevationIn": 36,
+                  "beamSpec": {
+                    "id": "beam-16g-92in-4.5in",
+                    "lengthIn": 92,
+                    "capacityClass": "standard",
+                    "beamSeries": "standard",
+                    "connectorType": "standard",
+                    "verticalEnvelopeIn": 4.5,
+                    "profileHeightIn": 4.5,
+                    "compatibleUprightSeries": [
+                      "standard"
+                    ]
+                  },
+                  "isBeamSpecCustomized": false
+                },
+                {
+                  "id": "lvl_e1354",
+                  "levelIndex": 1,
+                  "holeIndex": 36,
+                  "elevationIn": 72,
+                  "beamSpec": {
+                    "id": "beam-16g-92in-4.5in",
+                    "lengthIn": 92,
+                    "capacityClass": "standard",
+                    "beamSeries": "standard",
+                    "connectorType": "standard",
+                    "verticalEnvelopeIn": 4.5,
+                    "profileHeightIn": 4.5,
+                    "compatibleUprightSeries": [
+                      "standard"
+                    ]
+                  },
+                  "isBeamSpecCustomized": false
+                },
+                {
+                  "id": "lvl_e1355",
+                  "levelIndex": 2,
+                  "holeIndex": 54,
+                  "elevationIn": 108,
+                  "beamSpec": {
+                    "id": "beam-16g-92in-4.5in",
+                    "lengthIn": 92,
+                    "capacityClass": "standard",
+                    "beamSeries": "standard",
+                    "connectorType": "standard",
+                    "verticalEnvelopeIn": 4.5,
+                    "profileHeightIn": 4.5,
+                    "compatibleUprightSeries": [
+                      "standard"
+                    ]
+                  },
+                  "isBeamSpecCustomized": false
+                }
+              ],
+              "accessoryIds": []
+            },
+            {
+              "id": "bay_e1358",
+              "leftFrameIndex": 2,
+              "rightFrameIndex": 3,
+              "beamSpec": {
+                "id": "beam-16g-92in-4.5in",
+                "lengthIn": 92,
+                "capacityClass": "standard",
+                "beamSeries": "standard",
+                "connectorType": "standard",
+                "verticalEnvelopeIn": 4.5,
+                "profileHeightIn": 4.5,
+                "compatibleUprightSeries": [
+                  "standard"
+                ]
+              },
+              "isBeamSpecCustomized": false,
+              "levels": [
+                {
+                  "id": "lvl_e1353",
+                  "levelIndex": 0,
+                  "holeIndex": 18,
+                  "elevationIn": 36,
+                  "beamSpec": {
+                    "id": "beam-16g-92in-4.5in",
+                    "lengthIn": 92,
+                    "capacityClass": "standard",
+                    "beamSeries": "standard",
+                    "connectorType": "standard",
+                    "verticalEnvelopeIn": 4.5,
+                    "profileHeightIn": 4.5,
+                    "compatibleUprightSeries": [
+                      "standard"
+                    ]
+                  },
+                  "isBeamSpecCustomized": false
+                },
+                {
+                  "id": "lvl_e1354",
+                  "levelIndex": 1,
+                  "holeIndex": 36,
+                  "elevationIn": 72,
+                  "beamSpec": {
+                    "id": "beam-16g-92in-4.5in",
+                    "lengthIn": 92,
+                    "capacityClass": "standard",
+                    "beamSeries": "standard",
+                    "connectorType": "standard",
+                    "verticalEnvelopeIn": 4.5,
+                    "profileHeightIn": 4.5,
+                    "compatibleUprightSeries": [
+                      "standard"
+                    ]
+                  },
+                  "isBeamSpecCustomized": false
+                },
+                {
+                  "id": "lvl_e1355",
+                  "levelIndex": 2,
+                  "holeIndex": 54,
+                  "elevationIn": 108,
+                  "beamSpec": {
+                    "id": "beam-16g-92in-4.5in",
+                    "lengthIn": 92,
+                    "capacityClass": "standard",
+                    "beamSeries": "standard",
+                    "connectorType": "standard",
+                    "verticalEnvelopeIn": 4.5,
+                    "profileHeightIn": 4.5,
+                    "compatibleUprightSeries": [
+                      "standard"
+                    ]
+                  },
+                  "isBeamSpecCustomized": false
+                }
+              ],
+              "accessoryIds": []
+            },
+            {
+              "id": "bay_e1359",
+              "leftFrameIndex": 3,
+              "rightFrameIndex": 4,
+              "beamSpec": {
+                "id": "beam-16g-92in-4.5in",
+                "lengthIn": 92,
+                "capacityClass": "standard",
+                "beamSeries": "standard",
+                "connectorType": "standard",
+                "verticalEnvelopeIn": 4.5,
+                "profileHeightIn": 4.5,
+                "compatibleUprightSeries": [
+                  "standard"
+                ]
+              },
+              "isBeamSpecCustomized": false,
+              "levels": [
+                {
+                  "id": "lvl_e1353",
+                  "levelIndex": 0,
+                  "holeIndex": 18,
+                  "elevationIn": 36,
+                  "beamSpec": {
+                    "id": "beam-16g-92in-4.5in",
+                    "lengthIn": 92,
+                    "capacityClass": "standard",
+                    "beamSeries": "standard",
+                    "connectorType": "standard",
+                    "verticalEnvelopeIn": 4.5,
+                    "profileHeightIn": 4.5,
+                    "compatibleUprightSeries": [
+                      "standard"
+                    ]
+                  },
+                  "isBeamSpecCustomized": false
+                },
+                {
+                  "id": "lvl_e1354",
+                  "levelIndex": 1,
+                  "holeIndex": 36,
+                  "elevationIn": 72,
+                  "beamSpec": {
+                    "id": "beam-16g-92in-4.5in",
+                    "lengthIn": 92,
+                    "capacityClass": "standard",
+                    "beamSeries": "standard",
+                    "connectorType": "standard",
+                    "verticalEnvelopeIn": 4.5,
+                    "profileHeightIn": 4.5,
+                    "compatibleUprightSeries": [
+                      "standard"
+                    ]
+                  },
+                  "isBeamSpecCustomized": false
+                },
+                {
+                  "id": "lvl_e1355",
+                  "levelIndex": 2,
+                  "holeIndex": 54,
+                  "elevationIn": 108,
+                  "beamSpec": {
+                    "id": "beam-16g-92in-4.5in",
+                    "lengthIn": 92,
+                    "capacityClass": "standard",
+                    "beamSeries": "standard",
+                    "connectorType": "standard",
+                    "verticalEnvelopeIn": 4.5,
+                    "profileHeightIn": 4.5,
+                    "compatibleUprightSeries": [
+                      "standard"
+                    ]
+                  },
+                  "isBeamSpecCustomized": false
+                }
+              ],
+              "accessoryIds": []
+            },
+            {
+              "id": "bay_e1360",
+              "leftFrameIndex": 4,
+              "rightFrameIndex": 5,
+              "beamSpec": {
+                "id": "beam-16g-92in-4.5in",
+                "lengthIn": 92,
+                "capacityClass": "standard",
+                "beamSeries": "standard",
+                "connectorType": "standard",
+                "verticalEnvelopeIn": 4.5,
+                "profileHeightIn": 4.5,
+                "compatibleUprightSeries": [
+                  "standard"
+                ]
+              },
+              "isBeamSpecCustomized": false,
+              "levels": [
+                {
+                  "id": "lvl_e1353",
+                  "levelIndex": 0,
+                  "holeIndex": 18,
+                  "elevationIn": 36,
+                  "beamSpec": {
+                    "id": "beam-16g-92in-4.5in",
+                    "lengthIn": 92,
+                    "capacityClass": "standard",
+                    "beamSeries": "standard",
+                    "connectorType": "standard",
+                    "verticalEnvelopeIn": 4.5,
+                    "profileHeightIn": 4.5,
+                    "compatibleUprightSeries": [
+                      "standard"
+                    ]
+                  },
+                  "isBeamSpecCustomized": false
+                },
+                {
+                  "id": "lvl_e1354",
+                  "levelIndex": 1,
+                  "holeIndex": 36,
+                  "elevationIn": 72,
+                  "beamSpec": {
+                    "id": "beam-16g-92in-4.5in",
+                    "lengthIn": 92,
+                    "capacityClass": "standard",
+                    "beamSeries": "standard",
+                    "connectorType": "standard",
+                    "verticalEnvelopeIn": 4.5,
+                    "profileHeightIn": 4.5,
+                    "compatibleUprightSeries": [
+                      "standard"
+                    ]
+                  },
+                  "isBeamSpecCustomized": false
+                },
+                {
+                  "id": "lvl_e1355",
+                  "levelIndex": 2,
+                  "holeIndex": 54,
+                  "elevationIn": 108,
+                  "beamSpec": {
+                    "id": "beam-16g-92in-4.5in",
+                    "lengthIn": 92,
+                    "capacityClass": "standard",
+                    "beamSeries": "standard",
+                    "connectorType": "standard",
+                    "verticalEnvelopeIn": 4.5,
+                    "profileHeightIn": 4.5,
+                    "compatibleUprightSeries": [
+                      "standard"
+                    ]
+                  },
+                  "isBeamSpecCustomized": false
+                }
+              ],
+              "accessoryIds": []
+            },
+            {
+              "id": "bay_e1361",
+              "leftFrameIndex": 5,
+              "rightFrameIndex": 6,
+              "beamSpec": {
+                "id": "beam-16g-92in-4.5in",
+                "lengthIn": 92,
+                "capacityClass": "standard",
+                "beamSeries": "standard",
+                "connectorType": "standard",
+                "verticalEnvelopeIn": 4.5,
+                "profileHeightIn": 4.5,
+                "compatibleUprightSeries": [
+                  "standard"
+                ]
+              },
+              "isBeamSpecCustomized": false,
+              "levels": [
+                {
+                  "id": "lvl_e1353",
+                  "levelIndex": 0,
+                  "holeIndex": 18,
+                  "elevationIn": 36,
+                  "beamSpec": {
+                    "id": "beam-16g-92in-4.5in",
+                    "lengthIn": 92,
+                    "capacityClass": "standard",
+                    "beamSeries": "standard",
+                    "connectorType": "standard",
+                    "verticalEnvelopeIn": 4.5,
+                    "profileHeightIn": 4.5,
+                    "compatibleUprightSeries": [
+                      "standard"
+                    ]
+                  },
+                  "isBeamSpecCustomized": false
+                },
+                {
+                  "id": "lvl_e1354",
+                  "levelIndex": 1,
+                  "holeIndex": 36,
+                  "elevationIn": 72,
+                  "beamSpec": {
+                    "id": "beam-16g-92in-4.5in",
+                    "lengthIn": 92,
+                    "capacityClass": "standard",
+                    "beamSeries": "standard",
+                    "connectorType": "standard",
+                    "verticalEnvelopeIn": 4.5,
+                    "profileHeightIn": 4.5,
+                    "compatibleUprightSeries": [
+                      "standard"
+                    ]
+                  },
+                  "isBeamSpecCustomized": false
+                },
+                {
+                  "id": "lvl_e1355",
+                  "levelIndex": 2,
+                  "holeIndex": 54,
+                  "elevationIn": 108,
+                  "beamSpec": {
+                    "id": "beam-16g-92in-4.5in",
+                    "lengthIn": 92,
+                    "capacityClass": "standard",
+                    "beamSeries": "standard",
+                    "connectorType": "standard",
+                    "verticalEnvelopeIn": 4.5,
+                    "profileHeightIn": 4.5,
+                    "compatibleUprightSeries": [
+                      "standard"
+                    ]
+                  },
+                  "isBeamSpecCustomized": false
+                }
+              ],
+              "accessoryIds": []
+            },
+            {
+              "id": "bay_e1362",
+              "leftFrameIndex": 6,
+              "rightFrameIndex": 7,
+              "beamSpec": {
+                "id": "beam-16g-92in-4.5in",
+                "lengthIn": 92,
+                "capacityClass": "standard",
+                "beamSeries": "standard",
+                "connectorType": "standard",
+                "verticalEnvelopeIn": 4.5,
+                "profileHeightIn": 4.5,
+                "compatibleUprightSeries": [
+                  "standard"
+                ]
+              },
+              "isBeamSpecCustomized": false,
+              "levels": [
+                {
+                  "id": "lvl_e1353",
+                  "levelIndex": 0,
+                  "holeIndex": 18,
+                  "elevationIn": 36,
+                  "beamSpec": {
+                    "id": "beam-16g-92in-4.5in",
+                    "lengthIn": 92,
+                    "capacityClass": "standard",
+                    "beamSeries": "standard",
+                    "connectorType": "standard",
+                    "verticalEnvelopeIn": 4.5,
+                    "profileHeightIn": 4.5,
+                    "compatibleUprightSeries": [
+                      "standard"
+                    ]
+                  },
+                  "isBeamSpecCustomized": false
+                },
+                {
+                  "id": "lvl_e1354",
+                  "levelIndex": 1,
+                  "holeIndex": 36,
+                  "elevationIn": 72,
+                  "beamSpec": {
+                    "id": "beam-16g-92in-4.5in",
+                    "lengthIn": 92,
+                    "capacityClass": "standard",
+                    "beamSeries": "standard",
+                    "connectorType": "standard",
+                    "verticalEnvelopeIn": 4.5,
+                    "profileHeightIn": 4.5,
+                    "compatibleUprightSeries": [
+                      "standard"
+                    ]
+                  },
+                  "isBeamSpecCustomized": false
+                },
+                {
+                  "id": "lvl_e1355",
+                  "levelIndex": 2,
+                  "holeIndex": 54,
+                  "elevationIn": 108,
+                  "beamSpec": {
+                    "id": "beam-16g-92in-4.5in",
+                    "lengthIn": 92,
+                    "capacityClass": "standard",
+                    "beamSeries": "standard",
+                    "connectorType": "standard",
+                    "verticalEnvelopeIn": 4.5,
+                    "profileHeightIn": 4.5,
+                    "compatibleUprightSeries": [
+                      "standard"
+                    ]
+                  },
+                  "isBeamSpecCustomized": false
+                }
+              ],
+              "accessoryIds": []
+            },
+            {
+              "id": "bay_e1363",
+              "leftFrameIndex": 7,
+              "rightFrameIndex": 8,
+              "beamSpec": {
+                "id": "beam-16g-92in-4.5in",
+                "lengthIn": 92,
+                "capacityClass": "standard",
+                "beamSeries": "standard",
+                "connectorType": "standard",
+                "verticalEnvelopeIn": 4.5,
+                "profileHeightIn": 4.5,
+                "compatibleUprightSeries": [
+                  "standard"
+                ]
+              },
+              "isBeamSpecCustomized": false,
+              "levels": [
+                {
+                  "id": "lvl_e1353",
+                  "levelIndex": 0,
+                  "holeIndex": 18,
+                  "elevationIn": 36,
+                  "beamSpec": {
+                    "id": "beam-16g-92in-4.5in",
+                    "lengthIn": 92,
+                    "capacityClass": "standard",
+                    "beamSeries": "standard",
+                    "connectorType": "standard",
+                    "verticalEnvelopeIn": 4.5,
+                    "profileHeightIn": 4.5,
+                    "compatibleUprightSeries": [
+                      "standard"
+                    ]
+                  },
+                  "isBeamSpecCustomized": false
+                },
+                {
+                  "id": "lvl_e1354",
+                  "levelIndex": 1,
+                  "holeIndex": 36,
+                  "elevationIn": 72,
+                  "beamSpec": {
+                    "id": "beam-16g-92in-4.5in",
+                    "lengthIn": 92,
+                    "capacityClass": "standard",
+                    "beamSeries": "standard",
+                    "connectorType": "standard",
+                    "verticalEnvelopeIn": 4.5,
+                    "profileHeightIn": 4.5,
+                    "compatibleUprightSeries": [
+                      "standard"
+                    ]
+                  },
+                  "isBeamSpecCustomized": false
+                },
+                {
+                  "id": "lvl_e1355",
+                  "levelIndex": 2,
+                  "holeIndex": 54,
+                  "elevationIn": 108,
+                  "beamSpec": {
+                    "id": "beam-16g-92in-4.5in",
+                    "lengthIn": 92,
+                    "capacityClass": "standard",
+                    "beamSeries": "standard",
+                    "connectorType": "standard",
+                    "verticalEnvelopeIn": 4.5,
+                    "profileHeightIn": 4.5,
+                    "compatibleUprightSeries": [
+                      "standard"
+                    ]
+                  },
+                  "isBeamSpecCustomized": false
+                }
+              ],
+              "accessoryIds": []
+            },
+            {
+              "id": "bay_e1364",
+              "leftFrameIndex": 8,
+              "rightFrameIndex": 9,
+              "beamSpec": {
+                "id": "beam-16g-92in-4.5in",
+                "lengthIn": 92,
+                "capacityClass": "standard",
+                "beamSeries": "standard",
+                "connectorType": "standard",
+                "verticalEnvelopeIn": 4.5,
+                "profileHeightIn": 4.5,
+                "compatibleUprightSeries": [
+                  "standard"
+                ]
+              },
+              "isBeamSpecCustomized": false,
+              "levels": [
+                {
+                  "id": "lvl_e1353",
+                  "levelIndex": 0,
+                  "holeIndex": 18,
+                  "elevationIn": 36,
+                  "beamSpec": {
+                    "id": "beam-16g-92in-4.5in",
+                    "lengthIn": 92,
+                    "capacityClass": "standard",
+                    "beamSeries": "standard",
+                    "connectorType": "standard",
+                    "verticalEnvelopeIn": 4.5,
+                    "profileHeightIn": 4.5,
+                    "compatibleUprightSeries": [
+                      "standard"
+                    ]
+                  },
+                  "isBeamSpecCustomized": false
+                },
+                {
+                  "id": "lvl_e1354",
+                  "levelIndex": 1,
+                  "holeIndex": 36,
+                  "elevationIn": 72,
+                  "beamSpec": {
+                    "id": "beam-16g-92in-4.5in",
+                    "lengthIn": 92,
+                    "capacityClass": "standard",
+                    "beamSeries": "standard",
+                    "connectorType": "standard",
+                    "verticalEnvelopeIn": 4.5,
+                    "profileHeightIn": 4.5,
+                    "compatibleUprightSeries": [
+                      "standard"
+                    ]
+                  },
+                  "isBeamSpecCustomized": false
+                },
+                {
+                  "id": "lvl_e1355",
+                  "levelIndex": 2,
+                  "holeIndex": 54,
+                  "elevationIn": 108,
+                  "beamSpec": {
+                    "id": "beam-16g-92in-4.5in",
+                    "lengthIn": 92,
+                    "capacityClass": "standard",
+                    "beamSeries": "standard",
+                    "connectorType": "standard",
+                    "verticalEnvelopeIn": 4.5,
+                    "profileHeightIn": 4.5,
+                    "compatibleUprightSeries": [
+                      "standard"
+                    ]
+                  },
+                  "isBeamSpecCustomized": false
+                }
+              ],
+              "accessoryIds": []
+            },
+            {
+              "id": "bay_e1365",
+              "leftFrameIndex": 9,
+              "rightFrameIndex": 10,
+              "beamSpec": {
+                "id": "beam-16g-92in-4.5in",
+                "lengthIn": 92,
+                "capacityClass": "standard",
+                "beamSeries": "standard",
+                "connectorType": "standard",
+                "verticalEnvelopeIn": 4.5,
+                "profileHeightIn": 4.5,
+                "compatibleUprightSeries": [
+                  "standard"
+                ]
+              },
+              "isBeamSpecCustomized": false,
+              "levels": [
+                {
+                  "id": "lvl_e1353",
+                  "levelIndex": 0,
+                  "holeIndex": 18,
+                  "elevationIn": 36,
+                  "beamSpec": {
+                    "id": "beam-16g-92in-4.5in",
+                    "lengthIn": 92,
+                    "capacityClass": "standard",
+                    "beamSeries": "standard",
+                    "connectorType": "standard",
+                    "verticalEnvelopeIn": 4.5,
+                    "profileHeightIn": 4.5,
+                    "compatibleUprightSeries": [
+                      "standard"
+                    ]
+                  },
+                  "isBeamSpecCustomized": false
+                },
+                {
+                  "id": "lvl_e1354",
+                  "levelIndex": 1,
+                  "holeIndex": 36,
+                  "elevationIn": 72,
+                  "beamSpec": {
+                    "id": "beam-16g-92in-4.5in",
+                    "lengthIn": 92,
+                    "capacityClass": "standard",
+                    "beamSeries": "standard",
+                    "connectorType": "standard",
+                    "verticalEnvelopeIn": 4.5,
+                    "profileHeightIn": 4.5,
+                    "compatibleUprightSeries": [
+                      "standard"
+                    ]
+                  },
+                  "isBeamSpecCustomized": false
+                },
+                {
+                  "id": "lvl_e1355",
+                  "levelIndex": 2,
+                  "holeIndex": 54,
+                  "elevationIn": 108,
+                  "beamSpec": {
+                    "id": "beam-16g-92in-4.5in",
+                    "lengthIn": 92,
+                    "capacityClass": "standard",
+                    "beamSeries": "standard",
+                    "connectorType": "standard",
+                    "verticalEnvelopeIn": 4.5,
+                    "profileHeightIn": 4.5,
+                    "compatibleUprightSeries": [
+                      "standard"
+                    ]
+                  },
+                  "isBeamSpecCustomized": false
+                }
+              ],
+              "accessoryIds": []
+            },
+            {
+              "id": "bay_e1366",
+              "leftFrameIndex": 10,
+              "rightFrameIndex": 11,
+              "beamSpec": {
+                "id": "beam-16g-92in-4.5in",
+                "lengthIn": 92,
+                "capacityClass": "standard",
+                "beamSeries": "standard",
+                "connectorType": "standard",
+                "verticalEnvelopeIn": 4.5,
+                "profileHeightIn": 4.5,
+                "compatibleUprightSeries": [
+                  "standard"
+                ]
+              },
+              "isBeamSpecCustomized": false,
+              "levels": [
+                {
+                  "id": "lvl_e1353",
+                  "levelIndex": 0,
+                  "holeIndex": 18,
+                  "elevationIn": 36,
+                  "beamSpec": {
+                    "id": "beam-16g-92in-4.5in",
+                    "lengthIn": 92,
+                    "capacityClass": "standard",
+                    "beamSeries": "standard",
+                    "connectorType": "standard",
+                    "verticalEnvelopeIn": 4.5,
+                    "profileHeightIn": 4.5,
+                    "compatibleUprightSeries": [
+                      "standard"
+                    ]
+                  },
+                  "isBeamSpecCustomized": false
+                },
+                {
+                  "id": "lvl_e1354",
+                  "levelIndex": 1,
+                  "holeIndex": 36,
+                  "elevationIn": 72,
+                  "beamSpec": {
+                    "id": "beam-16g-92in-4.5in",
+                    "lengthIn": 92,
+                    "capacityClass": "standard",
+                    "beamSeries": "standard",
+                    "connectorType": "standard",
+                    "verticalEnvelopeIn": 4.5,
+                    "profileHeightIn": 4.5,
+                    "compatibleUprightSeries": [
+                      "standard"
+                    ]
+                  },
+                  "isBeamSpecCustomized": false
+                },
+                {
+                  "id": "lvl_e1355",
+                  "levelIndex": 2,
+                  "holeIndex": 54,
+                  "elevationIn": 108,
+                  "beamSpec": {
+                    "id": "beam-16g-92in-4.5in",
+                    "lengthIn": 92,
+                    "capacityClass": "standard",
+                    "beamSeries": "standard",
+                    "connectorType": "standard",
+                    "verticalEnvelopeIn": 4.5,
+                    "profileHeightIn": 4.5,
+                    "compatibleUprightSeries": [
+                      "standard"
+                    ]
+                  },
+                  "isBeamSpecCustomized": false
+                }
+              ],
+              "accessoryIds": []
+            },
+            {
+              "id": "bay_e1367",
+              "leftFrameIndex": 11,
+              "rightFrameIndex": 12,
+              "beamSpec": {
+                "id": "beam-16g-92in-4.5in",
+                "lengthIn": 92,
+                "capacityClass": "standard",
+                "beamSeries": "standard",
+                "connectorType": "standard",
+                "verticalEnvelopeIn": 4.5,
+                "profileHeightIn": 4.5,
+                "compatibleUprightSeries": [
+                  "standard"
+                ]
+              },
+              "isBeamSpecCustomized": false,
+              "levels": [
+                {
+                  "id": "lvl_e1353",
+                  "levelIndex": 0,
+                  "holeIndex": 18,
+                  "elevationIn": 36,
+                  "beamSpec": {
+                    "id": "beam-16g-92in-4.5in",
+                    "lengthIn": 92,
+                    "capacityClass": "standard",
+                    "beamSeries": "standard",
+                    "connectorType": "standard",
+                    "verticalEnvelopeIn": 4.5,
+                    "profileHeightIn": 4.5,
+                    "compatibleUprightSeries": [
+                      "standard"
+                    ]
+                  },
+                  "isBeamSpecCustomized": false
+                },
+                {
+                  "id": "lvl_e1354",
+                  "levelIndex": 1,
+                  "holeIndex": 36,
+                  "elevationIn": 72,
+                  "beamSpec": {
+                    "id": "beam-16g-92in-4.5in",
+                    "lengthIn": 92,
+                    "capacityClass": "standard",
+                    "beamSeries": "standard",
+                    "connectorType": "standard",
+                    "verticalEnvelopeIn": 4.5,
+                    "profileHeightIn": 4.5,
+                    "compatibleUprightSeries": [
+                      "standard"
+                    ]
+                  },
+                  "isBeamSpecCustomized": false
+                },
+                {
+                  "id": "lvl_e1355",
+                  "levelIndex": 2,
+                  "holeIndex": 54,
+                  "elevationIn": 108,
+                  "beamSpec": {
+                    "id": "beam-16g-92in-4.5in",
+                    "lengthIn": 92,
+                    "capacityClass": "standard",
+                    "beamSeries": "standard",
+                    "connectorType": "standard",
+                    "verticalEnvelopeIn": 4.5,
+                    "profileHeightIn": 4.5,
+                    "compatibleUprightSeries": [
+                      "standard"
+                    ]
+                  },
+                  "isBeamSpecCustomized": false
+                }
+              ],
+              "accessoryIds": []
+            },
+            {
+              "id": "bay_e1368",
+              "leftFrameIndex": 12,
+              "rightFrameIndex": 13,
+              "beamSpec": {
+                "id": "beam-16g-92in-4.5in",
+                "lengthIn": 92,
+                "capacityClass": "standard",
+                "beamSeries": "standard",
+                "connectorType": "standard",
+                "verticalEnvelopeIn": 4.5,
+                "profileHeightIn": 4.5,
+                "compatibleUprightSeries": [
+                  "standard"
+                ]
+              },
+              "isBeamSpecCustomized": false,
+              "levels": [
+                {
+                  "id": "lvl_e1353",
+                  "levelIndex": 0,
+                  "holeIndex": 18,
+                  "elevationIn": 36,
+                  "beamSpec": {
+                    "id": "beam-16g-92in-4.5in",
+                    "lengthIn": 92,
+                    "capacityClass": "standard",
+                    "beamSeries": "standard",
+                    "connectorType": "standard",
+                    "verticalEnvelopeIn": 4.5,
+                    "profileHeightIn": 4.5,
+                    "compatibleUprightSeries": [
+                      "standard"
+                    ]
+                  },
+                  "isBeamSpecCustomized": false
+                },
+                {
+                  "id": "lvl_e1354",
+                  "levelIndex": 1,
+                  "holeIndex": 36,
+                  "elevationIn": 72,
+                  "beamSpec": {
+                    "id": "beam-16g-92in-4.5in",
+                    "lengthIn": 92,
+                    "capacityClass": "standard",
+                    "beamSeries": "standard",
+                    "connectorType": "standard",
+                    "verticalEnvelopeIn": 4.5,
+                    "profileHeightIn": 4.5,
+                    "compatibleUprightSeries": [
+                      "standard"
+                    ]
+                  },
+                  "isBeamSpecCustomized": false
+                },
+                {
+                  "id": "lvl_e1355",
+                  "levelIndex": 2,
+                  "holeIndex": 54,
+                  "elevationIn": 108,
+                  "beamSpec": {
+                    "id": "beam-16g-92in-4.5in",
+                    "lengthIn": 92,
+                    "capacityClass": "standard",
+                    "beamSeries": "standard",
+                    "connectorType": "standard",
+                    "verticalEnvelopeIn": 4.5,
+                    "profileHeightIn": 4.5,
+                    "compatibleUprightSeries": [
+                      "standard"
+                    ]
+                  },
+                  "isBeamSpecCustomized": false
+                }
+              ],
+              "accessoryIds": []
+            }
+          ],
+          "levelUnion": [
+            {
+              "id": "lvl_e1353",
+              "levelIndex": 0,
+              "holeIndex": 18,
+              "elevationIn": 36,
+              "beamSpec": {
+                "id": "beam-16g-92in-4.5in",
+                "lengthIn": 92,
+                "capacityClass": "standard",
+                "beamSeries": "standard",
+                "connectorType": "standard",
+                "verticalEnvelopeIn": 4.5,
+                "profileHeightIn": 4.5,
+                "compatibleUprightSeries": [
+                  "standard"
+                ]
+              },
+              "isBeamSpecCustomized": false
+            },
+            {
+              "id": "lvl_e1354",
+              "levelIndex": 1,
+              "holeIndex": 36,
+              "elevationIn": 72,
+              "beamSpec": {
+                "id": "beam-16g-92in-4.5in",
+                "lengthIn": 92,
+                "capacityClass": "standard",
+                "beamSeries": "standard",
+                "connectorType": "standard",
+                "verticalEnvelopeIn": 4.5,
+                "profileHeightIn": 4.5,
+                "compatibleUprightSeries": [
+                  "standard"
+                ]
+              },
+              "isBeamSpecCustomized": false
+            },
+            {
+              "id": "lvl_e1355",
+              "levelIndex": 2,
+              "holeIndex": 54,
+              "elevationIn": 108,
+              "beamSpec": {
+                "id": "beam-16g-92in-4.5in",
+                "lengthIn": 92,
+                "capacityClass": "standard",
+                "beamSeries": "standard",
+                "connectorType": "standard",
+                "verticalEnvelopeIn": 4.5,
+                "profileHeightIn": 4.5,
+                "compatibleUprightSeries": [
+                  "standard"
+                ]
+              },
+              "isBeamSpecCustomized": false
+            }
+          ],
+          "frameCount": 14,
+          "startFrameIndex": 0,
+          "endFrameIndex": 13,
+          "rowIndex": 0
+        }
+      ]
+    },
+    "wallStore": {
+      "defaultThicknessM": 0.2,
+      "overrides": {}
+    },
+    "columnStore": {
+      "defaultWidthM": 0.4,
+      "defaultDepthM": 0.4
+    }
+  },
+  "canvas": {
+    "darkMode": false,
+    "rackOrientation": "vertical",
+    "drawingMode": false,
+    "wallMode": null,
+    "columnMode": false,
+    "showMeasurements": true
+  }
+}
