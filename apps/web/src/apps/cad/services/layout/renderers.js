@@ -850,6 +850,40 @@ export function paintWallPreview(ctx, preview, cam, dk) {
   ctx.restore();
 }
 
+// ── Column Ghost Preview ─────────────────────────────────────────────────────
+
+/**
+ * Paint ghost column previews for the click-to-lock-delta placement tool.
+ *
+ * @param {CanvasRenderingContext2D} ctx
+ * @param {{ positions: {x,y}[], widthM: number, depthM: number } | null} ghost
+ * @param {{ x: number, y: number, zoom: number }} cam
+ * @param {boolean} dk  dark mode
+ */
+export function paintColumnGhost(ctx, ghost, cam, dk) {
+  if (!ghost || !ghost.positions?.length) return;
+  const p = pal(dk).column;
+  const hw = (ghost.widthM / 2) * cam.zoom;
+  const hd = (ghost.depthM / 2) * cam.zoom;
+  if (hw < 0.5 || hd < 0.5) return;
+
+  ctx.save();
+  ctx.globalAlpha = 0.45;
+  ctx.setLineDash([5, 4]);
+  ctx.fillStyle = p.fill;
+  ctx.strokeStyle = p.stroke;
+  ctx.lineWidth = 1.5;
+
+  for (const pos of ghost.positions) {
+    const cx = cam.x + pos.x * cam.zoom;
+    const cy = cam.y + pos.y * cam.zoom;
+    ctx.fillRect(cx - hw, cy - hd, hw * 2, hd * 2);
+    ctx.strokeRect(cx - hw, cy - hd, hw * 2, hd * 2);
+  }
+
+  ctx.restore();
+}
+
 // ── Dispatch ────────────────────────────────────────────────────────────────
 
 /**

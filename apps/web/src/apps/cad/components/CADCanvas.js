@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef, useEffect, useCallback } from 'react';
+import { useRef, useEffect, useCallback, useState } from 'react';
 import { DEFAULT_FRAME_DEPTH_M, BAY_STEP_M } from '../services/rack/catalog';
 import {
   CanvasActionsBar,
@@ -62,6 +62,8 @@ export default function CADCanvas(props) {
 
   const columnModeRef = useRef(columnMode);
   const columnStoreRef = useRef(columnStore);
+  const columnGhostRef = useRef(null);
+  const [columnPhase, setColumnPhase] = useState('IDLE');
 
   const noteModeRef = useRef(noteMode);
   const noteStoreRef = useRef(noteStore);
@@ -99,6 +101,7 @@ export default function CADCanvas(props) {
     layoutStore,
     layoutVersion,
     wallPreviewRef,
+    columnGhostRef,
     selRectRef,
     subSelRef,
     rackDomainRef,
@@ -198,9 +201,12 @@ export default function CADCanvas(props) {
     canvasRef,
     layoutStore,
     worldAt,
+    columnMode,
     columnModeRef,
     columnStoreRef,
+    columnGhostRef,
     scheduleRedraw,
+    onPhaseChange: setColumnPhase,
   });
 
   useNotePlacementInteraction({
@@ -314,6 +320,7 @@ export default function CADCanvas(props) {
         drawingMode={drawingMode}
         wallMode={wallMode}
         columnMode={columnMode}
+        columnPhase={columnPhase}
         noteMode={noteMode}
         subSel={subSel}
         darkMode={isDark}

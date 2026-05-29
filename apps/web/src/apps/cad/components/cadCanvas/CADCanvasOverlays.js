@@ -88,7 +88,14 @@ export function CanvasActionsBar({
   );
 }
 
-export function CanvasModeBanners({ drawingMode, wallMode, columnMode, noteMode, subSel, darkMode, theme }) {
+const COLUMN_PHASE_HINTS = {
+  IDLE:      'Click to place first column',
+  AXIS1:     'Click to set spacing direction',
+  EXTENDING: 'Click to extend row · Shift+click to add 2nd axis · R to reset',
+  GRID_2D:   'Click to add row · Shift+click to add column · R to reset',
+};
+
+export function CanvasModeBanners({ drawingMode, wallMode, columnMode, columnPhase, noteMode, subSel, darkMode, theme }) {
   return (
     <>
       {drawingMode && (
@@ -103,7 +110,7 @@ export function CanvasModeBanners({ drawingMode, wallMode, columnMode, noteMode,
       )}
       {columnMode && (
         <div style={{ ...drawBannerStyle, background: theme.overlayBanner.bg, borderColor: theme.overlayBanner.border, color: theme.overlayBanner.color }}>
-          Placing: Column — click to place · Esc to cancel
+          Column — {COLUMN_PHASE_HINTS[columnPhase] ?? COLUMN_PHASE_HINTS.IDLE}
         </div>
       )}
       {noteMode && (

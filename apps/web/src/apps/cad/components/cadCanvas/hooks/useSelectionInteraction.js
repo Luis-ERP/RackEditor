@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { RULER_SIZE, screenToWorld } from '../../../services/coordinateSystem';
 import { BAY_STEP_M } from '../../../services/rack/catalog';
+import { snapPointToGrid } from '../../../services/layout';
 
 export default function useSelectionInteraction({
   canvasRef,
@@ -74,7 +75,8 @@ export default function useSelectionInteraction({
           layoutStore.select(hit.id, true);
         }
 
-        moveDragRef.current = { startWX: world.x, startWY: world.y };
+        const snappedStart = snapPointToGrid(world.x, world.y);
+        moveDragRef.current = { startWX: snappedStart.x, startWY: snappedStart.y };
         return;
       }
 
@@ -94,12 +96,13 @@ export default function useSelectionInteraction({
         const world = worldAt(e);
         if (!world) return;
 
-        const dx = world.x - moveDragRef.current.startWX;
-        const dy = world.y - moveDragRef.current.startWY;
+        const snapped = snapPointToGrid(world.x, world.y);
+        const dx = snapped.x - moveDragRef.current.startWX;
+        const dy = snapped.y - moveDragRef.current.startWY;
         if (Math.abs(dx) > 0.001 || Math.abs(dy) > 0.001) {
           layoutStore.moveSelectedBy(dx, dy);
-          moveDragRef.current.startWX = world.x;
-          moveDragRef.current.startWY = world.y;
+          moveDragRef.current.startWX = snapped.x;
+          moveDragRef.current.startWY = snapped.y;
         }
         return;
       }

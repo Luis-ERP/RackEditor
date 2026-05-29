@@ -14,6 +14,7 @@ import {
   paintEntityMeasurements,
   paintSelectionRect,
   paintWallPreview,
+  paintColumnGhost,
 } from '../../../services/layout';
 import { logDrawnObjectSemantics } from '../semantics';
 
@@ -29,6 +30,7 @@ export default function useCanvasViewport({
   layoutStore,
   layoutVersion,
   wallPreviewRef,
+  columnGhostRef,
   selRectRef,
   subSelRef,
   rackDomainRef,
@@ -57,12 +59,13 @@ export default function useCanvasViewport({
     }
 
     paintWallPreview(ctx, wallPreviewRef.current, cam, dk);
+    paintColumnGhost(ctx, columnGhostRef.current, cam, dk);
     paintSelectionRect(ctx, selRectRef.current, dk);
 
     drawTopRuler(ctx, w, cam, dk);
     drawLeftRuler(ctx, h, cam, dk);
     drawCornerPatch(ctx, dk);
-  }, [camera, canvasRef, darkRef, layoutStore, rackDomainRef, selRectRef, showMeasurements, sizeRef, subSelRef, wallPreviewRef]);
+  }, [camera, canvasRef, columnGhostRef, darkRef, layoutStore, rackDomainRef, selRectRef, showMeasurements, sizeRef, subSelRef, wallPreviewRef]);
 
   const scheduleRedraw = useCallback(() => {
     if (rafId.current) return;

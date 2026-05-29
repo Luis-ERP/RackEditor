@@ -100,11 +100,11 @@ export function createLayoutStore() {
    * so it doesn't sit exactly on top of the original.
    * The new clones become the active selection.
    *
-   * @param {number} [offsetX=0.5] — world-space X offset for duplicates
-   * @param {number} [offsetY=0.5] — world-space Y offset for duplicates
+   * @param {number} [offsetX=1] — world-space X offset for duplicates
+   * @param {number} [offsetY=1] — world-space Y offset for duplicates
    * @returns {Object[]} the newly created entities
    */
-  function duplicateSelected(offsetX = 0.5, offsetY = 0.5) {
+  function duplicateSelected(offsetX = 1, offsetY = 1) {
     const sources = getSelectedEntities();
     if (sources.length === 0) return [];
 

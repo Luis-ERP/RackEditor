@@ -41,4 +41,5 @@ export {
   paintEntityMeasurements,
   paintSelectionRect,
   paintWallPreview,
+  paintColumnGhost,
 } from './renderers.js';

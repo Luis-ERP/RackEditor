@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { createTextNoteEntity } from '../../../services/layout';
+import { createTextNoteEntity, snapPointToGrid } from '../../../services/layout';
 
 export default function useNotePlacementInteraction({
   canvasRef,
@@ -19,6 +19,7 @@ export default function useNotePlacementInteraction({
       if (!world) return;
 
       e.preventDefault();
+      const snapped = snapPointToGrid(world.x, world.y);
       const ns = noteStoreRef.current;
       const bgColor   = ns ? ns.getDefaultBgColor()   : '#fffde7';
       const fontColor = ns ? ns.getDefaultFontColor() : '#1f2937';
@@ -27,8 +28,8 @@ export default function useNotePlacementInteraction({
       const heightM   = ns ? ns.getDefaultHeightM()   : 1;
 
       const ent = createTextNoteEntity({
-        x: world.x,
-        y: world.y,
+        x: snapped.x,
+        y: snapped.y,
         text: 'Note',
         fontSizeM,
         widthM,
