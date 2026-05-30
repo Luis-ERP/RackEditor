@@ -11,6 +11,7 @@ export default function useKeyboardShortcuts({
   layoutStore,
   scheduleRedraw,
   handleDeleteSubSelected,
+  handleDuplicateSelected,
 }) {
   useEffect(() => {
     const onKey = (e) => {
@@ -29,15 +30,15 @@ export default function useKeyboardShortcuts({
 
       if (e.key === 'd' && (e.metaKey || e.ctrlKey) && !e.shiftKey && !e.altKey) {
         e.preventDefault();
-        if (!subSelRef.current && layoutStore && layoutStore.selectionCount() > 0) {
-          layoutStore.duplicateSelected();
+        if (!subSelRef.current && handleDuplicateSelected) {
+          handleDuplicateSelected();
         }
       }
     };
 
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [drawingModeRef, layoutStore, onSubSelChangeRef, scheduleRedraw, setSubSel, subSelRef]);
+  }, [drawingModeRef, handleDuplicateSelected, layoutStore, onSubSelChangeRef, scheduleRedraw, setSubSel, subSelRef]);
 
   useEffect(() => {
     const onKey = (e) => {

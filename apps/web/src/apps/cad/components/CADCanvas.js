@@ -2,6 +2,7 @@
 
 import { useRef, useEffect, useCallback, useState } from 'react';
 import { DEFAULT_FRAME_DEPTH_M, BAY_STEP_M } from '../services/rack/catalog';
+import { createRackModule } from '../services/rack';
 import {
   CanvasActionsBar,
   CanvasModeBanners,
@@ -165,6 +166,39 @@ export default function CADCanvas(props) {
     scheduleRedraw,
   });
 
+  const handleDuplicateSelected = useCallback(() => {
+    if (layoutStore && layoutStore.selectionCount() > 0) {
+      const clones = layoutStore.duplicateSelected();
+      const domainMap = rackDomainRef.current;
+      if (domainMap) {
+        let seq = Date.now();
+        for (const clone of clones) {
+          if (clone.type !== 'RACK_MODULE' || !clone.domainId) continue;
+          const originalDomain = domainMap.get(clone.domainId);
+          if (!originalDomain) continue;
+          const newId = `mod_dup_${seq++}`;
+          try {
+            const clonedDomain = createRackModule({
+              id: newId,
+              frameSpec: originalDomain.frameSpec,
+              frameOverrides: originalDomain.frameOverrides,
+              bays: originalDomain.bays,
+              levelUnion: originalDomain.levelUnion,
+              startFrameIndex: originalDomain.startFrameIndex,
+              rowIndex: originalDomain.rowIndex,
+            });
+            domainMap.set(newId, clonedDomain);
+            layoutStore.update(clone.id, { domainId: newId });
+          } catch {
+            // leave shared domainId as fallback if cloning fails
+          }
+        }
+      }
+      rebuildCellMap();
+      scheduleRedraw();
+    }
+  }, [layoutStore, rackDomainRef, rebuildCellMap, scheduleRedraw]);
+
   useKeyboardShortcuts({
     drawingModeRef,
     wallModeRef,
@@ -176,6 +210,7 @@ export default function CADCanvas(props) {
     layoutStore,
     scheduleRedraw,
     handleDeleteSubSelected,
+    handleDuplicateSelected,
   });
 
   useRackDrawingInteraction({
@@ -268,13 +303,6 @@ export default function CADCanvas(props) {
   const handleDeleteSelected = useCallback(() => {
     if (layoutStore) layoutStore.removeSelected();
   }, [layoutStore]);
-
-  const handleDuplicateSelected = useCallback(() => {
-    if (layoutStore && layoutStore.selectionCount() > 0) {
-      layoutStore.duplicateSelected();
-      scheduleRedraw();
-    }
-  }, [layoutStore, scheduleRedraw]);
 
   const handleMoveUp = useCallback(() => {
     if (layoutStore) {
