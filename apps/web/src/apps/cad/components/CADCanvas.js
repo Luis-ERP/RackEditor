@@ -19,6 +19,7 @@ import useColumnPlacementInteraction from './cadCanvas/hooks/useColumnPlacementI
 import useSelectionInteraction from './cadCanvas/hooks/useSelectionInteraction';
 import useNotePlacementInteraction from './cadCanvas/hooks/useNotePlacementInteraction';
 import useNoteResizeInteraction from './cadCanvas/hooks/useNoteResizeInteraction';
+import useAisleExtrudeInteraction from './cadCanvas/hooks/useAisleExtrudeInteraction';
 import { useAppTheme } from '@/src/shared/theme/AppThemeProvider';
 
 export default function CADCanvas(props) {
@@ -71,6 +72,7 @@ export default function CADCanvas(props) {
   const selDragRef = useRef(null);
   const selRectRef = useRef(null);
   const moveDragRef = useRef(null);
+  const extrudeGhostRef = useRef(null);
 
   const cellMapRef = useRef(new Map());
   const subSelRef = useRef(null);
@@ -106,6 +108,7 @@ export default function CADCanvas(props) {
     subSelRef,
     rackDomainRef,
     showMeasurements,
+    extrudeGhostRef,
   });
 
   const {
@@ -223,6 +226,20 @@ export default function CADCanvas(props) {
     layoutStore,
     camera,
     scheduleRedraw,
+  });
+
+  useAisleExtrudeInteraction({
+    canvasRef,
+    layoutStore,
+    camera,
+    scheduleRedraw,
+    worldAt,
+    drawingModeRef,
+    wallModeRef,
+    columnModeRef,
+    noteModeRef,
+    extrudeGhostRef,
+    rackDomainRef,
   });
 
   useSelectionInteraction({

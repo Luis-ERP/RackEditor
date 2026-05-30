@@ -1061,3 +1061,123 @@ export function paintEntityMeasurements(ctx, store, cam, dk) {
     });
   }
 }
+
+// ── Aisle Extrude Handles ─────────────────────────────────────────────────────
+
+export const EXTRUDE_HANDLE_R_PX = 14;
+const EXTRUDE_HANDLE_GAP_PX = 2;
+
+/**
+ * Compute screen-space positions of the two extrude arrow handles for a rack entity.
+ *
+ * @param {Object} entity  RACK_MODULE or RACK_LINE
+ * @param {{ x: number, y: number, zoom: number }} cam
+ * @returns {Array<{ entityId, side, screenX, screenY, dir, axis }>|null}
+ */
+export function aisleExtrudeHandlePositions(entity, cam) {
+  if (entity.type !== EntityType.RACK_MODULE && entity.type !== EntityType.RACK_LINE) return null;
+  const { x, y } = entity.transform;
+  const isVertical = entity.transform.rotation === 90;
+  const sx = cam.x + x * cam.zoom;
+  const sy = cam.y + y * cam.zoom;
+  const sw = entity.widthM * cam.zoom;
+  const sh = entity.depthM * cam.zoom;
+  const R = EXTRUDE_HANDLE_R_PX;
+  const G = EXTRUDE_HANDLE_GAP_PX;
+
+  if (!isVertical) {
+    return [
+      { entityId: entity.id, side: 'start', screenX: sx - R - G, screenY: sy + sh / 2, dir: -1, axis: 'x' },
+      { entityId: entity.id, side: 'end',   screenX: sx + sw + R + G, screenY: sy + sh / 2, dir: 1, axis: 'x' },
+    ];
+  } else {
+    return [
+      { entityId: entity.id, side: 'start', screenX: sx + sw / 2, screenY: sy - R - G, dir: -1, axis: 'y' },
+      { entityId: entity.id, side: 'end',   screenX: sx + sw / 2, screenY: sy + sh + R + G, dir: 1, axis: 'y' },
+    ];
+  }
+}
+
+// Draws a Lucide-style ChevronsRight icon (two chevrons), rotated to match direction.
+// No background — just stroked icon paths, identical to how Lucide SVGs render.
+function drawExtrudeArrowHandle(ctx, sx, sy, dir, axis, dk) {
+  const ICON_PX = 22;
+  const scale = ICON_PX / 24;
+
+  ctx.save();
+  ctx.translate(sx, sy);
+
+  // Rotate so the double chevron always points outward from the rack edge
+  if (axis === 'x' && dir === -1)      ctx.rotate(Math.PI);
+  else if (axis === 'y' && dir === 1)  ctx.rotate(Math.PI / 2);
+  else if (axis === 'y' && dir === -1) ctx.rotate(-Math.PI / 2);
+  // axis === 'x' && dir === 1: no rotation (points right by default)
+
+  ctx.scale(scale, scale);
+  ctx.translate(-12, -12); // center the 24×24 Lucide viewBox
+
+  ctx.strokeStyle = dk ? '#93c5fd' : '#2563eb'; // blue-300 dark / blue-600 light
+  ctx.lineWidth = 2.2 / scale;
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+  ctx.shadowColor = dk ? 'rgba(0,0,0,0.85)' : 'rgba(0,0,0,0.2)';
+  ctx.shadowBlur = 3 / scale;
+
+  // Lucide ChevronsRight: two rightward chevrons
+  // front chevron  13,17 → 18,12 → 13,7
+  ctx.beginPath();
+  ctx.moveTo(13, 17);
+  ctx.lineTo(18, 12);
+  ctx.lineTo(13, 7);
+  ctx.stroke();
+
+  // back chevron  6,17 → 11,12 → 6,7
+  ctx.beginPath();
+  ctx.moveTo(6, 17);
+  ctx.lineTo(11, 12);
+  ctx.lineTo(6, 7);
+  ctx.stroke();
+
+  ctx.restore();
+}
+
+/**
+ * Paint extrude arrow handles for all selected rack aisles.
+ *
+ * @param {CanvasRenderingContext2D} ctx
+ * @param {Object} layoutStore
+ * @param {{ x: number, y: number, zoom: number }} cam
+ * @param {boolean} dk  dark mode
+ */
+export function paintAisleExtrudeHandles(ctx, layoutStore, cam, dk) {
+  const selected = layoutStore.getSelectedEntities().filter(
+    (e) => (e.type === EntityType.RACK_MODULE || e.type === EntityType.RACK_LINE) && e.visible,
+  );
+  if (selected.length === 0) return;
+
+  for (const entity of selected) {
+    const handles = aisleExtrudeHandlePositions(entity, cam);
+    if (!handles) continue;
+    for (const h of handles) {
+      drawExtrudeArrowHandle(ctx, h.screenX, h.screenY, h.dir, h.axis, dk);
+    }
+  }
+}
+
+/**
+ * Paint a semi-transparent ghost preview of a rack being extruded.
+ *
+ * @param {CanvasRenderingContext2D} ctx
+ * @param {{ entity: Object, x: number, y: number }|null} ghost
+ * @param {{ x: number, y: number, zoom: number }} cam
+ * @param {boolean} dk  dark mode
+ */
+export function paintAisleExtrudeGhost(ctx, ghost, cam, dk) {
+  if (!ghost || !ghost.ghosts) return;
+  ctx.save();
+  ctx.globalAlpha = 0.5;
+  for (const { ghostEntity } of ghost.ghosts) {
+    paintRackBox(ctx, ghostEntity, cam, false, dk);
+  }
+  ctx.restore();
+}

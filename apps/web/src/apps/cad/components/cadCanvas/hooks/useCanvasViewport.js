@@ -15,6 +15,8 @@ import {
   paintSelectionRect,
   paintWallPreview,
   paintColumnGhost,
+  paintAisleExtrudeHandles,
+  paintAisleExtrudeGhost,
 } from '../../../services/layout';
 import { logDrawnObjectSemantics } from '../semantics';
 
@@ -35,6 +37,7 @@ export default function useCanvasViewport({
   subSelRef,
   rackDomainRef,
   showMeasurements,
+  extrudeGhostRef,
 }) {
   const [zoomPercent, setZoomPercent] = useState(100);
   const [cursorCoord, setCursorCoord] = useState({ x: '0 m', y: '0 m' });
@@ -55,6 +58,8 @@ export default function useCanvasViewport({
       if (showMeasurements) {
         paintEntityMeasurements(ctx, layoutStore, cam, dk);
       }
+      paintAisleExtrudeGhost(ctx, extrudeGhostRef?.current ?? null, cam, dk);
+      paintAisleExtrudeHandles(ctx, layoutStore, cam, dk);
       logDrawnObjectSemantics(layoutStore, rackDomainRef);
     }
 

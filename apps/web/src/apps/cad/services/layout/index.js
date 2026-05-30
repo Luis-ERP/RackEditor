@@ -42,4 +42,8 @@ export {
   paintSelectionRect,
   paintWallPreview,
   paintColumnGhost,
+  paintAisleExtrudeHandles,
+  paintAisleExtrudeGhost,
+  aisleExtrudeHandlePositions,
+  EXTRUDE_HANDLE_R_PX,
 } from './renderers.js';
