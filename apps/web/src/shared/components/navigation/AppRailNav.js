@@ -11,13 +11,16 @@ import {
   Smartphone,
   Users,
   Bot,
+  BookOpen,
   Moon,
   Sun,
   FolderOpen,
+  MessageSquarePlus,
 } from 'lucide-react';
 import { useAppTheme } from '@/src/shared/theme/AppThemeProvider';
 import useProjectStore from '@/src/apps/cad/services/project/useProjectStore';
 import ProjectPicker from '@/src/shared/components/projects/ProjectPicker';
+import FeedbackModal from '@/src/shared/components/feedback/FeedbackModal';
 
 const navItems = [
   { href: '/', label: 'CAD', Icon: DraftingCompass },
@@ -27,6 +30,7 @@ const navItems = [
   { href: '/quick-cad-bom', label: 'Quick', Icon: Smartphone },
   { href: '/clients', label: 'Clients', Icon: Users },
   { href: '/chatbot', label: 'AI', Icon: Bot },
+  { href: '/tutorials', label: 'Labs', Icon: BookOpen },
 ];
 
 export default function AppRailNav() {
@@ -34,6 +38,7 @@ export default function AppRailNav() {
   const { isDark, toggleTheme } = useAppTheme();
   const { projects, activeId, dirty } = useProjectStore();
   const [pickerOpen, setPickerOpen] = useState(false);
+  const [feedbackOpen, setFeedbackOpen] = useState(false);
 
   const activeProject = activeId ? projects.find((p) => p.id === activeId) : null;
   const projectName = activeProject?.name ?? null;
@@ -124,11 +129,32 @@ export default function AppRailNav() {
 
         <button
           type="button"
+          onClick={() => setFeedbackOpen(true)}
+          title="Send feedback"
+          aria-label="Send feedback"
+          style={{
+            marginTop: 'auto',
+            width: 36,
+            height: 36,
+            borderRadius: 10,
+            display: 'inline-flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            color: 'var(--muted-text)',
+            background: 'transparent',
+            border: '1px solid transparent',
+            cursor: 'pointer',
+          }}
+        >
+          <MessageSquarePlus size={18} strokeWidth={2.2} />
+        </button>
+
+        <button
+          type="button"
           onClick={toggleTheme}
           title={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
           aria-label={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
           style={{
-            marginTop: 'auto',
             width: 36,
             height: 36,
             borderRadius: 10,
@@ -146,6 +172,7 @@ export default function AppRailNav() {
       </aside>
 
       <ProjectPicker isOpen={pickerOpen} onClose={() => setPickerOpen(false)} />
+      <FeedbackModal isOpen={feedbackOpen} onClose={() => setFeedbackOpen(false)} />
     </>
   );
 }

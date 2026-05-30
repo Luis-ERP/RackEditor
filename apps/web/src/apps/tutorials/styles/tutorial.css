@@ -1,0 +1,294 @@
+/* ─────────────────────────────────────────────────────────────────────────────
+   Tutorial Panel
+   Fixed to the right edge of the viewport. Overlays the canvas.
+───────────────────────────────────────────────────────────────────────────── */
+
+.tutorial-panel {
+  position: fixed;
+  top: 80px;
+  right: 16px;
+  width: 288px;
+  max-height: calc(100vh - 104px);
+  overflow-y: auto;
+  background: var(--surface, #fff);
+  border: 1px solid var(--surface-border, #e0e0e0);
+  border-radius: 12px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.14);
+  display: flex;
+  flex-direction: column;
+  z-index: 8000;
+  font-size: 14px;
+  color: var(--app-text, #111);
+}
+
+.tutorial-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 14px 10px;
+  border-bottom: 1px solid var(--surface-border, #e0e0e0);
+  gap: 8px;
+}
+
+.tutorial-panel-title {
+  font-weight: 600;
+  font-size: 13px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex: 1;
+}
+
+.tutorial-panel-header-actions {
+  display: flex;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.tutorial-icon-btn {
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  color: var(--muted-text, #666);
+  font-size: 14px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+}
+.tutorial-icon-btn:hover {
+  background: var(--accent-soft, #f0f0f0);
+  color: var(--app-text, #111);
+}
+
+/* Progress */
+.tutorial-panel-progress {
+  padding: 8px 14px 4px;
+  font-size: 11px;
+  color: var(--muted-text, #888);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.tutorial-progress-bar {
+  height: 3px;
+  background: var(--surface-border, #e0e0e0);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.tutorial-progress-fill {
+  height: 100%;
+  background: #3b7ff5;
+  border-radius: 2px;
+  transition: width 0.25s ease;
+}
+
+/* Body */
+.tutorial-panel-body {
+  padding: 12px 14px;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.tutorial-step-title {
+  font-size: 14px;
+  font-weight: 600;
+  margin: 0;
+}
+
+.tutorial-step-description {
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--app-text, #111);
+  margin: 0;
+}
+
+.tutorial-hint {
+  font-size: 12px;
+  color: var(--muted-text, #666);
+}
+.tutorial-hint summary {
+  cursor: pointer;
+  font-weight: 500;
+  list-style: none;
+  user-select: none;
+}
+.tutorial-hint summary::-webkit-details-marker { display: none; }
+.tutorial-hint p {
+  margin: 4px 0 0;
+  line-height: 1.5;
+}
+
+.tutorial-inline-code {
+  font-family: ui-monospace, 'SF Mono', Menlo, monospace;
+  font-size: 0.85em;
+  background: var(--accent-soft, #f0f4ff);
+  border: 1px solid var(--surface-border, #dde);
+  border-radius: 4px;
+  padding: 1px 5px;
+  white-space: nowrap;
+}
+
+.tutorial-checkpoint-passed {
+  font-size: 12px;
+  font-weight: 600;
+  color: #22a055;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.tutorial-checkpoint-passed::before { content: '✓ '; }
+
+.tutorial-checkpoint-waiting {
+  font-size: 12px;
+  color: var(--muted-text, #888);
+  font-style: italic;
+}
+
+/* Footer */
+.tutorial-panel-footer {
+  padding: 10px 14px 14px;
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  border-top: 1px solid var(--surface-border, #e0e0e0);
+}
+
+/* Collapsed tab */
+.tutorial-panel-tab {
+  position: fixed;
+  top: 50%;
+  right: 0;
+  transform: translateY(-50%);
+  writing-mode: vertical-rl;
+  text-orientation: mixed;
+  background: #3b7ff5;
+  color: #fff;
+  border: none;
+  border-radius: 8px 0 0 8px;
+  padding: 12px 6px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  z-index: 8000;
+  box-shadow: -2px 0 8px rgba(0,0,0,0.12);
+  letter-spacing: 0.05em;
+}
+
+/* Shared button styles */
+.tutorial-btn-primary {
+  background: #3b7ff5;
+  color: #fff;
+  border: none;
+  border-radius: 7px;
+  padding: 7px 14px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s;
+}
+.tutorial-btn-primary:hover { background: #2f6de0; }
+
+.tutorial-btn-ghost {
+  background: transparent;
+  color: var(--muted-text, #666);
+  border: 1px solid var(--surface-border, #ddd);
+  border-radius: 7px;
+  padding: 7px 12px;
+  font-size: 13px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.tutorial-btn-ghost:hover { background: var(--accent-soft, #f0f0f0); }
+
+/* ─── Lab Index Page ──────────────────────────────────────────────────────── */
+
+.tutorials-page {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 40px 24px 80px;
+}
+
+.tutorials-page-title {
+  font-size: 24px;
+  font-weight: 700;
+  margin: 0 0 6px;
+}
+
+.tutorials-page-subtitle {
+  font-size: 15px;
+  color: var(--muted-text, #666);
+  margin: 0 0 32px;
+}
+
+.lab-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 16px;
+}
+
+/* ─── Lab Card ────────────────────────────────────────────────────────────── */
+
+.lab-card {
+  border: 1px solid var(--surface-border, #e0e0e0);
+  border-radius: 10px;
+  background: var(--surface, #fff);
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.lab-card-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.lab-card-title {
+  font-size: 15px;
+  font-weight: 600;
+  margin: 0;
+  flex: 1;
+}
+
+.lab-card-badge {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  border-radius: 4px;
+  padding: 2px 6px;
+  flex-shrink: 0;
+}
+.lab-card-badge--done { background: #d3f5e3; color: #186434; }
+.lab-card-badge--active { background: #ddeeff; color: #1055a8; }
+
+.lab-card-description {
+  font-size: 13px;
+  color: var(--muted-text, #555);
+  margin: 0;
+  line-height: 1.5;
+  flex: 1;
+}
+
+.lab-card-meta {
+  font-size: 12px;
+  color: var(--muted-text, #888);
+}
+
+.lab-card-link {
+  align-self: flex-start;
+}
