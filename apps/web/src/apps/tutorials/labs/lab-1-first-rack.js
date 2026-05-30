@@ -45,7 +45,7 @@ export default {
       id: 'step-add-levels',
       title: 'Add two beam levels',
       description:
-        'In the **Beam Levels** section, click **"+ Add Beam Level"** twice. Two levels will appear in the SVG diagram. The rack status should change from INCOMPLETE to VALID.',
+        'In the **Beam Levels** section, click **"+ Add Beam Level"** twice. Two levels will appear in the module diagram. The height of the levels can be adjusted individually by dragging the handles in the diagram or by changing the hole number.',
       hint: 'Scroll down in the EditorPanel if the Beam Levels section is not visible.',
       spotlight: null,
     },
