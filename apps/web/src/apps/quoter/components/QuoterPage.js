@@ -8,8 +8,6 @@ import { QUOTE_STATUS } from '../services/quoteStore.js';
 import {
   importCadProjectJson,
   buildCatalogResolver,
-  readPendingCadImportFromSession,
-  clearPendingCadImportFromSession,
 } from '../services/cadImportService.js';
 import { downloadQuotePdf } from '../services/pdfQuoteGenerator.js';
 import css from '../styles/quoter.module.css';
@@ -421,20 +419,6 @@ export default function QuoterPage() {
     });
     return true;
   }, [store]);
-
-  // ── Auto-import from CAD editor (sessionStorage handoff) ────────────────
-
-  useEffect(() => {
-    const pending = readPendingCadImportFromSession();
-    if (!pending) return;
-    try {
-      const ok = applyCadImportText(pending.raw, pending.source);
-      if (ok) clearPendingCadImportFromSession();
-    } catch (err) {
-      setImportError(err.message);
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [applyCadImportText]);
 
   // ── CAD import ───────────────────────────────────────────────────────────
 

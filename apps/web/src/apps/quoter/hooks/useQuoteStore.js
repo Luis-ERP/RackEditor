@@ -1,27 +1,19 @@
 // ─────────────────────────────────────────────────────────────────────────────
 //  useQuoteStore — React hook that bridges QuoteStore to React state.
 //
-//  • Creates a single store per component tree (via ref).
-//  • Triggers re-renders on store changes via useSyncExternalStore.
-//  • Exposes the full store API + a `version` number for keyed rendering.
+//  Returns the module-level singleton so both the CAD and Quoter pages share
+//  the same quote instance across Next.js route navigations.
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { useRef, useCallback, useSyncExternalStore } from 'react';
-import { createQuoteStore } from '../services/quoteStore.js';
+import { getQuoteStore } from '../services/quoteSingleton.js';
 
-/**
- * React hook to create and subscribe to a QuoteStore.
- *
- * @param {Object} [initialQuoteParams] — optional params for the initial quote
- * @returns {{ store: ReturnType<typeof createQuoteStore>, version: number }}
- */
 export default function useQuoteStore(initialQuoteParams) {
   const storeRef = useRef(null);
   const versionRef = useRef(0);
-  const initRef = useRef(initialQuoteParams);
 
   if (storeRef.current === null) {
-    storeRef.current = createQuoteStore(initRef.current);
+    storeRef.current = getQuoteStore();
   }
 
   const store = storeRef.current;

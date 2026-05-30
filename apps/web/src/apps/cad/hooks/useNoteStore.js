@@ -1,25 +1,19 @@
 // ─────────────────────────────────────────────────────────────────────────────
 //  useNoteStore — React hook that bridges the NoteStore to React state.
 //
-//  • Creates a single note store per component tree (via ref).
-//  • Triggers re-renders on store changes via useSyncExternalStore.
-//  • Exposes the full store API + a `version` number for keyed rendering.
+//  Returns the module-level singleton so all components share the same instance
+//  across Next.js route navigations.
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { useRef, useCallback, useSyncExternalStore } from 'react';
-import { createNoteStore } from '../services/note/noteStore.js';
+import { getNoteStore } from '../services/cadStores.js';
 
-/**
- * React hook to create and subscribe to a NoteStore.
- *
- * @returns {{ store: ReturnType<typeof createNoteStore>, version: number }}
- */
 export default function useNoteStore() {
   const storeRef   = useRef(null);
   const versionRef = useRef(0);
 
   if (storeRef.current === null) {
-    storeRef.current = createNoteStore();
+    storeRef.current = getNoteStore();
   }
 
   const store = storeRef.current;

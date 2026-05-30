@@ -10,13 +10,22 @@ import useColumnStore from './hooks/useColumnStore';
 import useNoteStore from './hooks/useNoteStore';
 import { useAppTheme } from '@/src/shared/theme/AppThemeProvider';
 import {
-  cacheProjectDocument,
   downloadProjectDocument,
-  importProjectDocumentFromFile,
-  loadCachedProjectDocument,
-  restoreProjectDocument,
   serializeProjectDocument,
 } from './services/export/projectDocumentExporter';
+import {
+  rackDomainSingleton,
+  getCanvasState,
+  setCanvasState,
+} from './services/cadStores';
+import { getQuoteStore } from '@/src/apps/quoter/services/quoteSingleton';
+import { deriveBomFromCadProject, buildCatalogResolver } from '@/src/apps/quoter/services/cadImportService';
+import { projectStore } from './services/project/projectStore';
+import {
+  exportProjectToFile,
+  importProjectFromFile,
+  readProject,
+} from './services/project/projectStorage';
 import { downloadDrawingImage } from './services/export/imageExporter';
 import { downloadDrawingPDF } from './services/export/pdfExporter';
 import { downloadDrawingSVG } from './services/export/svgExporter';
@@ -24,120 +33,191 @@ import { downloadDXF } from './services/export/dxfExporter';
 
 export default function CadWorkspacePage() {
   const router = useRouter();
-  const [drawingMode, setDrawingMode] = useState(false);
-  const [rackOrientation, setRackOrientation] = useState('horizontal');
-  const [wallMode, setWallMode] = useState(null); // null | 'line' | 'rect'
-  const [columnMode, setColumnMode] = useState(false);
-  const [noteMode, setNoteMode] = useState(false);
-  const [showMeasurements, setShowMeasurements] = useState(true);
+  const [drawingMode, setDrawingMode] = useState(() => getCanvasState().drawingMode);
+  const [rackOrientation, setRackOrientation] = useState(() => getCanvasState().rackOrientation);
+  const [wallMode, setWallMode] = useState(() => getCanvasState().wallMode);
+  const [columnMode, setColumnMode] = useState(() => getCanvasState().columnMode);
+  const [noteMode, setNoteMode] = useState(() => getCanvasState().noteMode);
+  const [showMeasurements, setShowMeasurements] = useState(() => getCanvasState().showMeasurements !== false);
   const [subSel, setSubSel] = useState(null);
   const { isDark, setTheme } = useAppTheme();
   const { store, version } = useLayoutStore();
   const { store: wallSt, version: wallVer } = useWallStore();
   const { store: colSt, version: colVer } = useColumnStore();
   const { store: noteSt, version: noteVer } = useNoteStore();
-  const hydratedFromCacheRef = useRef(false);
 
-  // Rack domain registry: shared between canvas (writes) and panel (reads BOM)
-  const rackDomainRef = useRef(new Map());
+  // rackDomainRef points to the module-level singleton Map so data persists
+  // across route navigations and projectStore can serialize it on auto-save.
+  const rackDomainRef = useRef(rackDomainSingleton);
+
+  // ── Canvas-restore event (fired by projectStore.openProject) ─────────────
+  useEffect(() => {
+    const handler = (e) => {
+      const canvas = e.detail;
+      if (!canvas) return;
+      setTheme(canvas.darkMode ? 'dark' : 'light');
+      setRackOrientation(canvas.rackOrientation ?? 'horizontal');
+      setDrawingMode(Boolean(canvas.drawingMode));
+      setWallMode(canvas.wallMode ?? null);
+      setColumnMode(Boolean(canvas.columnMode));
+      setNoteMode(Boolean(canvas.noteMode));
+      setShowMeasurements(canvas.showMeasurements !== false);
+    };
+    window.addEventListener('rack-editor:canvas-restore', handler);
+    return () => window.removeEventListener('rack-editor:canvas-restore', handler);
+  }, [setTheme]);
+
+  // ── Sync canvas React state → canvas singleton (for auto-save) ────────────
+  useEffect(() => {
+    setCanvasState({
+      darkMode: isDark,
+      rackOrientation,
+      drawingMode,
+      wallMode,
+      columnMode,
+      noteMode,
+      showMeasurements,
+    });
+  }, [isDark, rackOrientation, drawingMode, wallMode, columnMode, noteMode, showMeasurements]);
+
+  // ── Keyboard shortcut: Cmd/Ctrl+S → explicit save ─────────────────────────
+  useEffect(() => {
+    const onKeyDown = (e) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 's') {
+        e.preventDefault();
+        projectStore.saveActiveProject();
+      }
+      if (e.key === 'Escape') {
+        setDrawingMode(false);
+        setWallMode(null);
+        setColumnMode(false);
+        setNoteMode(false);
+      }
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, []);
+
+  // ── Mode toggles ──────────────────────────────────────────────────────────
 
   const toggleDrawingMode = useCallback(() => {
     setDrawingMode((prev) => {
       if (!prev) {
-        setWallMode(null);     // entering rack mode exits wall mode
-        setColumnMode(false);  // entering rack mode exits column mode
-        setNoteMode(false);    // entering rack mode exits note mode
+        setWallMode(null);
+        setColumnMode(false);
+        setNoteMode(false);
       }
       return !prev;
     });
   }, []);
 
-  const handleExportProjectDocument = useCallback(() => {
-    if (typeof window === 'undefined') return;
+  const handleSetWallMode = useCallback((mode) => {
+    setWallMode((prev) => {
+      if (prev === mode) return null;
+      setDrawingMode(false);
+      setColumnMode(false);
+      setNoteMode(false);
+      return mode;
+    });
+  }, []);
 
+  const handleToggleColumnMode = useCallback(() => {
+    setColumnMode((prev) => {
+      if (!prev) {
+        setDrawingMode(false);
+        setWallMode(null);
+        setNoteMode(false);
+      }
+      return !prev;
+    });
+  }, []);
+
+  const handleToggleNoteMode = useCallback(() => {
+    setNoteMode((prev) => {
+      if (!prev) {
+        setDrawingMode(false);
+        setWallMode(null);
+        setColumnMode(false);
+      }
+      return !prev;
+    });
+  }, []);
+
+  // ── Export / Import handlers ──────────────────────────────────────────────
+
+  const handleExportProjectDocument = useCallback(() => {
+    const { activeId } = projectStore.getState();
+    if (activeId) {
+      const project = readProject(activeId);
+      if (project) {
+        // Save current state first so the export is up-to-date
+        projectStore.saveActiveProject();
+        const fresh = readProject(activeId);
+        if (fresh) { exportProjectToFile(fresh); return; }
+      }
+    }
+    // Fallback: export current CAD state as a legacy document
     const userInput = window.prompt('File name for export:', 'rack-project.json');
     if (userInput === null) return;
-
-    const trimmed = userInput.trim();
-    const baseName = trimmed.length > 0 ? trimmed : 'rack-project.json';
+    const baseName = userInput.trim() || 'rack-project.json';
     const fileName = baseName.toLowerCase().endsWith('.json') ? baseName : `${baseName}.json`;
-
     downloadProjectDocument({
       layoutStore: store,
       wallStore: wallSt,
       columnStore: colSt,
       rackDomainRef,
-      canvas: {
-        darkMode: isDark,
-        rackOrientation,
-        drawingMode,
-        wallMode,
-        columnMode,
-        showMeasurements,
-      },
+      canvas: { darkMode: isDark, rackOrientation, drawingMode, wallMode, columnMode, showMeasurements },
       fileName,
-      scopeKey: 'main',
     });
-  }, [store, wallSt, colSt, rackDomainRef, isDark, rackOrientation, drawingMode, wallMode, columnMode, showMeasurements]);
+  }, [store, wallSt, colSt, isDark, rackOrientation, drawingMode, wallMode, columnMode, showMeasurements]);
 
   const handleImportProjectDocument = useCallback(() => {
     if (typeof window === 'undefined' || !window.document) return;
-
     const input = window.document.createElement('input');
     input.type = 'file';
     input.accept = 'application/json,.json';
-
     input.addEventListener('change', async () => {
       const file = input.files?.[0];
       if (!file) return;
-
       try {
-        await importProjectDocumentFromFile({
-          file,
-          layoutStore: store,
-          wallStore: wallSt,
-          columnStore: colSt,
-          rackDomainRef,
-          onRestoreCanvas: (canvas) => {
-            setTheme(Boolean(canvas.darkMode) ? 'dark' : 'light');
-            setRackOrientation(canvas.rackOrientation ?? 'horizontal');
-            setDrawingMode(Boolean(canvas.drawingMode));
-            setWallMode(canvas.wallMode ?? null);
-            setColumnMode(Boolean(canvas.columnMode));
-            setShowMeasurements(canvas.showMeasurements !== false);
-          },
-          scopeKey: 'main',
-        });
+        const imported = await importProjectFromFile(file);
+        const doOpen = window.confirm(
+          `"${imported.name}" imported successfully. Open it now?`
+        );
+        if (doOpen) projectStore.openProject(imported.id);
       } catch (err) {
-        const msg = err instanceof Error ? err.message : 'Failed to import project document.';
-        window.alert(msg);
+        window.alert(err instanceof Error ? err.message : 'Failed to import project.');
       }
     });
-
     input.click();
-  }, [store, wallSt, colSt, rackDomainRef]);
+  }, []);
+
+  // ── Send to Quoter (direct store sync — no sessionStorage) ────────────────
 
   const handleSendToQuoter = useCallback(() => {
-    if (typeof window === 'undefined') return;
     const doc = serializeProjectDocument({
       layoutStore: store,
       wallStore: wallSt,
       columnStore: colSt,
       rackDomainRef,
-      canvas: {
-        darkMode: isDark,
-        rackOrientation,
-        drawingMode,
-        wallMode,
-        columnMode,
-        showMeasurements,
-      },
+      canvas: { darkMode: isDark, rackOrientation, drawingMode, wallMode, columnMode, showMeasurements },
     });
-    sessionStorage.setItem('quoter:pendingCadImport', JSON.stringify(doc));
+    try {
+      const bom = deriveBomFromCadProject(doc);
+      const resolver = buildCatalogResolver(bom.items);
+      getQuoteStore().syncFromBom(bom, {
+        resolveCatalog: resolver,
+        projectFile: projectStore.getState().activeId ?? 'CAD Project',
+      });
+    } catch (e) {
+      window.alert(`Failed to sync BOM: ${e.message}`);
+      return;
+    }
     router.push('/quoter');
-  }, [store, wallSt, colSt, rackDomainRef, isDark, rackOrientation, drawingMode, wallMode, columnMode, showMeasurements, router]);
+  }, [store, wallSt, colSt, isDark, rackOrientation, drawingMode, wallMode, columnMode, showMeasurements, router]);
 
-  // ── Drawing export handlers ──────────────────────────────────────────────
+  // ── Drawing export handlers ───────────────────────────────────────────────
+
   const handleExportPNG = useCallback(async () => {
     try { await downloadDrawingImage(store, { title: 'Rack Layout', format: 'png' }); }
     catch (e) { window.alert(e.message); }
@@ -162,130 +242,6 @@ export default function CadWorkspacePage() {
     try { downloadDXF(store); }
     catch (e) { window.alert(e.message); }
   }, [store]);
-
-  /** Toggle wall mode (rect or line). Clicking the active mode deactivates it. */
-  const handleSetWallMode = useCallback((mode) => {
-    setWallMode((prev) => {
-      if (prev === mode) return null;            // toggle off
-      setDrawingMode(false);                     // exit rack drawing mode
-      setColumnMode(false);                      // exit column mode
-      setNoteMode(false);                        // exit note mode
-      return mode;
-    });
-  }, []);
-
-  /** Toggle column placement mode. */
-  const handleToggleColumnMode = useCallback(() => {
-    setColumnMode((prev) => {
-      if (!prev) {
-        setDrawingMode(false);                   // exit rack drawing mode
-        setWallMode(null);                       // exit wall mode
-        setNoteMode(false);                      // exit note mode
-      }
-      return !prev;
-    });
-  }, []);
-
-  /** Toggle note placement mode. */
-  const handleToggleNoteMode = useCallback(() => {
-    setNoteMode((prev) => {
-      if (!prev) {
-        setDrawingMode(false);
-        setWallMode(null);
-        setColumnMode(false);
-      }
-      return !prev;
-    });
-  }, []);
-
-  // Escape exits any active drawing mode
-  useEffect(() => {
-    const onKeyDown = (e) => {
-      if (e.key === 'Escape') {
-        setDrawingMode(false);
-        setWallMode(null);
-        setColumnMode(false);
-        setNoteMode(false);
-      }
-    };
-    window.addEventListener('keydown', onKeyDown);
-    return () => window.removeEventListener('keydown', onKeyDown);
-  }, []);
-
-  // Hydrate from local cache once on first mount.
-  useEffect(() => {
-    if (hydratedFromCacheRef.current) return;
-
-    const cachedDoc = loadCachedProjectDocument('main');
-    if (!cachedDoc) {
-      hydratedFromCacheRef.current = true;
-      return;
-    }
-
-    try {
-      restoreProjectDocument({
-        doc: cachedDoc,
-        layoutStore: store,
-        wallStore: wallSt,
-        columnStore: colSt,
-        rackDomainRef,
-        onRestoreCanvas: (canvas) => {
-          setTheme(Boolean(canvas.darkMode) ? 'dark' : 'light');
-          setRackOrientation(canvas.rackOrientation ?? 'horizontal');
-          setDrawingMode(Boolean(canvas.drawingMode));
-          setWallMode(canvas.wallMode ?? null);
-          setColumnMode(Boolean(canvas.columnMode));
-          setShowMeasurements(canvas.showMeasurements !== false);
-        },
-      });
-    } catch {
-      // Ignore malformed cache payloads and continue with a clean session.
-    } finally {
-      hydratedFromCacheRef.current = true;
-    }
-  }, [store, wallSt, colSt, rackDomainRef, setTheme]);
-
-  // Auto-save project progress to cache whenever model/canvas state changes.
-  useEffect(() => {
-    if (!hydratedFromCacheRef.current) return;
-
-    const timerId = window.setTimeout(() => {
-      const doc = serializeProjectDocument({
-        layoutStore: store,
-        wallStore: wallSt,
-        columnStore: colSt,
-        rackDomainRef,
-        canvas: {
-          darkMode: isDark,
-          rackOrientation,
-          drawingMode,
-          wallMode,
-          columnMode,
-          noteMode,
-          showMeasurements,
-        },
-      });
-      cacheProjectDocument(doc, 'main');
-    }, 250);
-
-    return () => window.clearTimeout(timerId);
-  }, [
-    version,
-    wallVer,
-    colVer,
-    noteVer,
-    isDark,
-    rackOrientation,
-    drawingMode,
-    wallMode,
-    columnMode,
-    noteMode,
-    showMeasurements,
-    store,
-    wallSt,
-    colSt,
-    rackDomainRef,
-  ]);
 
   return (
     <div style={{ display: 'flex', width: '100%', height: '100%', overflow: 'hidden' }}>

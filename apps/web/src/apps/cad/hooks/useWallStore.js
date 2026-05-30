@@ -1,31 +1,23 @@
 // ─────────────────────────────────────────────────────────────────────────────
 //  useWallStore — React hook that bridges the WallStore to React state.
 //
-//  • Creates a single wall store per component tree (via ref).
-//  • Triggers re-renders on store changes via useSyncExternalStore.
-//  • Exposes the full store API + a `version` number for keyed rendering.
+//  Returns the module-level singleton so all components share the same instance
+//  across Next.js route navigations.
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { useRef, useCallback, useSyncExternalStore } from 'react';
-import { createWallStore } from '../services/wall/wallStore.js';
+import { getWallStore } from '../services/cadStores.js';
 
-/**
- * React hook to create and subscribe to a WallStore.
- *
- * @returns {{ store: ReturnType<typeof createWallStore>, version: number }}
- */
 export default function useWallStore() {
   const storeRef   = useRef(null);
   const versionRef = useRef(0);
 
-  // Lazily create the singleton store
   if (storeRef.current === null) {
-    storeRef.current = createWallStore();
+    storeRef.current = getWallStore();
   }
 
   const store = storeRef.current;
 
-  // Subscribe / getSnapshot for useSyncExternalStore
   const subscribe = useCallback(
     (onStoreChange) => store.subscribe(() => {
       versionRef.current += 1;

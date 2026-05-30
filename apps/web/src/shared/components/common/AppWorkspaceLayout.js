@@ -1,9 +1,18 @@
 'use client';
 
+import { useEffect } from 'react';
 import AppRailNav from '@/src/shared/components/navigation/AppRailNav';
 import { AppThemeProvider } from '@/src/shared/theme/AppThemeProvider';
+import { projectStore } from '@/src/apps/cad/services/project/projectStore';
 
 export default function AppWorkspaceLayout({ children }) {
+  // Initialise the project system once after the first client-side render.
+  // Children's effects run first (bottom-up), so CadWorkspacePage's canvas-
+  // restore listener is already registered when init() fires its event here.
+  useEffect(() => {
+    projectStore.init();
+  }, []);
+
   return (
     <AppThemeProvider>
       <div
