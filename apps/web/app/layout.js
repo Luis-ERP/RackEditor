@@ -1,5 +1,4 @@
 import './globals.css';
-import AppWorkspaceLayout from '@/src/shared/components/common/AppWorkspaceLayout';
 
 export const metadata = {
   title: 'Racks',
@@ -9,9 +8,7 @@ export const metadata = {
 export default function RootLayout({ children }) {
   return (
     <html lang="en">
-      <body>
-        <AppWorkspaceLayout>{children}</AppWorkspaceLayout>
-      </body>
+      <body>{children}</body>
     </html>
   );
 }

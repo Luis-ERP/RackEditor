@@ -12,6 +12,7 @@ import {
   Users,
   Bot,
   BookOpen,
+  FileText,
   Moon,
   Sun,
   FolderOpen,
@@ -31,6 +32,7 @@ const navItems = [
   { href: '/clients', label: 'Clients', Icon: Users },
   { href: '/chatbot', label: 'AI', Icon: Bot },
   { href: '/tutorials', label: 'Labs', Icon: BookOpen },
+  { href: '/docs', label: 'Docs', Icon: FileText, external: true },
 ];
 
 export default function AppRailNav() {
@@ -100,27 +102,40 @@ export default function AppRailNav() {
 
         <div style={{ width: 28, borderTop: '1px solid var(--surface-border)', margin: '0 0 4px' }} />
 
-        {navItems.map(({ href, label, Icon }) => {
+        {navItems.map(({ href, label, Icon, external }) => {
           const active = pathname === href;
-          return (
+          const linkStyle = {
+            width: 36,
+            height: 36,
+            borderRadius: 10,
+            display: 'inline-flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            color: active ? 'var(--app-text)' : 'var(--muted-text)',
+            background: active ? 'var(--accent-soft)' : 'transparent',
+            border: active ? '1px solid var(--surface-border)' : '1px solid transparent',
+            textDecoration: 'none',
+            transition: 'all 0.15s ease',
+          };
+          return external ? (
+            <a
+              key={href}
+              href={href}
+              target="_blank"
+              rel="noopener noreferrer"
+              title={label}
+              aria-label={label}
+              style={linkStyle}
+            >
+              <Icon size={18} strokeWidth={2.2} />
+            </a>
+          ) : (
             <Link
               key={href}
               href={href}
               title={label}
               aria-label={label}
-              style={{
-                width: 36,
-                height: 36,
-                borderRadius: 10,
-                display: 'inline-flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                color: active ? 'var(--app-text)' : 'var(--muted-text)',
-                background: active ? 'var(--accent-soft)' : 'transparent',
-                border: active ? '1px solid var(--surface-border)' : '1px solid transparent',
-                textDecoration: 'none',
-                transition: 'all 0.15s ease',
-              }}
+              style={linkStyle}
             >
               <Icon size={18} strokeWidth={2.2} />
             </Link>
