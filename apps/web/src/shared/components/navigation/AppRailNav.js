@@ -4,8 +4,6 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
-  DraftingCompass,
-  Calculator,
   Handshake,
   Boxes,
   Smartphone,
@@ -20,12 +18,9 @@ import {
 } from 'lucide-react';
 import { useAppTheme } from '@/src/shared/theme/AppThemeProvider';
 import useProjectStore from '@/src/apps/cad/services/project/useProjectStore';
-import ProjectPicker from '@/src/shared/components/projects/ProjectPicker';
 import FeedbackModal from '@/src/shared/components/feedback/FeedbackModal';
 
 const navItems = [
-  { href: '/', label: 'CAD', Icon: DraftingCompass },
-  { href: '/quoter', label: 'Quoter', Icon: Calculator },
   { href: '/hubspot', label: 'HubSpot', Icon: Handshake },
   { href: '/catalog', label: 'Catalog', Icon: Boxes },
   { href: '/quick-cad-bom', label: 'Quick', Icon: Smartphone },
@@ -38,12 +33,10 @@ const navItems = [
 export default function AppRailNav() {
   const pathname = usePathname();
   const { isDark, toggleTheme } = useAppTheme();
-  const { projects, activeId, dirty } = useProjectStore();
-  const [pickerOpen, setPickerOpen] = useState(false);
+  const { dirty } = useProjectStore();
   const [feedbackOpen, setFeedbackOpen] = useState(false);
 
-  const activeProject = activeId ? projects.find((p) => p.id === activeId) : null;
-  const projectName = activeProject?.name ?? null;
+  const projectsActive = pathname === '/projects' || pathname.startsWith('/project');
 
   return (
     <>
@@ -63,12 +56,11 @@ export default function AppRailNav() {
         }}
         aria-label="Primary navigation"
       >
-        {/* Projects button at top */}
-        <button
-          type="button"
-          onClick={() => setPickerOpen(true)}
-          title={projectName ? `Project: ${projectName}` : 'Projects'}
-          aria-label="Open project picker"
+        {/* Projects nav item */}
+        <Link
+          href="/projects"
+          title="Projects"
+          aria-label="Projects"
           style={{
             width: 36,
             height: 36,
@@ -76,11 +68,12 @@ export default function AppRailNav() {
             display: 'inline-flex',
             alignItems: 'center',
             justifyContent: 'center',
-            color: pickerOpen ? 'var(--app-text)' : 'var(--muted-text)',
-            background: pickerOpen ? 'var(--accent-soft)' : 'transparent',
-            border: pickerOpen ? '1px solid var(--surface-border)' : '1px solid transparent',
-            cursor: 'pointer',
+            color: projectsActive ? 'var(--app-text)' : 'var(--muted-text)',
+            background: projectsActive ? 'var(--accent-soft)' : 'transparent',
+            border: projectsActive ? '1px solid var(--surface-border)' : '1px solid transparent',
+            textDecoration: 'none',
             position: 'relative',
+            transition: 'all 0.15s ease',
           }}
         >
           <FolderOpen size={18} strokeWidth={2.2} />
@@ -98,7 +91,7 @@ export default function AppRailNav() {
               }}
             />
           )}
-        </button>
+        </Link>
 
         <div style={{ width: 28, borderTop: '1px solid var(--surface-border)', margin: '0 0 4px' }} />
 
@@ -186,7 +179,6 @@ export default function AppRailNav() {
         </button>
       </aside>
 
-      <ProjectPicker isOpen={pickerOpen} onClose={() => setPickerOpen(false)} />
       <FeedbackModal isOpen={feedbackOpen} onClose={() => setFeedbackOpen(false)} />
     </>
   );
