@@ -25,13 +25,17 @@ import {
   exportProjectToFile,
   importProjectFromFile,
   readProject,
+  writeProject,
+  setActiveProjectId,
+  PROJECT_SCHEMA_VERSION,
 } from './services/project/projectStorage';
+import { updateProject as touchRegistryProject } from '@/src/core/project/projectRegistry';
 import { downloadDrawingImage } from './services/export/imageExporter';
 import { downloadDrawingPDF } from './services/export/pdfExporter';
 import { downloadDrawingSVG } from './services/export/svgExporter';
 import { downloadDXF } from './services/export/dxfExporter';
 
-export default function CadWorkspacePage() {
+export default function CadWorkspacePage({ projectId } = {}) {
   const router = useRouter();
   const [drawingMode, setDrawingMode] = useState(() => getCanvasState().drawingMode);
   const [rackOrientation, setRackOrientation] = useState(() => getCanvasState().rackOrientation);
@@ -66,6 +70,45 @@ export default function CadWorkspacePage() {
     window.addEventListener('rack-editor:canvas-restore', handler);
     return () => window.removeEventListener('rack-editor:canvas-restore', handler);
   }, [setTheme]);
+
+  // ── Open project by ID (scoped storage) ──────────────────────────────────
+  // This effect runs before AppWorkspaceLayout's init() effect (children run
+  // first). If init() hasn't fired yet, we prime the active key so it opens
+  // our project. If init() already ran (client-side navigation), we switch now.
+  useEffect(() => {
+    if (!projectId) return;
+    if (!readProject(projectId)) {
+      const now = new Date().toISOString();
+      writeProject({
+        id: projectId,
+        name: 'New Project',
+        createdAt: now,
+        updatedAt: now,
+        schemaVersion: PROJECT_SCHEMA_VERSION,
+        cad: null,
+        quote: null,
+      });
+    }
+    const { activeId } = projectStore.getState();
+    if (activeId === null) {
+      setActiveProjectId(projectId);
+    } else if (activeId !== projectId) {
+      projectStore.openProject(projectId);
+    }
+  }, [projectId]);
+
+  // ── Touch registry updatedAt after each auto-save ─────────────────────────
+  useEffect(() => {
+    if (!projectId) return;
+    let wasDirty = false;
+    return projectStore.subscribe(() => {
+      const { dirty, activeId } = projectStore.getState();
+      if (wasDirty && !dirty && activeId === projectId) {
+        touchRegistryProject(projectId, { updatedAt: new Date().toISOString() });
+      }
+      wasDirty = dirty;
+    });
+  }, [projectId]);
 
   // ── Sync canvas React state → canvas singleton (for auto-save) ────────────
   useEffect(() => {
