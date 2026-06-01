@@ -192,7 +192,7 @@
       "Existing direct links to /editor still work (redirected to /projects)",
       "The CAD editor is now only accessible via /project/[id]/design"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "legacy-quoter-redirect",
