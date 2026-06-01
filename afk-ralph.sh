@@ -39,7 +39,8 @@ echo ""
 for ((i=1; i<=ITERATIONS; i++)); do
   echo "--- Iteration $i / $ITERATIONS ($(date '+%H:%M:%S')) ---"
 
-  result=$(claude -p "$(cat PROMPT.md)")
+  # Run fully unattended: bypass interactive permission prompts.
+  result=$(claude --permission-mode bypassPermissions -p "$(cat PROMPT.md)")
 
   echo "$result"
   echo ""
