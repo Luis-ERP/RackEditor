@@ -56,24 +56,22 @@ Frames may be duplicated across rows for back-to-back configurations.
 
 Frame depth uniformity rule:
 
-All frames within the same rack line must have the same depth.
+All frames within the same row of a rack line must share the same depth.
 
-Frame depth defines the front-to-back footprint of the line — the dimension
-that extends into the aisle. If adjacent frames had different depths, the
-back-of-rack plane would shift between bays, making pallet positioning
-inconsistent and the structure impossible to manufacture or install.
+Frame depth defines the front-to-back footprint of a row — the dimension
+that extends into the aisle. If adjacent frames within the same row had
+different depths, the back-of-rack plane would shift between bays, making
+pallet positioning inconsistent and the structure impossible to manufacture
+or install.
 
-Frame HEIGHT is allowed to vary between positions in the same line (e.g. to
+Frame HEIGHT is allowed to vary between positions in the same row (e.g. to
 accommodate a taller middle section with additional beam levels). Frame DEPTH
-is not.
+within a row is not.
 
-Changing the line depth means replacing every frame in the line simultaneously.
-It is a line-level operation, not a single-frame override.
+Changing the depth of a row means replacing every frame in that row
+simultaneously. It is a row-level operation, not a single-frame override.
 
-In back-to-back configurations, depth uniformity is enforced per row, not
-across the entire RackLine frame array.
-
-Each row must be internally uniform:
+In back-to-back configurations, this rule applies independently to each row:
 
   All frames belonging to Row A must share the same depthIn.
   All frames belonging to Row B must share the same depthIn.
@@ -86,7 +84,7 @@ depth values frame_depth_A and frame_depth_B used in spacer calculations
 Because frames from different rows can have different depths, each FrameConfig
 must carry a rowIndex annotation when the rack line is back-to-back. The
 rowIndex is an integer in [0, rowCount − 1] identifying which physical row the
-frame belongs to. Depth uniformity is then enforced within each rowIndex
+frame belongs to. Depth uniformity is enforced within each rowIndex
 group independently.
 
 ---------------------------------------------------------------------

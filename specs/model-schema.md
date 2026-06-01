@@ -319,8 +319,11 @@ They are created once at application start and never mutated.
   A FrameConfig represents one physical frame at one position in a rack line.
 
   Fields:
-    id    string     — Instance ID. Unique within the design.
-    spec  FrameSpec  — Reference to the catalog frame spec. Not a copy.
+    id        string       — Instance ID. Unique within the design.
+    spec      FrameSpec    — Reference to the catalog frame spec. Not a copy.
+    rowIndex  number|null  — Row group index. Required (integer in [0, rowCount−1])
+                             when the parent RackLine's rowConfiguration ≠ SINGLE.
+                             Must be null (or absent) for SINGLE-row lines.
 
   Notes:
     There is one FrameConfig per unique physical frame position in the line.
@@ -333,11 +336,11 @@ They are created once at application start and never mutated.
     comparison (frames[i].spec !== frames[i-1].spec), not by a stored flag.
 
     HEIGHT may vary between positions (e.g. taller frames in the middle of a
-    line — see Section 13). DEPTH must be uniform across all positions in the
-    same line (see [V9] and Section 4.5 constraint below). Swapping a frame
-    for one with a different depth requires changing every other frame in the
-    line at the same time — and is therefore a line-level operation, not a
-    single-frame operation.
+    line — see Section 13). DEPTH must be uniform within each rowIndex group
+    (see [V9] and [DEPTH UNIFORMITY] in Section 4.5). For single-row lines all
+    frames share one group; for B2B lines each row is its own depth group.
+    Swapping a frame for one with a different depth requires changing every
+    other frame in the same row at the same time — a row-level operation.
 
 ────────────────────────────────────────
 4.5  RackLine
@@ -371,19 +374,20 @@ They are created once at application start and never mutated.
     rowConfiguration ∈ {SINGLE, BACK_TO_BACK_2, BACK_TO_BACK_3, BACK_TO_BACK_4}
     rowConfiguration ≠ SINGLE → backToBackConfig ≠ null
     validationState ∈ {INCOMPLETE, VALID, VALID_WITH_WARNINGS, INVALID}
-    [DEPTH UNIFORMITY] ∀ i, j ∈ [0, frames.length−1]: frames[i].spec.depthIn === frames[j].spec.depthIn
-      Frame depth defines the physical footprint of the line (the front-to-back
-      aisle dimension). All frames in the same line must share the same depth;
-      otherwise the pallet reference plane shifts between bays, producing a
-      geometrically incoherent structure that cannot be manufactured or installed.
-      Changing the depth of a rack line means replacing every frame simultaneously,
-      which is a line-level operation validated by [V9].
-      Note — back-to-back rows: in a back-to-back configuration both rows are
-      represented in the same RackLine. All frames therefore include the frames
-      of every row. In practice, all rows in a back-to-back typically share the
-      same depth, but the allowance for row A and row B to differ (referenced in
-      business_rules_racks.md Section 9.2) is a spacer-calculation concern, not
-      a per-frame depth variation within a single row. [V9] enforces this.
+    [DEPTH UNIFORMITY] ∀ i, j ∈ [0, frames.length−1] where frames[i].rowIndex === frames[j].rowIndex:
+                         frames[i].spec.depthIn === frames[j].spec.depthIn
+      Frame depth defines the physical footprint of a row (the front-to-back
+      aisle dimension). All frames in the same rowIndex group must share the same
+      depth; otherwise the back-of-rack plane for that row would shift between
+      bays, producing a geometrically incoherent structure.
+      For SINGLE-row lines all frames have rowIndex = null and form one group,
+      making this equivalent to the original line-wide uniformity rule.
+      Changing the depth of a row means replacing every frame in that row
+      simultaneously — a row-level operation validated by [V9].
+      Note — back-to-back rows: Row 0 and Row 1 are stored in the same
+      RackLine.frames array. Each frame's rowIndex identifies its row. Different
+      rows may carry different depthIn values. The total depth of the B2B
+      footprint is computed from the per-row depths (see Section 9.2).
 
   Derived (not stored):
     totalBayCount   = sum(mod.bays.length for mod in modules)
@@ -587,22 +591,27 @@ They are created once at application start and never mutated.
   [V8] Module continuity
        modules cover all frame positions with no gaps or overlaps
 
-  [V9] Frame depth uniformity within a rack line
-       ∀ i ∈ [0, line.frames.length−1]:
-         line.frames[i].spec.depthIn === line.frames[0].spec.depthIn
+  [V9] Frame depth uniformity within a rowIndex group
+       ∀ i, j ∈ [0, line.frames.length−1] where line.frames[i].rowIndex === line.frames[j].rowIndex:
+         line.frames[i].spec.depthIn === line.frames[j].spec.depthIn
 
        Rationale: frame depthIn is the front-to-back dimension of the upright
-       (the "how far into the aisle" dimension). Every frame in the line stands
-       on the same floor strip and shares the same back-of-rack plane. If frames
-       had differing depths:
-         • The back-of-rack plane would step in/out between bays.
-         • Pallet positioning would be inconsistent across bays.
-         • Beam seating geometry would be indeterminate.
-         • Canvas and geometry derivation (Section 18) would be unsolvable
-           without storing an additional per-frame offset — prohibited by P1.
+       (the "how far into the aisle" dimension). Every frame in the same row
+       stands on the same floor strip and shares the same back-of-rack plane
+       for that row. If frames within the same row had differing depths:
+         • The back-of-rack plane for that row would step in/out between bays.
+         • Pallet positioning within the row would be inconsistent.
+         • Beam seating geometry within the row would be indeterminate.
+         • Per-row geometry derivation (Section 18) would be unsolvable.
+
+       In back-to-back configurations, Row 0 and Row 1 each form a separate
+       rowIndex group. The two groups may have different depthIn values — this
+       is explicitly supported (see Section 9.2). rowIndex = null means the
+       frame belongs to a SINGLE-row line; all null-indexed frames form one group.
 
        HEIGHT is allowed to vary (see Section 13 for a worked example).
-       DEPTH is not. This is a line-level invariant enforced at validation time.
+       DEPTH is not, within a row. This is a row-level invariant enforced at
+       validation time.
 
   The following rule produces VALID_WITH_WARNINGS when violated:
 
