@@ -1,0 +1,5 @@
+# RackEditor progress log
+# Appended by each Ralph iteration. Delete when a sprint is complete.
+# Format: [YYYY-MM-DD] PRD item <ID> — description / files / decisions / notes
+#
+# --- Sprint start ---

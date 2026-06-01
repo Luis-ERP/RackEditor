@@ -1,0 +1,2298 @@
+[
+  {
+    "id": "APPFOU-001",
+    "category": "app-foundations",
+    "section": "App Foundations",
+    "subsection": "",
+    "priority": "must",
+    "description": "Establish route map for core flows: Login, Projects, Design Workspace, BOM/Quote Workspace, Quote Revision Detail, Admin.",
+    "steps": [
+      "Verify: Establish route map for core flows: Login, Projects, Design Workspace, BOM/Quote Workspace, Quote Revision Detail, Admin.",
+      "Confirm it matches specs/frontend-checklist.md",
+      "Run feedback loops: cd apps/web && npm run lint && npm run build"
+    ],
+    "passes": false
+  },
+  {
+    "id": "APPFOU-002",
+    "category": "app-foundations",
+    "section": "App Foundations",
+    "subsection": "",
+    "priority": "must",
+    "description": "Implement authenticated shell with role-aware navigation (Admin, Designer/Sales Engineer, Estimator, Viewer).",
+    "steps": [
+      "Verify: Implement authenticated shell with role-aware navigation (Admin, Designer/Sales Engineer, Estimator, Viewer).",
+      "Confirm it matches specs/frontend-checklist.md",
+      "Run feedback loops: cd apps/web && npm run lint && npm run build"
+    ],
+    "passes": false
+  },
+  {
+    "id": "APPFOU-003",
+    "category": "app-foundations",
+    "section": "App Foundations",
+    "subsection": "",
+    "priority": "must",
+    "description": "Add global error boundary and recoverable API error UX.",
+    "steps": [
+      "Verify: Add global error boundary and recoverable API error UX.",
+      "Confirm it matches specs/frontend-checklist.md",
+      "Run feedback loops: cd apps/web && npm run lint && npm run build"
+    ],
+    "passes": false
+  },
+  {
+    "id": "APPFOU-004",
+    "category": "app-foundations",
+    "section": "App Foundations",
+    "subsection": "",
+    "priority": "must",
+    "description": "Add loading/skeleton states for all async screens.",
+    "steps": [
+      "Verify: Add loading/skeleton states for all async screens.",
+      "Confirm it matches specs/frontend-checklist.md",
+      "Run feedback loops: cd apps/web && npm run lint && npm run build"
+    ],
+    "passes": false
+  },
+  {
+    "id": "APPFOU-005",
+    "category": "app-foundations",
+    "section": "App Foundations",
+    "subsection": "",
+    "priority": "should",
+    "description": "Add offline/network interruption handling with retry UX.",
+    "steps": [
+      "Verify: Add offline/network interruption handling with retry UX.",
+      "Confirm it matches specs/frontend-checklist.md",
+      "Run feedback loops: cd apps/web && npm run lint && npm run build"
+    ],
+    "passes": false
+  },
+  {
+    "id": "AUTHEN-001",
+    "category": "authentication-and-authorization-ux",
+    "section": "Authentication and Authorization UX",
+    "subsection": "",
+    "priority": "must",
+    "description": "Login form with clear validation and error messages.",
+    "steps": [
+      "Verify: Login form with clear validation and error messages.",
+      "Confirm it matches specs/frontend-checklist.md",
+      "Run feedback loops: cd apps/web && npm run lint && npm run build"
+    ],
+    "passes": false
+  },
+  {
+    "id": "AUTHEN-002",
+    "category": "authentication-and-authorization-ux",
+    "section": "Authentication and Authorization UX",
+    "subsection": "",
+    "priority": "must",
+    "description": "Session state bootstrapping (`/me`) and guarded routes.",
+    "steps": [
+      "Verify: Session state bootstrapping (`/me`) and guarded routes.",
+      "Confirm it matches specs/frontend-checklist.md",
+      "Run feedback loops: cd apps/web && npm run lint && npm run build"
+    ],
+    "passes": false
+  },
+  {
+    "id": "AUTHEN-003",
+    "category": "authentication-and-authorization-ux",
+    "section": "Authentication and Authorization UX",
+    "subsection": "",
+    "priority": "must",
+    "description": "Role-based hiding/disabling of restricted actions:",
+    "steps": [
+      "Verify: Role-based hiding/disabling of restricted actions:",
+      "Confirm it matches specs/frontend-checklist.md",
+      "Run feedback loops: cd apps/web && npm run lint && npm run build"
+    ],
+    "passes": false
+  },
+  {
+    "id": "AUTHEN-004",
+    "category": "authentication-and-authorization-ux",
+    "section": "Authentication and Authorization UX",
+    "subsection": "",
+    "priority": "must",
+    "description": "Permission denial messages must be explicit and non-technical.",
+    "steps": [
+      "Verify: Permission denial messages must be explicit and non-technical.",
+      "Confirm it matches specs/frontend-checklist.md",
+      "Run feedback loops: cd apps/web && npm run lint && npm run build"
+    ],
+    "passes": false
+  },
+  {
+    "id": "PROJEC-001",
+    "category": "project-setup-ux",
+    "section": "Project Setup UX",
+    "subsection": "",
+    "priority": "must",
+    "description": "Project create/edit form with required metadata: name, customer reference, site, notes.",
+    "steps": [
+      "Verify: Project create/edit form with required metadata: name, customer reference, site, notes.",
+      "Confirm it matches specs/frontend-checklist.md",
+      "Run feedback loops: cd apps/web && npm run lint && npm run build"
+    ],
+    "passes": false
+  },
+  {
+    "id": "PROJEC-002",
+    "category": "project-setup-ux",
+    "section": "Project Setup UX",
+    "subsection": "",
+    "priority": "must",
+    "description": "Unit system selector (metric/imperial), precision, and default scale.",
+    "steps": [
+      "Verify: Unit system selector (metric/imperial), precision, and default scale.",
+      "Confirm it matches specs/frontend-checklist.md",
+      "Run feedback loops: cd apps/web && npm run lint && npm run build"
+    ],
+    "passes": false
+  },
+  {
+    "id": "PROJEC-003",
+    "category": "project-setup-ux",
+    "section": "Project Setup UX",
+    "subsection": "",
+    "priority": "should",
+    "description": "Drawing preference panel: grid, snap, snap tolerance, ortho.",
+    "steps": [
+      "Verify: Drawing preference panel: grid, snap, snap tolerance, ortho.",
+      "Confirm it matches specs/frontend-checklist.md",
+      "Run feedback loops: cd apps/web && npm run lint && npm run build"
+    ],
+    "passes": false
+  },
+  {
+    "id": "PROJEC-004",
+    "category": "project-setup-ux",
+    "section": "Project Setup UX",
+    "subsection": "",
+    "priority": "could",
+    "description": "Multi-sheet support UI (sheet tabs + create/rename/delete if enabled in scope).",
+    "steps": [
+      "Verify: Multi-sheet support UI (sheet tabs + create/rename/delete if enabled in scope).",
+      "Confirm it matches specs/frontend-checklist.md",
+      "Run feedback loops: cd apps/web && npm run lint && npm run build"
+    ],
+    "passes": false
+  },
+  {
+    "id": "NAVIGA-001",
+    "category": "navigation-and-selection",
+    "section": "Design Workspace (CAD-like UI)",
+    "subsection": "Navigation and Selection",
+    "priority": "must",
+    "description": "Pan/zoom controls (mouse + trackpad), fit-to-view, zoom-to-selection.",
+    "steps": [
+      "Verify: Pan/zoom controls (mouse + trackpad), fit-to-view, zoom-to-selection.",
+      "Confirm it matches specs/frontend-checklist.md",
+      "Run feedback loops: cd apps/web && npm run lint && npm run build"
+    ],
+    "passes": false
+  },
+  {
+    "id": "NAVIGA-002",
+    "category": "navigation-and-selection",
+    "section": "Design Workspace (CAD-like UI)",
+    "subsection": "Navigation and Selection",
+    "priority": "must",
+    "description": "Single select and multi-select (shift and box/lasso).",
+    "steps": [
+      "Verify: Single select and multi-select (shift and box/lasso).",
+      "Confirm it matches specs/frontend-checklist.md",
+      "Run feedback loops: cd apps/web && npm run lint && npm run build"
+    ],
+    "passes": false
+  },
+  {
+    "id": "NAVIGA-003",
+    "category": "navigation-and-selection",
+    "section": "Design Workspace (CAD-like UI)",
+    "subsection": "Navigation and Selection",
+    "priority": "must",
+    "description": "Undo/redo controls with visible disabled states.",
+    "steps": [
+      "Verify: Undo/redo controls with visible disabled states.",
+      "Confirm it matches specs/frontend-checklist.md",
+      "Run feedback loops: cd apps/web && npm run lint && npm run build"
+    ],
+    "passes": false
+  },
+  {
+    "id": "NAVIGA-004",
+    "category": "navigation-and-selection",
+    "section": "Design Workspace (CAD-like UI)",
+    "subsection": "Navigation and Selection",
+    "priority": "should",
+    "description": "Selection filter UI by object type.",
+    "steps": [
+      "Verify: Selection filter UI by object type.",
+      "Confirm it matches specs/frontend-checklist.md",
+      "Run feedback loops: cd apps/web && npm run lint && npm run build"
+    ],
+    "passes": false
+  },
+  {
+    "id": "NAVIGA-005",
+    "category": "navigation-and-selection",
+    "section": "Design Workspace (CAD-like UI)",
+    "subsection": "Navigation and Selection",
+    "priority": "should",
+    "description": "Cycle selection UI for overlapping objects.",
+    "steps": [
+      "Verify: Cycle selection UI for overlapping objects.",
+      "Confirm it matches specs/frontend-checklist.md",
+      "Run feedback loops: cd apps/web && npm run lint && npm run build"
+    ],
+    "passes": false
+  },
+  {
+    "id": "NAVIGA-006",
+    "category": "navigation-and-selection",
+    "section": "Design Workspace (CAD-like UI)",
+    "subsection": "Navigation and Selection",
+    "priority": "should",
+    "description": "Lasso add/remove selection behavior.",
+    "steps": [
+      "Verify: Lasso add/remove selection behavior.",
+      "Confirm it matches specs/frontend-checklist.md",
+      "Run feedback loops: cd apps/web && npm run lint && npm run build"
+    ],
+    "passes": false
+  },
+  {
+    "id": "LAYERA-001",
+    "category": "layer-and-context-objects",
+    "section": "Design Workspace (CAD-like UI)",
+    "subsection": "Layer and Context Objects",
+    "priority": "should",
+    "description": "Layer manager (visibility + lock state).",
+    "steps": [
+      "Verify: Layer manager (visibility + lock state).",
+      "Confirm it matches specs/frontend-checklist.md",
+      "Run feedback loops: cd apps/web && npm run lint && npm run build"
+    ],
+    "passes": false
+  },
+  {
+    "id": "LAYERA-002",
+    "category": "layer-and-context-objects",
+    "section": "Design Workspace (CAD-like UI)",
+    "subsection": "Layer and Context Objects",
+    "priority": "should",
+    "description": "Layer create/rename controls and default layer set (boundary/obstacles/racks/dimensions/annotations/reference).",
+    "steps": [
+      "Verify: Layer create/rename controls and default layer set (boundary/obstacles/racks/dimensions/annotations/reference).",
+      "Confirm it matches specs/frontend-checklist.md",
+      "Run feedback loops: cd apps/web && npm run lint && npm run build"
+    ],
+    "passes": false
+  },
+  {
+    "id": "LAYERA-003",
+    "category": "layer-and-context-objects",
+    "section": "Design Workspace (CAD-like UI)",
+    "subsection": "Layer and Context Objects",
+    "priority": "must",
+    "description": "Boundary creation/edit UI.",
+    "steps": [
+      "Verify: Boundary creation/edit UI.",
+      "Confirm it matches specs/frontend-checklist.md",
+      "Run feedback loops: cd apps/web && npm run lint && npm run build"
+    ],
+    "passes": false
+  },
+  {
+    "id": "LAYERA-004",
+    "category": "layer-and-context-objects",
+    "section": "Design Workspace (CAD-like UI)",
+    "subsection": "Layer and Context Objects",
+    "priority": "must",
+    "description": "Boundary shape options include rectangle and polygon.",
+    "steps": [
+      "Verify: Boundary shape options include rectangle and polygon.",
+      "Confirm it matches specs/frontend-checklist.md",
+      "Run feedback loops: cd apps/web && npm run lint && npm run build"
+    ],
+    "passes": false
+  },
+  {
+    "id": "LAYERA-005",
+    "category": "layer-and-context-objects",
+    "section": "Design Workspace (CAD-like UI)",
+    "subsection": "Layer and Context Objects",
+    "priority": "must",
+    "description": "Obstacle creation/edit UI: columns, walls, no-rack zones.",
+    "steps": [
+      "Verify: Obstacle creation/edit UI: columns, walls, no-rack zones.",
+      "Confirm it matches specs/frontend-checklist.md",
+      "Run feedback loops: cd apps/web && npm run lint && npm run build"
+    ],
+    "passes": false
+  },
+  {
+    "id": "LAYERA-006",
+    "category": "layer-and-context-objects",
+    "section": "Design Workspace (CAD-like UI)",
+    "subsection": "Layer and Context Objects",
+    "priority": "must",
+    "description": "Move/rotate/delete controls for context objects.",
+    "steps": [
+      "Verify: Move/rotate/delete controls for context objects.",
+      "Confirm it matches specs/frontend-checklist.md",
+      "Run feedback loops: cd apps/web && npm run lint && npm run build"
+    ],
+    "passes": false
+  },
+  {
+    "id": "LAYERA-007",
+    "category": "layer-and-context-objects",
+    "section": "Design Workspace (CAD-like UI)",
+    "subsection": "Layer and Context Objects",
+    "priority": "must",
+    "description": "Measurement tool and dimension display toggle.",
+    "steps": [
+      "Verify: Measurement tool and dimension display toggle.",
+      "Confirm it matches specs/frontend-checklist.md",
+      "Run feedback loops: cd apps/web && npm run lint && npm run build"
+    ],
+    "passes": false
+  },
+  {
+    "id": "LAYERA-008",
+    "category": "layer-and-context-objects",
+    "section": "Design Workspace (CAD-like UI)",
+    "subsection": "Layer and Context Objects",
+    "priority": "must",
+    "description": "Linear dimensions are editable and persisted.",
+    "steps": [
+      "Verify: Linear dimensions are editable and persisted.",
+      "Confirm it matches specs/frontend-checklist.md",
+      "Run feedback loops: cd apps/web && npm run lint && npm run build"
+    ],
+    "passes": false
+  },
+  {
+    "id": "RACKRU-001",
+    "category": "rack-run-placement",
+    "section": "Design Workspace (CAD-like UI)",
+    "subsection": "Rack Run Placement",
+    "priority": "must",
+    "description": "\u201cPlace Rack Run\u201d tool with two placement modes:",
+    "steps": [
+      "Verify: \u201cPlace Rack Run\u201d tool with two placement modes:",
+      "Confirm it matches specs/frontend-checklist.md",
+      "Run feedback loops: cd apps/web && npm run lint && npm run build"
+    ],
+    "passes": false
+  },
+  {
+    "id": "RACKRU-002",
+    "category": "rack-run-placement",
+    "section": "Design Workspace (CAD-like UI)",
+    "subsection": "Rack Run Placement",
+    "priority": "must",
+    "description": "Live ghost preview before commit.",
+    "steps": [
+      "Verify: Live ghost preview before commit.",
+      "Confirm it matches specs/frontend-checklist.md",
+      "Run feedback loops: cd apps/web && npm run lint && npm run build"
+    ],
+    "passes": false
+  },
+  {
+    "id": "RACKRU-003",
+    "category": "rack-run-placement",
+    "section": "Design Workspace (CAD-like UI)",
+    "subsection": "Rack Run Placement",
+    "priority": "must",
+    "description": "Inline quick controls during placement: bay count, bay width/length mode, orientation, B2B mode, levels.",
+    "steps": [
+      "Verify: Inline quick controls during placement: bay count, bay width/length mode, orientation, B2B mode, levels.",
+      "Confirm it matches specs/frontend-checklist.md",
+      "Run feedback loops: cd apps/web && npm run lint && npm run build"
+    ],
+    "passes": false
+  },
+  {
+    "id": "RACKRU-004",
+    "category": "rack-run-placement",
+    "section": "Design Workspace (CAD-like UI)",
+    "subsection": "Rack Run Placement",
+    "priority": "should",
+    "description": "Repeat-last placement command (\u201cplace another like this\u201d).",
+    "steps": [
+      "Verify: Repeat-last placement command (\u201cplace another like this\u201d).",
+      "Confirm it matches specs/frontend-checklist.md",
+      "Run feedback loops: cd apps/web && npm run lint && npm run build"
+    ],
+    "passes": false
+  },
+  {
+    "id": "RACKRU-005",
+    "category": "rack-run-placement",
+    "section": "Design Workspace (CAD-like UI)",
+    "subsection": "Rack Run Placement",
+    "priority": "should",
+    "description": "Preset picker and favorites for common run configurations.",
+    "steps": [
+      "Verify: Preset picker and favorites for common run configurations.",
+      "Confirm it matches specs/frontend-checklist.md",
+      "Run feedback loops: cd apps/web && npm run lint && npm run build"
+    ],
+    "passes": false
+  },
+  {
+    "id": "RACKPA-001",
+    "category": "rack-parameters-panel",
+    "section": "Design Workspace (CAD-like UI)",
+    "subsection": "Rack Parameters Panel",
+    "priority": "must",
+    "description": "Parameter editor for run semantics:",
+    "steps": [
+      "Verify: Parameter editor for run semantics:",
+      "Confirm it matches specs/frontend-checklist.md",
+      "Run feedback loops: cd apps/web && npm run lint && npm run build"
+    ],
+    "passes": false
+  },
+  {
+    "id": "RACKPA-002",
+    "category": "rack-parameters-panel",
+    "section": "Design Workspace (CAD-like UI)",
+    "subsection": "Rack Parameters Panel",
+    "priority": "must",
+    "description": "Bay count vs run length linked behavior (auto-compute counterpart).",
+    "steps": [
+      "Verify: Bay count vs run length linked behavior (auto-compute counterpart).",
+      "Confirm it matches specs/frontend-checklist.md",
+      "Run feedback loops: cd apps/web && npm run lint && npm run build"
+    ],
+    "passes": false
+  },
+  {
+    "id": "RACKPA-003",
+    "category": "rack-parameters-panel",
+    "section": "Design Workspace (CAD-like UI)",
+    "subsection": "Rack Parameters Panel",
+    "priority": "must",
+    "description": "Elevation input constraints (2 in / 50 mm step or allowed pattern).",
+    "steps": [
+      "Verify: Elevation input constraints (2 in / 50 mm step or allowed pattern).",
+      "Confirm it matches specs/frontend-checklist.md",
+      "Run feedback loops: cd apps/web && npm run lint && npm run build"
+    ],
+    "passes": false
+  },
+  {
+    "id": "RACKPA-004",
+    "category": "rack-parameters-panel",
+    "section": "Design Workspace (CAD-like UI)",
+    "subsection": "Rack Parameters Panel",
+    "priority": "must",
+    "description": "Enforce beam elevation fit within frame height.",
+    "steps": [
+      "Verify: Enforce beam elevation fit within frame height.",
+      "Confirm it matches specs/frontend-checklist.md",
+      "Run feedback loops: cd apps/web && npm run lint && npm run build"
+    ],
+    "passes": false
+  },
+  {
+    "id": "RACKPA-005",
+    "category": "rack-parameters-panel",
+    "section": "Design Workspace (CAD-like UI)",
+    "subsection": "Rack Parameters Panel",
+    "priority": "must",
+    "description": "Auto-number rows and bays with configurable row scheme (alpha/numeric) and manual label override persistence.",
+    "steps": [
+      "Verify: Auto-number rows and bays with configurable row scheme (alpha/numeric) and manual label override persistence.",
+      "Confirm it matches specs/frontend-checklist.md",
+      "Run feedback loops: cd apps/web && npm run lint && npm run build"
+    ],
+    "passes": false
+  },
+  {
+    "id": "RACKPA-006",
+    "category": "rack-parameters-panel",
+    "section": "Design Workspace (CAD-like UI)",
+    "subsection": "Rack Parameters Panel",
+    "priority": "should",
+    "description": "Level templates and shift-all-levels actions.",
+    "steps": [
+      "Verify: Level templates and shift-all-levels actions.",
+      "Confirm it matches specs/frontend-checklist.md",
+      "Run feedback loops: cd apps/web && npm run lint && npm run build"
+    ],
+    "passes": false
+  },
+  {
+    "id": "RACKPA-007",
+    "category": "rack-parameters-panel",
+    "section": "Design Workspace (CAD-like UI)",
+    "subsection": "Rack Parameters Panel",
+    "priority": "should",
+    "description": "Bay-level override markers and clear-overrides action (if supported).",
+    "steps": [
+      "Verify: Bay-level override markers and clear-overrides action (if supported).",
+      "Confirm it matches specs/frontend-checklist.md",
+      "Run feedback loops: cd apps/web && npm run lint && npm run build"
+    ],
+    "passes": false
+  },
+  {
+    "id": "RACKPA-008",
+    "category": "rack-parameters-panel",
+    "section": "Design Workspace (CAD-like UI)",
+    "subsection": "Rack Parameters Panel",
+    "priority": "should",
+    "description": "Level/accessory semantics: beam pairs per level and accessory attach points by bay/level.",
+    "steps": [
+      "Verify: Level/accessory semantics: beam pairs per level and accessory attach points by bay/level.",
+      "Confirm it matches specs/frontend-checklist.md",
+      "Run feedback loops: cd apps/web && npm run lint && npm run build"
+    ],
+    "passes": false
+  },
+  {
+    "id": "DIRECT-001",
+    "category": "direct-manipulation-and-bulk-editing",
+    "section": "Design Workspace (CAD-like UI)",
+    "subsection": "Direct Manipulation and Bulk Editing",
+    "priority": "must",
+    "description": "Move/rotate/mirror/duplicate/delete actions.",
+    "steps": [
+      "Verify: Move/rotate/mirror/duplicate/delete actions.",
+      "Confirm it matches specs/frontend-checklist.md",
+      "Run feedback loops: cd apps/web && npm run lint && npm run build"
+    ],
+    "passes": false
+  },
+  {
+    "id": "DIRECT-002",
+    "category": "direct-manipulation-and-bulk-editing",
+    "section": "Design Workspace (CAD-like UI)",
+    "subsection": "Direct Manipulation and Bulk Editing",
+    "priority": "must",
+    "description": "Stretch endpoint behavior reflows bays.",
+    "steps": [
+      "Verify: Stretch endpoint behavior reflows bays.",
+      "Confirm it matches specs/frontend-checklist.md",
+      "Run feedback loops: cd apps/web && npm run lint && npm run build"
+    ],
+    "passes": false
+  },
+  {
+    "id": "DIRECT-003",
+    "category": "direct-manipulation-and-bulk-editing",
+    "section": "Design Workspace (CAD-like UI)",
+    "subsection": "Direct Manipulation and Bulk Editing",
+    "priority": "must",
+    "description": "Body drag moves run without unintended reflow.",
+    "steps": [
+      "Verify: Body drag moves run without unintended reflow.",
+      "Confirm it matches specs/frontend-checklist.md",
+      "Run feedback loops: cd apps/web && npm run lint && npm run build"
+    ],
+    "passes": false
+  },
+  {
+    "id": "DIRECT-004",
+    "category": "direct-manipulation-and-bulk-editing",
+    "section": "Design Workspace (CAD-like UI)",
+    "subsection": "Direct Manipulation and Bulk Editing",
+    "priority": "must",
+    "description": "Spec changes propagate correctly to BOM derivation inputs.",
+    "steps": [
+      "Verify: Spec changes propagate correctly to BOM derivation inputs.",
+      "Confirm it matches specs/frontend-checklist.md",
+      "Run feedback loops: cd apps/web && npm run lint && npm run build"
+    ],
+    "passes": false
+  },
+  {
+    "id": "DIRECT-005",
+    "category": "direct-manipulation-and-bulk-editing",
+    "section": "Design Workspace (CAD-like UI)",
+    "subsection": "Direct Manipulation and Bulk Editing",
+    "priority": "should",
+    "description": "Inline numeric edits for length/offset/rotation.",
+    "steps": [
+      "Verify: Inline numeric edits for length/offset/rotation.",
+      "Confirm it matches specs/frontend-checklist.md",
+      "Run feedback loops: cd apps/web && npm run lint && npm run build"
+    ],
+    "passes": false
+  },
+  {
+    "id": "DIRECT-006",
+    "category": "direct-manipulation-and-bulk-editing",
+    "section": "Design Workspace (CAD-like UI)",
+    "subsection": "Direct Manipulation and Bulk Editing",
+    "priority": "should",
+    "description": "Multi-select bulk edit for shared fields.",
+    "steps": [
+      "Verify: Multi-select bulk edit for shared fields.",
+      "Confirm it matches specs/frontend-checklist.md",
+      "Run feedback loops: cd apps/web && npm run lint && npm run build"
+    ],
+    "passes": false
+  },
+  {
+    "id": "DIRECT-007",
+    "category": "direct-manipulation-and-bulk-editing",
+    "section": "Design Workspace (CAD-like UI)",
+    "subsection": "Direct Manipulation and Bulk Editing",
+    "priority": "should",
+    "description": "Spec swap command preserving geometry when valid.",
+    "steps": [
+      "Verify: Spec swap command preserving geometry when valid.",
+      "Confirm it matches specs/frontend-checklist.md",
+      "Run feedback loops: cd apps/web && npm run lint && npm run build"
+    ],
+    "passes": false
+  },
+  {
+    "id": "PRODUC-001",
+    "category": "productivity-tools",
+    "section": "Design Workspace (CAD-like UI)",
+    "subsection": "Productivity Tools",
+    "priority": "should",
+    "description": "Place parallel with offset from reference run.",
+    "steps": [
+      "Verify: Place parallel with offset from reference run.",
+      "Confirm it matches specs/frontend-checklist.md",
+      "Run feedback loops: cd apps/web && npm run lint && npm run build"
+    ],
+    "passes": false
+  },
+  {
+    "id": "PRODUC-002",
+    "category": "productivity-tools",
+    "section": "Design Workspace (CAD-like UI)",
+    "subsection": "Productivity Tools",
+    "priority": "should",
+    "description": "Row generator (`N` runs, spacing `S`, from point `P`).",
+    "steps": [
+      "Verify: Row generator (`N` runs, spacing `S`, from point `P`).",
+      "Confirm it matches specs/frontend-checklist.md",
+      "Run feedback loops: cd apps/web && npm run lint && npm run build"
+    ],
+    "passes": false
+  },
+  {
+    "id": "PRODUC-003",
+    "category": "productivity-tools",
+    "section": "Design Workspace (CAD-like UI)",
+    "subsection": "Productivity Tools",
+    "priority": "should",
+    "description": "Aisle tool with width visualization.",
+    "steps": [
+      "Verify: Aisle tool with width visualization.",
+      "Confirm it matches specs/frontend-checklist.md",
+      "Run feedback loops: cd apps/web && npm run lint && npm run build"
+    ],
+    "passes": false
+  },
+  {
+    "id": "PRODUC-004",
+    "category": "productivity-tools",
+    "section": "Design Workspace (CAD-like UI)",
+    "subsection": "Productivity Tools",
+    "priority": "should",
+    "description": "Snap-to-typical clearances configuration.",
+    "steps": [
+      "Verify: Snap-to-typical clearances configuration.",
+      "Confirm it matches specs/frontend-checklist.md",
+      "Run feedback loops: cd apps/web && npm run lint && npm run build"
+    ],
+    "passes": false
+  },
+  {
+    "id": "PRODUC-005",
+    "category": "productivity-tools",
+    "section": "Design Workspace (CAD-like UI)",
+    "subsection": "Productivity Tools",
+    "priority": "could",
+    "description": "Mini-map and saved views.",
+    "steps": [
+      "Verify: Mini-map and saved views.",
+      "Confirm it matches specs/frontend-checklist.md",
+      "Run feedback loops: cd apps/web && npm run lint && npm run build"
+    ],
+    "passes": false
+  },
+  {
+    "id": "PRODUC-006",
+    "category": "productivity-tools",
+    "section": "Design Workspace (CAD-like UI)",
+    "subsection": "Productivity Tools",
+    "priority": "could",
+    "description": "Temporary isolate mode.",
+    "steps": [
+      "Verify: Temporary isolate mode.",
+      "Confirm it matches specs/frontend-checklist.md",
+      "Run feedback loops: cd apps/web && npm run lint && npm run build"
+    ],
+    "passes": false
+  },
+  {
+    "id": "PRODUC-007",
+    "category": "productivity-tools",
+    "section": "Design Workspace (CAD-like UI)",
+    "subsection": "Productivity Tools",
+    "priority": "could",
+    "description": "Underlay/DXF reference import UX.",
+    "steps": [
+      "Verify: Underlay/DXF reference import UX.",
+      "Confirm it matches specs/frontend-checklist.md",
+      "Run feedback loops: cd apps/web && npm run lint && npm run build"
+    ],
+    "passes": false
+  },
+  {
+    "id": "PRODUC-008",
+    "category": "productivity-tools",
+    "section": "Design Workspace (CAD-like UI)",
+    "subsection": "Productivity Tools",
+    "priority": "could",
+    "description": "Reference import supports underlay/image/PDF/DXF and lockable non-semantic references.",
+    "steps": [
+      "Verify: Reference import supports underlay/image/PDF/DXF and lockable non-semantic references.",
+      "Confirm it matches specs/frontend-checklist.md",
+      "Run feedback loops: cd apps/web && npm run lint && npm run build"
+    ],
+    "passes": false
+  },
+  {
+    "id": "SNAPAN-001",
+    "category": "snap-and-constraint-controls",
+    "section": "Design Workspace (CAD-like UI)",
+    "subsection": "Snap and Constraint Controls",
+    "priority": "must",
+    "description": "Snap modes include endpoint, midpoint, nearest, and grid snap.",
+    "steps": [
+      "Verify: Snap modes include endpoint, midpoint, nearest, and grid snap.",
+      "Confirm it matches specs/frontend-checklist.md",
+      "Run feedback loops: cd apps/web && npm run lint && npm run build"
+    ],
+    "passes": false
+  },
+  {
+    "id": "SNAPAN-002",
+    "category": "snap-and-constraint-controls",
+    "section": "Design Workspace (CAD-like UI)",
+    "subsection": "Snap and Constraint Controls",
+    "priority": "must",
+    "description": "Ortho lock supports 0/90 degrees.",
+    "steps": [
+      "Verify: Ortho lock supports 0/90 degrees.",
+      "Confirm it matches specs/frontend-checklist.md",
+      "Run feedback loops: cd apps/web && npm run lint && npm run build"
+    ],
+    "passes": false
+  },
+  {
+    "id": "VALIDA-001",
+    "category": "validation-ux-business-rules-on-canvas",
+    "section": "Validation UX (Business Rules on Canvas)",
+    "subsection": "",
+    "priority": "must",
+    "description": "Real-time validation trigger on relevant edits.",
+    "steps": [
+      "Verify: Real-time validation trigger on relevant edits.",
+      "Confirm it matches specs/frontend-checklist.md",
+      "Run feedback loops: cd apps/web && npm run lint && npm run build"
+    ],
+    "passes": false
+  },
+  {
+    "id": "VALIDA-002",
+    "category": "validation-ux-business-rules-on-canvas",
+    "section": "Validation UX (Business Rules on Canvas)",
+    "subsection": "",
+    "priority": "must",
+    "description": "Manual \u201cValidate Design\u201d action.",
+    "steps": [
+      "Verify: Manual \u201cValidate Design\u201d action.",
+      "Confirm it matches specs/frontend-checklist.md",
+      "Run feedback loops: cd apps/web && npm run lint && npm run build"
+    ],
+    "passes": false
+  },
+  {
+    "id": "VALIDA-003",
+    "category": "validation-ux-business-rules-on-canvas",
+    "section": "Validation UX (Business Rules on Canvas)",
+    "subsection": "",
+    "priority": "must",
+    "description": "Issue list panel with:",
+    "steps": [
+      "Verify: Issue list panel with:",
+      "Confirm it matches specs/frontend-checklist.md",
+      "Run feedback loops: cd apps/web && npm run lint && npm run build"
+    ],
+    "passes": false
+  },
+  {
+    "id": "VALIDA-004",
+    "category": "validation-ux-business-rules-on-canvas",
+    "section": "Validation UX (Business Rules on Canvas)",
+    "subsection": "",
+    "priority": "must",
+    "description": "Clicking issue focuses/selects related object(s).",
+    "steps": [
+      "Verify: Clicking issue focuses/selects related object(s).",
+      "Confirm it matches specs/frontend-checklist.md",
+      "Run feedback loops: cd apps/web && npm run lint && npm run build"
+    ],
+    "passes": false
+  },
+  {
+    "id": "VALIDA-005",
+    "category": "validation-ux-business-rules-on-canvas",
+    "section": "Validation UX (Business Rules on Canvas)",
+    "subsection": "",
+    "priority": "must",
+    "description": "Canvas highlighting of violations (consistent error/warn visual language).",
+    "steps": [
+      "Verify: Canvas highlighting of violations (consistent error/warn visual language).",
+      "Confirm it matches specs/frontend-checklist.md",
+      "Run feedback loops: cd apps/web && npm run lint && npm run build"
+    ],
+    "passes": false
+  },
+  {
+    "id": "VALIDA-006",
+    "category": "validation-ux-business-rules-on-canvas",
+    "section": "Validation UX (Business Rules on Canvas)",
+    "subsection": "",
+    "priority": "must",
+    "description": "Blocking rules prevent invalid commits where required.",
+    "steps": [
+      "Verify: Blocking rules prevent invalid commits where required.",
+      "Confirm it matches specs/frontend-checklist.md",
+      "Run feedback loops: cd apps/web && npm run lint && npm run build"
+    ],
+    "passes": false
+  },
+  {
+    "id": "VALIDA-007",
+    "category": "validation-ux-business-rules-on-canvas",
+    "section": "Validation UX (Business Rules on Canvas)",
+    "subsection": "",
+    "priority": "should",
+    "description": "Soft warning feedback during drag/edit interactions.",
+    "steps": [
+      "Verify: Soft warning feedback during drag/edit interactions.",
+      "Confirm it matches specs/frontend-checklist.md",
+      "Run feedback loops: cd apps/web && npm run lint && npm run build"
+    ],
+    "passes": false
+  },
+  {
+    "id": "VALIDA-008",
+    "category": "validation-ux-business-rules-on-canvas",
+    "section": "Validation UX (Business Rules on Canvas)",
+    "subsection": "",
+    "priority": "should",
+    "description": "Inline fix suggestions for common failures.",
+    "steps": [
+      "Verify: Inline fix suggestions for common failures.",
+      "Confirm it matches specs/frontend-checklist.md",
+      "Run feedback loops: cd apps/web && npm run lint && npm run build"
+    ],
+    "passes": false
+  },
+  {
+    "id": "VALIDA-009",
+    "category": "validation-ux-business-rules-on-canvas",
+    "section": "Validation UX (Business Rules on Canvas)",
+    "subsection": "",
+    "priority": "should",
+    "description": "Configurable severity display according to team/project policy.",
+    "steps": [
+      "Verify: Configurable severity display according to team/project policy.",
+      "Confirm it matches specs/frontend-checklist.md",
+      "Run feedback loops: cd apps/web && npm run lint && npm run build"
+    ],
+    "passes": false
+  },
+  {
+    "id": "VALIDA-010",
+    "category": "validation-ux-business-rules-on-canvas",
+    "section": "Validation UX (Business Rules on Canvas)",
+    "subsection": "",
+    "priority": "must",
+    "description": "Catalog incompatibility (frame/beam/accessory)",
+    "steps": [
+      "Verify: Catalog incompatibility (frame/beam/accessory)",
+      "Confirm it matches specs/frontend-checklist.md",
+      "Run feedback loops: cd apps/web && npm run lint && npm run build"
+    ],
+    "passes": false
+  },
+  {
+    "id": "VALIDA-011",
+    "category": "validation-ux-business-rules-on-canvas",
+    "section": "Validation UX (Business Rules on Canvas)",
+    "subsection": "",
+    "priority": "must",
+    "description": "Capacity incompatibility",
+    "steps": [
+      "Verify: Capacity incompatibility",
+      "Confirm it matches specs/frontend-checklist.md",
+      "Run feedback loops: cd apps/web && npm run lint && npm run build"
+    ],
+    "passes": false
+  },
+  {
+    "id": "VALIDA-012",
+    "category": "validation-ux-business-rules-on-canvas",
+    "section": "Validation UX (Business Rules on Canvas)",
+    "subsection": "",
+    "priority": "must",
+    "description": "Rack-obstacle and rack-boundary collisions",
+    "steps": [
+      "Verify: Rack-obstacle and rack-boundary collisions",
+      "Confirm it matches specs/frontend-checklist.md",
+      "Run feedback loops: cd apps/web && npm run lint && npm run build"
+    ],
+    "passes": false
+  },
+  {
+    "id": "VALIDA-013",
+    "category": "validation-ux-business-rules-on-canvas",
+    "section": "Validation UX (Business Rules on Canvas)",
+    "subsection": "",
+    "priority": "must",
+    "description": "Beam/frame congruence (length/elevation/height rules)",
+    "steps": [
+      "Verify: Beam/frame congruence (length/elevation/height rules)",
+      "Confirm it matches specs/frontend-checklist.md",
+      "Run feedback loops: cd apps/web && npm run lint && npm run build"
+    ],
+    "passes": false
+  },
+  {
+    "id": "VALIDA-014",
+    "category": "validation-ux-business-rules-on-canvas",
+    "section": "Validation UX (Business Rules on Canvas)",
+    "subsection": "",
+    "priority": "must",
+    "description": "B2B alignment/elevation consistency",
+    "steps": [
+      "Verify: B2B alignment/elevation consistency",
+      "Confirm it matches specs/frontend-checklist.md",
+      "Run feedback loops: cd apps/web && npm run lint && npm run build"
+    ],
+    "passes": false
+  },
+  {
+    "id": "VALIDA-015",
+    "category": "validation-ux-business-rules-on-canvas",
+    "section": "Validation UX (Business Rules on Canvas)",
+    "subsection": "",
+    "priority": "must",
+    "description": "Aisle minimum width violations",
+    "steps": [
+      "Verify: Aisle minimum width violations",
+      "Confirm it matches specs/frontend-checklist.md",
+      "Run feedback loops: cd apps/web && npm run lint && npm run build"
+    ],
+    "passes": false
+  },
+  {
+    "id": "VALIDA-016",
+    "category": "validation-ux-business-rules-on-canvas",
+    "section": "Validation UX (Business Rules on Canvas)",
+    "subsection": "",
+    "priority": "should",
+    "description": "Safety/clearance zone violations (if enabled)",
+    "steps": [
+      "Verify: Safety/clearance zone violations (if enabled)",
+      "Confirm it matches specs/frontend-checklist.md",
+      "Run feedback loops: cd apps/web && npm run lint && npm run build"
+    ],
+    "passes": false
+  },
+  {
+    "id": "DESIGN-001",
+    "category": "design-save-revisions-and-exports",
+    "section": "Design Save, Revisions, and Exports",
+    "subsection": "",
+    "priority": "must",
+    "description": "Visible save status (saved/saving/error).",
+    "steps": [
+      "Verify: Visible save status (saved/saving/error).",
+      "Confirm it matches specs/frontend-checklist.md",
+      "Run feedback loops: cd apps/web && npm run lint && npm run build"
+    ],
+    "passes": false
+  },
+  {
+    "id": "DESIGN-002",
+    "category": "design-save-revisions-and-exports",
+    "section": "Design Save, Revisions, and Exports",
+    "subsection": "",
+    "priority": "must",
+    "description": "Manual save + auto-save.",
+    "steps": [
+      "Verify: Manual save + auto-save.",
+      "Confirm it matches specs/frontend-checklist.md",
+      "Run feedback loops: cd apps/web && npm run lint && npm run build"
+    ],
+    "passes": false
+  },
+  {
+    "id": "DESIGN-003",
+    "category": "design-save-revisions-and-exports",
+    "section": "Design Save, Revisions, and Exports",
+    "subsection": "",
+    "priority": "must",
+    "description": "\u201cCreate Design Revision\u201d flow with revision notes.",
+    "steps": [
+      "Verify: \u201cCreate Design Revision\u201d flow with revision notes.",
+      "Confirm it matches specs/frontend-checklist.md",
+      "Run feedback loops: cd apps/web && npm run lint && npm run build"
+    ],
+    "passes": false
+  },
+  {
+    "id": "DESIGN-004",
+    "category": "design-save-revisions-and-exports",
+    "section": "Design Save, Revisions, and Exports",
+    "subsection": "",
+    "priority": "must",
+    "description": "Revision timeline/list with author and timestamp.",
+    "steps": [
+      "Verify: Revision timeline/list with author and timestamp.",
+      "Confirm it matches specs/frontend-checklist.md",
+      "Run feedback loops: cd apps/web && npm run lint && npm run build"
+    ],
+    "passes": false
+  },
+  {
+    "id": "DESIGN-005",
+    "category": "design-save-revisions-and-exports",
+    "section": "Design Save, Revisions, and Exports",
+    "subsection": "",
+    "priority": "must",
+    "description": "Restore historical revision as new head revision (never mutate old).",
+    "steps": [
+      "Verify: Restore historical revision as new head revision (never mutate old).",
+      "Confirm it matches specs/frontend-checklist.md",
+      "Run feedback loops: cd apps/web && npm run lint && npm run build"
+    ],
+    "passes": false
+  },
+  {
+    "id": "DESIGN-006",
+    "category": "design-save-revisions-and-exports",
+    "section": "Design Save, Revisions, and Exports",
+    "subsection": "",
+    "priority": "should",
+    "description": "Copy/share deep link to a specific design revision.",
+    "steps": [
+      "Verify: Copy/share deep link to a specific design revision.",
+      "Confirm it matches specs/frontend-checklist.md",
+      "Run feedback loops: cd apps/web && npm run lint && npm run build"
+    ],
+    "passes": false
+  },
+  {
+    "id": "DESIGN-007",
+    "category": "design-save-revisions-and-exports",
+    "section": "Design Save, Revisions, and Exports",
+    "subsection": "",
+    "priority": "must",
+    "description": "Export actions for PDF, PNG, DXF by revision.",
+    "steps": [
+      "Verify: Export actions for PDF, PNG, DXF by revision.",
+      "Confirm it matches specs/frontend-checklist.md",
+      "Run feedback loops: cd apps/web && npm run lint && npm run build"
+    ],
+    "passes": false
+  },
+  {
+    "id": "DESIGN-008",
+    "category": "design-save-revisions-and-exports",
+    "section": "Design Save, Revisions, and Exports",
+    "subsection": "",
+    "priority": "must",
+    "description": "Export settings include labels/dimensions toggles where supported.",
+    "steps": [
+      "Verify: Export settings include labels/dimensions toggles where supported.",
+      "Confirm it matches specs/frontend-checklist.md",
+      "Run feedback loops: cd apps/web && npm run lint && npm run build"
+    ],
+    "passes": false
+  },
+  {
+    "id": "BOMWOR-001",
+    "category": "bom-workspace-ux",
+    "section": "BOM Workspace UX",
+    "subsection": "",
+    "priority": "must",
+    "description": "Create quote from selected design revision.",
+    "steps": [
+      "Verify: Create quote from selected design revision.",
+      "Confirm it matches specs/frontend-checklist.md",
+      "Run feedback loops: cd apps/web && npm run lint && npm run build"
+    ],
+    "passes": false
+  },
+  {
+    "id": "BOMWOR-002",
+    "category": "bom-workspace-ux",
+    "section": "BOM Workspace UX",
+    "subsection": "",
+    "priority": "must",
+    "description": "Generate BOM from revision and show progress state.",
+    "steps": [
+      "Verify: Generate BOM from revision and show progress state.",
+      "Confirm it matches specs/frontend-checklist.md",
+      "Run feedback loops: cd apps/web && npm run lint && npm run build"
+    ],
+    "passes": false
+  },
+  {
+    "id": "BOMWOR-003",
+    "category": "bom-workspace-ux",
+    "section": "BOM Workspace UX",
+    "subsection": "",
+    "priority": "must",
+    "description": "BOM table columns:",
+    "steps": [
+      "Verify: BOM table columns:",
+      "Confirm it matches specs/frontend-checklist.md",
+      "Run feedback loops: cd apps/web && npm run lint && npm run build"
+    ],
+    "passes": false
+  },
+  {
+    "id": "BOMWOR-004",
+    "category": "bom-workspace-ux",
+    "section": "BOM Workspace UX",
+    "subsection": "",
+    "priority": "must",
+    "description": "Drilldown interactions:",
+    "steps": [
+      "Verify: Drilldown interactions:",
+      "Confirm it matches specs/frontend-checklist.md",
+      "Run feedback loops: cd apps/web && npm run lint && npm run build"
+    ],
+    "passes": false
+  },
+  {
+    "id": "MANUAL-001",
+    "category": "manual-and-override-actions",
+    "section": "BOM Workspace UX",
+    "subsection": "Manual and Override Actions",
+    "priority": "must",
+    "description": "Add manual BOM line (visibly marked as manual).",
+    "steps": [
+      "Verify: Add manual BOM line (visibly marked as manual).",
+      "Confirm it matches specs/frontend-checklist.md",
+      "Run feedback loops: cd apps/web && npm run lint && npm run build"
+    ],
+    "passes": false
+  },
+  {
+    "id": "MANUAL-002",
+    "category": "manual-and-override-actions",
+    "section": "BOM Workspace UX",
+    "subsection": "Manual and Override Actions",
+    "priority": "must",
+    "description": "Soft-delete derived lines (not destructive delete).",
+    "steps": [
+      "Verify: Soft-delete derived lines (not destructive delete).",
+      "Confirm it matches specs/frontend-checklist.md",
+      "Run feedback loops: cd apps/web && npm run lint && npm run build"
+    ],
+    "passes": false
+  },
+  {
+    "id": "MANUAL-003",
+    "category": "manual-and-override-actions",
+    "section": "BOM Workspace UX",
+    "subsection": "Manual and Override Actions",
+    "priority": "must",
+    "description": "Quantity override flow requires reason code + note.",
+    "steps": [
+      "Verify: Quantity override flow requires reason code + note.",
+      "Confirm it matches specs/frontend-checklist.md",
+      "Run feedback loops: cd apps/web && npm run lint && npm run build"
+    ],
+    "passes": false
+  },
+  {
+    "id": "MANUAL-004",
+    "category": "manual-and-override-actions",
+    "section": "BOM Workspace UX",
+    "subsection": "Manual and Override Actions",
+    "priority": "must",
+    "description": "Persist and display audit metadata (who/when/why).",
+    "steps": [
+      "Verify: Persist and display audit metadata (who/when/why).",
+      "Confirm it matches specs/frontend-checklist.md",
+      "Run feedback loops: cd apps/web && npm run lint && npm run build"
+    ],
+    "passes": false
+  },
+  {
+    "id": "MANUAL-005",
+    "category": "manual-and-override-actions",
+    "section": "BOM Workspace UX",
+    "subsection": "Manual and Override Actions",
+    "priority": "must",
+    "description": "Baseline vs final BOM diff view.",
+    "steps": [
+      "Verify: Baseline vs final BOM diff view.",
+      "Confirm it matches specs/frontend-checklist.md",
+      "Run feedback loops: cd apps/web && npm run lint && npm run build"
+    ],
+    "passes": false
+  },
+  {
+    "id": "MANUAL-006",
+    "category": "manual-and-override-actions",
+    "section": "BOM Workspace UX",
+    "subsection": "Manual and Override Actions",
+    "priority": "must",
+    "description": "Regeneration behavior and override policy are explicit in UI copy.",
+    "steps": [
+      "Verify: Regeneration behavior and override policy are explicit in UI copy.",
+      "Confirm it matches specs/frontend-checklist.md",
+      "Run feedback loops: cd apps/web && npm run lint && npm run build"
+    ],
+    "passes": false
+  },
+  {
+    "id": "MANUAL-007",
+    "category": "manual-and-override-actions",
+    "section": "BOM Workspace UX",
+    "subsection": "Manual and Override Actions",
+    "priority": "must",
+    "description": "Use one defined override persistence policy (adjustment-line or replacement) and prevent silent data loss on regenerate.",
+    "steps": [
+      "Verify: Use one defined override persistence policy (adjustment-line or replacement) and prevent silent data loss on regenerate.",
+      "Confirm it matches specs/frontend-checklist.md",
+      "Run feedback loops: cd apps/web && npm run lint && npm run build"
+    ],
+    "passes": false
+  },
+  {
+    "id": "PRICIN-001",
+    "category": "pricing-and-commercial-controls-ux",
+    "section": "Pricing and Commercial Controls UX",
+    "subsection": "",
+    "priority": "must",
+    "description": "Show pricing context (price list version/effective date) on quote revision.",
+    "steps": [
+      "Verify: Show pricing context (price list version/effective date) on quote revision.",
+      "Confirm it matches specs/frontend-checklist.md",
+      "Run feedback loops: cd apps/web && npm run lint && npm run build"
+    ],
+    "passes": false
+  },
+  {
+    "id": "PRICIN-002",
+    "category": "pricing-and-commercial-controls-ux",
+    "section": "Pricing and Commercial Controls UX",
+    "subsection": "",
+    "priority": "must",
+    "description": "Show pricing rule match identifier per line (or details drawer).",
+    "steps": [
+      "Verify: Show pricing rule match identifier per line (or details drawer).",
+      "Confirm it matches specs/frontend-checklist.md",
+      "Run feedback loops: cd apps/web && npm run lint && npm run build"
+    ],
+    "passes": false
+  },
+  {
+    "id": "PRICIN-003",
+    "category": "pricing-and-commercial-controls-ux",
+    "section": "Pricing and Commercial Controls UX",
+    "subsection": "",
+    "priority": "must",
+    "description": "Handle missing prices with blocking banner + affected line indicators.",
+    "steps": [
+      "Verify: Handle missing prices with blocking banner + affected line indicators.",
+      "Confirm it matches specs/frontend-checklist.md",
+      "Run feedback loops: cd apps/web && npm run lint && npm run build"
+    ],
+    "passes": false
+  },
+  {
+    "id": "PRICIN-004",
+    "category": "pricing-and-commercial-controls-ux",
+    "section": "Pricing and Commercial Controls UX",
+    "subsection": "",
+    "priority": "must",
+    "description": "Prevent \u201cSend Quote\u201d when blocking price gaps exist.",
+    "steps": [
+      "Verify: Prevent \u201cSend Quote\u201d when blocking price gaps exist.",
+      "Confirm it matches specs/frontend-checklist.md",
+      "Run feedback loops: cd apps/web && npm run lint && npm run build"
+    ],
+    "passes": false
+  },
+  {
+    "id": "PRICIN-005",
+    "category": "pricing-and-commercial-controls-ux",
+    "section": "Pricing and Commercial Controls UX",
+    "subsection": "",
+    "priority": "must",
+    "description": "Quote-level discount (percent/fixed amount).",
+    "steps": [
+      "Verify: Quote-level discount (percent/fixed amount).",
+      "Confirm it matches specs/frontend-checklist.md",
+      "Run feedback loops: cd apps/web && npm run lint && npm run build"
+    ],
+    "passes": false
+  },
+  {
+    "id": "PRICIN-006",
+    "category": "pricing-and-commercial-controls-ux",
+    "section": "Pricing and Commercial Controls UX",
+    "subsection": "",
+    "priority": "must",
+    "description": "Line-level discount (percent/fixed amount).",
+    "steps": [
+      "Verify: Line-level discount (percent/fixed amount).",
+      "Confirm it matches specs/frontend-checklist.md",
+      "Run feedback loops: cd apps/web && npm run lint && npm run build"
+    ],
+    "passes": false
+  },
+  {
+    "id": "PRICIN-007",
+    "category": "pricing-and-commercial-controls-ux",
+    "section": "Pricing and Commercial Controls UX",
+    "subsection": "",
+    "priority": "must",
+    "description": "Unit price override with required reason metadata.",
+    "steps": [
+      "Verify: Unit price override with required reason metadata.",
+      "Confirm it matches specs/frontend-checklist.md",
+      "Run feedback loops: cd apps/web && npm run lint && npm run build"
+    ],
+    "passes": false
+  },
+  {
+    "id": "PRICIN-008",
+    "category": "pricing-and-commercial-controls-ux",
+    "section": "Pricing and Commercial Controls UX",
+    "subsection": "",
+    "priority": "must",
+    "description": "Role-based limit handling (disable/block + explanatory message).",
+    "steps": [
+      "Verify: Role-based limit handling (disable/block + explanatory message).",
+      "Confirm it matches specs/frontend-checklist.md",
+      "Run feedback loops: cd apps/web && npm run lint && npm run build"
+    ],
+    "passes": false
+  },
+  {
+    "id": "PRICIN-009",
+    "category": "pricing-and-commercial-controls-ux",
+    "section": "Pricing and Commercial Controls UX",
+    "subsection": "",
+    "priority": "should",
+    "description": "Attempt logging feedback when user exceeds limit.",
+    "steps": [
+      "Verify: Attempt logging feedback when user exceeds limit.",
+      "Confirm it matches specs/frontend-checklist.md",
+      "Run feedback loops: cd apps/web && npm run lint && npm run build"
+    ],
+    "passes": false
+  },
+  {
+    "id": "PRICIN-010",
+    "category": "pricing-and-commercial-controls-ux",
+    "section": "Pricing and Commercial Controls UX",
+    "subsection": "",
+    "priority": "must",
+    "description": "Subtotal, discount total, net total.",
+    "steps": [
+      "Verify: Subtotal, discount total, net total.",
+      "Confirm it matches specs/frontend-checklist.md",
+      "Run feedback loops: cd apps/web && npm run lint && npm run build"
+    ],
+    "passes": false
+  },
+  {
+    "id": "PRICIN-011",
+    "category": "pricing-and-commercial-controls-ux",
+    "section": "Pricing and Commercial Controls UX",
+    "subsection": "",
+    "priority": "must",
+    "description": "Tax toggle and configurable rate/amount (default 16% IVA).",
+    "steps": [
+      "Verify: Tax toggle and configurable rate/amount (default 16% IVA).",
+      "Confirm it matches specs/frontend-checklist.md",
+      "Run feedback loops: cd apps/web && npm run lint && npm run build"
+    ],
+    "passes": false
+  },
+  {
+    "id": "PRICIN-012",
+    "category": "pricing-and-commercial-controls-ux",
+    "section": "Pricing and Commercial Controls UX",
+    "subsection": "",
+    "priority": "must",
+    "description": "Freight and labor lines with description and amount.",
+    "steps": [
+      "Verify: Freight and labor lines with description and amount.",
+      "Confirm it matches specs/frontend-checklist.md",
+      "Run feedback loops: cd apps/web && npm run lint && npm run build"
+    ],
+    "passes": false
+  },
+  {
+    "id": "PRICIN-013",
+    "category": "pricing-and-commercial-controls-ux",
+    "section": "Pricing and Commercial Controls UX",
+    "subsection": "",
+    "priority": "must",
+    "description": "Freight and labor lines support discounts.",
+    "steps": [
+      "Verify: Freight and labor lines support discounts.",
+      "Confirm it matches specs/frontend-checklist.md",
+      "Run feedback loops: cd apps/web && npm run lint && npm run build"
+    ],
+    "passes": false
+  },
+  {
+    "id": "PRICIN-014",
+    "category": "pricing-and-commercial-controls-ux",
+    "section": "Pricing and Commercial Controls UX",
+    "subsection": "",
+    "priority": "should",
+    "description": "Freight helper UI for weight \u00d7 city-based base rate lookup.",
+    "steps": [
+      "Verify: Freight helper UI for weight \u00d7 city-based base rate lookup.",
+      "Confirm it matches specs/frontend-checklist.md",
+      "Run feedback loops: cd apps/web && npm run lint && npm run build"
+    ],
+    "passes": false
+  },
+  {
+    "id": "QUOTER-001",
+    "category": "quote-revisions-and-lifecycle-ux",
+    "section": "Quote Revisions and Lifecycle UX",
+    "subsection": "",
+    "priority": "must",
+    "description": "Quote revision list with immutable history.",
+    "steps": [
+      "Verify: Quote revision list with immutable history.",
+      "Confirm it matches specs/frontend-checklist.md",
+      "Run feedback loops: cd apps/web && npm run lint && npm run build"
+    ],
+    "passes": false
+  },
+  {
+    "id": "QUOTER-002",
+    "category": "quote-revisions-and-lifecycle-ux",
+    "section": "Quote Revisions and Lifecycle UX",
+    "subsection": "",
+    "priority": "must",
+    "description": "Create new quote revision from same/newer design revision.",
+    "steps": [
+      "Verify: Create new quote revision from same/newer design revision.",
+      "Confirm it matches specs/frontend-checklist.md",
+      "Run feedback loops: cd apps/web && npm run lint && npm run build"
+    ],
+    "passes": false
+  },
+  {
+    "id": "QUOTER-003",
+    "category": "quote-revisions-and-lifecycle-ux",
+    "section": "Quote Revisions and Lifecycle UX",
+    "subsection": "",
+    "priority": "must",
+    "description": "Status transitions:",
+    "steps": [
+      "Verify: Status transitions:",
+      "Confirm it matches specs/frontend-checklist.md",
+      "Run feedback loops: cd apps/web && npm run lint && npm run build"
+    ],
+    "passes": false
+  },
+  {
+    "id": "QUOTER-004",
+    "category": "quote-revisions-and-lifecycle-ux",
+    "section": "Quote Revisions and Lifecycle UX",
+    "subsection": "",
+    "priority": "must",
+    "description": "Once sent, revision becomes read-only in UI.",
+    "steps": [
+      "Verify: Once sent, revision becomes read-only in UI.",
+      "Confirm it matches specs/frontend-checklist.md",
+      "Run feedback loops: cd apps/web && npm run lint && npm run build"
+    ],
+    "passes": false
+  },
+  {
+    "id": "QUOTER-005",
+    "category": "quote-revisions-and-lifecycle-ux",
+    "section": "Quote Revisions and Lifecycle UX",
+    "subsection": "",
+    "priority": "must",
+    "description": "Lifecycle metadata display: sent date/time, sender, recipients, acceptance timestamp.",
+    "steps": [
+      "Verify: Lifecycle metadata display: sent date/time, sender, recipients, acceptance timestamp.",
+      "Confirm it matches specs/frontend-checklist.md",
+      "Run feedback loops: cd apps/web && npm run lint && npm run build"
+    ],
+    "passes": false
+  },
+  {
+    "id": "QUOTER-006",
+    "category": "quote-revisions-and-lifecycle-ux",
+    "section": "Quote Revisions and Lifecycle UX",
+    "subsection": "",
+    "priority": "must",
+    "description": "Revision-to-revision diff UI for BOM/pricing/discount changes.",
+    "steps": [
+      "Verify: Revision-to-revision diff UI for BOM/pricing/discount changes.",
+      "Confirm it matches specs/frontend-checklist.md",
+      "Run feedback loops: cd apps/web && npm run lint && npm run build"
+    ],
+    "passes": false
+  },
+  {
+    "id": "QUOTER-007",
+    "category": "quote-revisions-and-lifecycle-ux",
+    "section": "Quote Revisions and Lifecycle UX",
+    "subsection": "",
+    "priority": "should",
+    "description": "Warning panel when quote/design consistency issues are detected.",
+    "steps": [
+      "Verify: Warning panel when quote/design consistency issues are detected.",
+      "Confirm it matches specs/frontend-checklist.md",
+      "Run feedback loops: cd apps/web && npm run lint && npm run build"
+    ],
+    "passes": false
+  },
+  {
+    "id": "CADQUO-001",
+    "category": "cad-quote-consistency-ux",
+    "section": "CAD \u2194 Quote Consistency UX",
+    "subsection": "",
+    "priority": "must",
+    "description": "Quote header shows linked design revision metadata.",
+    "steps": [
+      "Verify: Quote header shows linked design revision metadata.",
+      "Confirm it matches specs/frontend-checklist.md",
+      "Run feedback loops: cd apps/web && npm run lint && npm run build"
+    ],
+    "passes": false
+  },
+  {
+    "id": "CADQUO-002",
+    "category": "cad-quote-consistency-ux",
+    "section": "CAD \u2194 Quote Consistency UX",
+    "subsection": "",
+    "priority": "must",
+    "description": "Quote summary shows design metrics: runs, bays, positions, approximate capacity.",
+    "steps": [
+      "Verify: Quote summary shows design metrics: runs, bays, positions, approximate capacity.",
+      "Confirm it matches specs/frontend-checklist.md",
+      "Run feedback loops: cd apps/web && npm run lint && npm run build"
+    ],
+    "passes": false
+  },
+  {
+    "id": "CADQUO-003",
+    "category": "cad-quote-consistency-ux",
+    "section": "CAD \u2194 Quote Consistency UX",
+    "subsection": "",
+    "priority": "must",
+    "description": "\u201cUpdate from latest design revision\u201d action creates a new quote revision only.",
+    "steps": [
+      "Verify: \u201cUpdate from latest design revision\u201d action creates a new quote revision only.",
+      "Confirm it matches specs/frontend-checklist.md",
+      "Run feedback loops: cd apps/web && npm run lint && npm run build"
+    ],
+    "passes": false
+  },
+  {
+    "id": "CADQUO-004",
+    "category": "cad-quote-consistency-ux",
+    "section": "CAD \u2194 Quote Consistency UX",
+    "subsection": "",
+    "priority": "must",
+    "description": "Inconsistency detector UI for overridden/deleted derived lines.",
+    "steps": [
+      "Verify: Inconsistency detector UI for overridden/deleted derived lines.",
+      "Confirm it matches specs/frontend-checklist.md",
+      "Run feedback loops: cd apps/web && npm run lint && npm run build"
+    ],
+    "passes": false
+  },
+  {
+    "id": "CADQUO-005",
+    "category": "cad-quote-consistency-ux",
+    "section": "CAD \u2194 Quote Consistency UX",
+    "subsection": "",
+    "priority": "must",
+    "description": "Blocking/warning messaging references exact source objects where possible.",
+    "steps": [
+      "Verify: Blocking/warning messaging references exact source objects where possible.",
+      "Confirm it matches specs/frontend-checklist.md",
+      "Run feedback loops: cd apps/web && npm run lint && npm run build"
+    ],
+    "passes": false
+  },
+  {
+    "id": "CADQUO-006",
+    "category": "cad-quote-consistency-ux",
+    "section": "CAD \u2194 Quote Consistency UX",
+    "subsection": "",
+    "priority": "should",
+    "description": "Regeneration progress indicator with success/failure summary.",
+    "steps": [
+      "Verify: Regeneration progress indicator with success/failure summary.",
+      "Confirm it matches specs/frontend-checklist.md",
+      "Run feedback loops: cd apps/web && npm run lint && npm run build"
+    ],
+    "passes": false
+  },
+  {
+    "id": "CADQUO-007",
+    "category": "cad-quote-consistency-ux",
+    "section": "CAD \u2194 Quote Consistency UX",
+    "subsection": "",
+    "priority": "should",
+    "description": "Explicit on-demand regenerate action in quote workflow.",
+    "steps": [
+      "Verify: Explicit on-demand regenerate action in quote workflow.",
+      "Confirm it matches specs/frontend-checklist.md",
+      "Run feedback loops: cd apps/web && npm run lint && npm run build"
+    ],
+    "passes": false
+  },
+  {
+    "id": "CADQUO-008",
+    "category": "cad-quote-consistency-ux",
+    "section": "CAD \u2194 Quote Consistency UX",
+    "subsection": "",
+    "priority": "must",
+    "description": "Design revision diff UI covers summary run/bay-level changes.",
+    "steps": [
+      "Verify: Design revision diff UI covers summary run/bay-level changes.",
+      "Confirm it matches specs/frontend-checklist.md",
+      "Run feedback loops: cd apps/web && npm run lint && npm run build"
+    ],
+    "passes": false
+  },
+  {
+    "id": "CADQUO-009",
+    "category": "cad-quote-consistency-ux",
+    "section": "CAD \u2194 Quote Consistency UX",
+    "subsection": "",
+    "priority": "must",
+    "description": "Surface unified-rule outcomes consistently between design validation and quote/BOM workflows.",
+    "steps": [
+      "Verify: Surface unified-rule outcomes consistently between design validation and quote/BOM workflows.",
+      "Confirm it matches specs/frontend-checklist.md",
+      "Run feedback loops: cd apps/web && npm run lint && npm run build"
+    ],
+    "passes": false
+  },
+  {
+    "id": "DOCUME-001",
+    "category": "documents-and-exports-ux",
+    "section": "Documents and Exports UX",
+    "subsection": "",
+    "priority": "must",
+    "description": "Generate quote PDF for current quote revision.",
+    "steps": [
+      "Verify: Generate quote PDF for current quote revision.",
+      "Confirm it matches specs/frontend-checklist.md",
+      "Run feedback loops: cd apps/web && npm run lint && npm run build"
+    ],
+    "passes": false
+  },
+  {
+    "id": "DOCUME-002",
+    "category": "documents-and-exports-ux",
+    "section": "Documents and Exports UX",
+    "subsection": "",
+    "priority": "must",
+    "description": "PDF includes customer/project info, itemized categories, totals, revision metadata, and design snapshot.",
+    "steps": [
+      "Verify: PDF includes customer/project info, itemized categories, totals, revision metadata, and design snapshot.",
+      "Confirm it matches specs/frontend-checklist.md",
+      "Run feedback loops: cd apps/web && npm run lint && npm run build"
+    ],
+    "passes": false
+  },
+  {
+    "id": "DOCUME-003",
+    "category": "documents-and-exports-ux",
+    "section": "Documents and Exports UX",
+    "subsection": "",
+    "priority": "should",
+    "description": "Quote package export (quote PDF + linked design export bundle).",
+    "steps": [
+      "Verify: Quote package export (quote PDF + linked design export bundle).",
+      "Confirm it matches specs/frontend-checklist.md",
+      "Run feedback loops: cd apps/web && npm run lint && npm run build"
+    ],
+    "passes": false
+  },
+  {
+    "id": "DOCUME-004",
+    "category": "documents-and-exports-ux",
+    "section": "Documents and Exports UX",
+    "subsection": "",
+    "priority": "must",
+    "description": "Export BOM/quote lines to CSV/XLSX.",
+    "steps": [
+      "Verify: Export BOM/quote lines to CSV/XLSX.",
+      "Confirm it matches specs/frontend-checklist.md",
+      "Run feedback loops: cd apps/web && npm run lint && npm run build"
+    ],
+    "passes": false
+  },
+  {
+    "id": "DOCUME-005",
+    "category": "documents-and-exports-ux",
+    "section": "Documents and Exports UX",
+    "subsection": "",
+    "priority": "must",
+    "description": "Export actions are revision-aware and non-destructive.",
+    "steps": [
+      "Verify: Export actions are revision-aware and non-destructive.",
+      "Confirm it matches specs/frontend-checklist.md",
+      "Run feedback loops: cd apps/web && npm run lint && npm run build"
+    ],
+    "passes": false
+  },
+  {
+    "id": "ADMINF-001",
+    "category": "admin-frontend-checklist",
+    "section": "Admin Frontend Checklist",
+    "subsection": "",
+    "priority": "must",
+    "description": "Pricing mapping management UI (CRUD or import + validate).",
+    "steps": [
+      "Verify: Pricing mapping management UI (CRUD or import + validate).",
+      "Confirm it matches specs/frontend-checklist.md",
+      "Run feedback loops: cd apps/web && npm run lint && npm run build"
+    ],
+    "passes": false
+  },
+  {
+    "id": "ADMINF-002",
+    "category": "admin-frontend-checklist",
+    "section": "Admin Frontend Checklist",
+    "subsection": "",
+    "priority": "must",
+    "description": "Validation policy settings UI (aisle mins, tolerance, warn/error policy).",
+    "steps": [
+      "Verify: Validation policy settings UI (aisle mins, tolerance, warn/error policy).",
+      "Confirm it matches specs/frontend-checklist.md",
+      "Run feedback loops: cd apps/web && npm run lint && npm run build"
+    ],
+    "passes": false
+  },
+  {
+    "id": "ADMINF-003",
+    "category": "admin-frontend-checklist",
+    "section": "Admin Frontend Checklist",
+    "subsection": "",
+    "priority": "should",
+    "description": "Quote template selector/version picker.",
+    "steps": [
+      "Verify: Quote template selector/version picker.",
+      "Confirm it matches specs/frontend-checklist.md",
+      "Run feedback loops: cd apps/web && npm run lint && npm run build"
+    ],
+    "passes": false
+  },
+  {
+    "id": "ADMINF-004",
+    "category": "admin-frontend-checklist",
+    "section": "Admin Frontend Checklist",
+    "subsection": "",
+    "priority": "should",
+    "description": "Persist selected quote template/version per quote revision.",
+    "steps": [
+      "Verify: Persist selected quote template/version per quote revision.",
+      "Confirm it matches specs/frontend-checklist.md",
+      "Run feedback loops: cd apps/web && npm run lint && npm run build"
+    ],
+    "passes": false
+  },
+  {
+    "id": "ADMINF-005",
+    "category": "admin-frontend-checklist",
+    "section": "Admin Frontend Checklist",
+    "subsection": "",
+    "priority": "should",
+    "description": "Audit report screen with filters (user/date range/type) and export.",
+    "steps": [
+      "Verify: Audit report screen with filters (user/date range/type) and export.",
+      "Confirm it matches specs/frontend-checklist.md",
+      "Run feedback loops: cd apps/web && npm run lint && npm run build"
+    ],
+    "passes": false
+  },
+  {
+    "id": "LOCALI-001",
+    "category": "localization-en-es-checklist",
+    "section": "Localization (EN/ES) Checklist",
+    "subsection": "",
+    "priority": "must",
+    "description": "i18n framework integration for UI labels/actions/messages.",
+    "steps": [
+      "Verify: i18n framework integration for UI labels/actions/messages.",
+      "Confirm it matches specs/frontend-checklist.md",
+      "Run feedback loops: cd apps/web && npm run lint && npm run build"
+    ],
+    "passes": false
+  },
+  {
+    "id": "LOCALI-002",
+    "category": "localization-en-es-checklist",
+    "section": "Localization (EN/ES) Checklist",
+    "subsection": "",
+    "priority": "must",
+    "description": "Language switcher available without losing in-progress form/workflow state.",
+    "steps": [
+      "Verify: Language switcher available without losing in-progress form/workflow state.",
+      "Confirm it matches specs/frontend-checklist.md",
+      "Run feedback loops: cd apps/web && npm run lint && npm run build"
+    ],
+    "passes": false
+  },
+  {
+    "id": "LOCALI-003",
+    "category": "localization-en-es-checklist",
+    "section": "Localization (EN/ES) Checklist",
+    "subsection": "",
+    "priority": "must",
+    "description": "User language preference persistence.",
+    "steps": [
+      "Verify: User language preference persistence.",
+      "Confirm it matches specs/frontend-checklist.md",
+      "Run feedback loops: cd apps/web && npm run lint && npm run build"
+    ],
+    "passes": false
+  },
+  {
+    "id": "LOCALI-004",
+    "category": "localization-en-es-checklist",
+    "section": "Localization (EN/ES) Checklist",
+    "subsection": "",
+    "priority": "must",
+    "description": "Project/quote output language selector.",
+    "steps": [
+      "Verify: Project/quote output language selector.",
+      "Confirm it matches specs/frontend-checklist.md",
+      "Run feedback loops: cd apps/web && npm run lint && npm run build"
+    ],
+    "passes": false
+  },
+  {
+    "id": "LOCALI-005",
+    "category": "localization-en-es-checklist",
+    "section": "Localization (EN/ES) Checklist",
+    "subsection": "",
+    "priority": "must",
+    "description": "Generated client-facing outputs reflect selected language.",
+    "steps": [
+      "Verify: Generated client-facing outputs reflect selected language.",
+      "Confirm it matches specs/frontend-checklist.md",
+      "Run feedback loops: cd apps/web && npm run lint && npm run build"
+    ],
+    "passes": false
+  },
+  {
+    "id": "LOCALI-006",
+    "category": "localization-en-es-checklist",
+    "section": "Localization (EN/ES) Checklist",
+    "subsection": "",
+    "priority": "must",
+    "description": "Missing translation fallback to English.",
+    "steps": [
+      "Verify: Missing translation fallback to English.",
+      "Confirm it matches specs/frontend-checklist.md",
+      "Run feedback loops: cd apps/web && npm run lint && npm run build"
+    ],
+    "passes": false
+  },
+  {
+    "id": "LOCALI-007",
+    "category": "localization-en-es-checklist",
+    "section": "Localization (EN/ES) Checklist",
+    "subsection": "",
+    "priority": "should",
+    "description": "Missing-key logging surfaced in developer diagnostics.",
+    "steps": [
+      "Verify: Missing-key logging surfaced in developer diagnostics.",
+      "Confirm it matches specs/frontend-checklist.md",
+      "Run feedback loops: cd apps/web && npm run lint && npm run build"
+    ],
+    "passes": false
+  },
+  {
+    "id": "LOCALI-008",
+    "category": "localization-en-es-checklist",
+    "section": "Localization (EN/ES) Checklist",
+    "subsection": "",
+    "priority": "must",
+    "description": "Translation completeness checks included in release gate diagnostics.",
+    "steps": [
+      "Verify: Translation completeness checks included in release gate diagnostics.",
+      "Confirm it matches specs/frontend-checklist.md",
+      "Run feedback loops: cd apps/web && npm run lint && npm run build"
+    ],
+    "passes": false
+  },
+  {
+    "id": "LOCALI-009",
+    "category": "localization-en-es-checklist",
+    "section": "Localization (EN/ES) Checklist",
+    "subsection": "",
+    "priority": "must",
+    "description": "Locale-aware numeric/unit formatting while preserving exact engineering values.",
+    "steps": [
+      "Verify: Locale-aware numeric/unit formatting while preserving exact engineering values.",
+      "Confirm it matches specs/frontend-checklist.md",
+      "Run feedback loops: cd apps/web && npm run lint && npm run build"
+    ],
+    "passes": false
+  },
+  {
+    "id": "LOCALI-010",
+    "category": "localization-en-es-checklist",
+    "section": "Localization (EN/ES) Checklist",
+    "subsection": "",
+    "priority": "must",
+    "description": "SKU/internal codes remain language-neutral across locales.",
+    "steps": [
+      "Verify: SKU/internal codes remain language-neutral across locales.",
+      "Confirm it matches specs/frontend-checklist.md",
+      "Run feedback loops: cd apps/web && npm run lint && npm run build"
+    ],
+    "passes": false
+  },
+  {
+    "id": "LOCALI-011",
+    "category": "localization-en-es-checklist",
+    "section": "Localization (EN/ES) Checklist",
+    "subsection": "",
+    "priority": "must",
+    "description": "Store language metadata for generated outputs for auditability.",
+    "steps": [
+      "Verify: Store language metadata for generated outputs for auditability.",
+      "Confirm it matches specs/frontend-checklist.md",
+      "Run feedback loops: cd apps/web && npm run lint && npm run build"
+    ],
+    "passes": false
+  },
+  {
+    "id": "APICON-001",
+    "category": "api-contract-and-state-management-checklist",
+    "section": "API Contract and State Management Checklist",
+    "subsection": "",
+    "priority": "must",
+    "description": "Define typed DTOs for design entities, validation issues, BOM lines, quote revisions, pricing context.",
+    "steps": [
+      "Verify: Define typed DTOs for design entities, validation issues, BOM lines, quote revisions, pricing context.",
+      "Confirm it matches specs/frontend-checklist.md",
+      "Run feedback loops: cd apps/web && npm run lint && npm run build"
+    ],
+    "passes": false
+  },
+  {
+    "id": "APICON-002",
+    "category": "api-contract-and-state-management-checklist",
+    "section": "API Contract and State Management Checklist",
+    "subsection": "",
+    "priority": "must",
+    "description": "Normalize client state by entity IDs to preserve referential traceability.",
+    "steps": [
+      "Verify: Normalize client state by entity IDs to preserve referential traceability.",
+      "Confirm it matches specs/frontend-checklist.md",
+      "Run feedback loops: cd apps/web && npm run lint && npm run build"
+    ],
+    "passes": false
+  },
+  {
+    "id": "APICON-003",
+    "category": "api-contract-and-state-management-checklist",
+    "section": "API Contract and State Management Checklist",
+    "subsection": "",
+    "priority": "must",
+    "description": "Implement optimistic/pessimistic strategy per action type (documented).",
+    "steps": [
+      "Verify: Implement optimistic/pessimistic strategy per action type (documented).",
+      "Confirm it matches specs/frontend-checklist.md",
+      "Run feedback loops: cd apps/web && npm run lint && npm run build"
+    ],
+    "passes": false
+  },
+  {
+    "id": "APICON-004",
+    "category": "api-contract-and-state-management-checklist",
+    "section": "API Contract and State Management Checklist",
+    "subsection": "",
+    "priority": "must",
+    "description": "Handle conflict responses gracefully (stale revision/version mismatch).",
+    "steps": [
+      "Verify: Handle conflict responses gracefully (stale revision/version mismatch).",
+      "Confirm it matches specs/frontend-checklist.md",
+      "Run feedback loops: cd apps/web && npm run lint && npm run build"
+    ],
+    "passes": false
+  },
+  {
+    "id": "APICON-005",
+    "category": "api-contract-and-state-management-checklist",
+    "section": "API Contract and State Management Checklist",
+    "subsection": "",
+    "priority": "must",
+    "description": "Include revision IDs in all mutating requests.",
+    "steps": [
+      "Verify: Include revision IDs in all mutating requests.",
+      "Confirm it matches specs/frontend-checklist.md",
+      "Run feedback loops: cd apps/web && npm run lint && npm run build"
+    ],
+    "passes": false
+  },
+  {
+    "id": "FRONTE-001",
+    "category": "frontend-qa-acceptance-checklist",
+    "section": "Frontend QA Acceptance Checklist",
+    "subsection": "",
+    "priority": "must",
+    "description": "Re-opening same design revision yields same derived BOM content.",
+    "steps": [
+      "Verify: Re-opening same design revision yields same derived BOM content.",
+      "Confirm it matches specs/frontend-checklist.md",
+      "Run feedback loops: cd apps/web && npm run lint && npm run build"
+    ],
+    "passes": false
+  },
+  {
+    "id": "FRONTE-002",
+    "category": "frontend-qa-acceptance-checklist",
+    "section": "Frontend QA Acceptance Checklist",
+    "subsection": "",
+    "priority": "must",
+    "description": "Sent quote revision is read-only and reproducible.",
+    "steps": [
+      "Verify: Sent quote revision is read-only and reproducible.",
+      "Confirm it matches specs/frontend-checklist.md",
+      "Run feedback loops: cd apps/web && npm run lint && npm run build"
+    ],
+    "passes": false
+  },
+  {
+    "id": "FRONTE-003",
+    "category": "frontend-qa-acceptance-checklist",
+    "section": "Frontend QA Acceptance Checklist",
+    "subsection": "",
+    "priority": "must",
+    "description": "Design update cannot mutate existing quote revision silently.",
+    "steps": [
+      "Verify: Design update cannot mutate existing quote revision silently.",
+      "Confirm it matches specs/frontend-checklist.md",
+      "Run feedback loops: cd apps/web && npm run lint && npm run build"
+    ],
+    "passes": false
+  },
+  {
+    "id": "FRONTE-004",
+    "category": "frontend-qa-acceptance-checklist",
+    "section": "Frontend QA Acceptance Checklist",
+    "subsection": "",
+    "priority": "must",
+    "description": "Blocking design errors are visible in quote workflow.",
+    "steps": [
+      "Verify: Blocking design errors are visible in quote workflow.",
+      "Confirm it matches specs/frontend-checklist.md",
+      "Run feedback loops: cd apps/web && npm run lint && npm run build"
+    ],
+    "passes": false
+  },
+  {
+    "id": "FRONTE-005",
+    "category": "frontend-qa-acceptance-checklist",
+    "section": "Frontend QA Acceptance Checklist",
+    "subsection": "",
+    "priority": "must",
+    "description": "Missing price blocks send and identifies affected lines.",
+    "steps": [
+      "Verify: Missing price blocks send and identifies affected lines.",
+      "Confirm it matches specs/frontend-checklist.md",
+      "Run feedback loops: cd apps/web && npm run lint && npm run build"
+    ],
+    "passes": false
+  },
+  {
+    "id": "FRONTE-006",
+    "category": "frontend-qa-acceptance-checklist",
+    "section": "Frontend QA Acceptance Checklist",
+    "subsection": "",
+    "priority": "must",
+    "description": "Error messages include actionable source context.",
+    "steps": [
+      "Verify: Error messages include actionable source context.",
+      "Confirm it matches specs/frontend-checklist.md",
+      "Run feedback loops: cd apps/web && npm run lint && npm run build"
+    ],
+    "passes": false
+  },
+  {
+    "id": "FRONTE-007",
+    "category": "frontend-qa-acceptance-checklist",
+    "section": "Frontend QA Acceptance Checklist",
+    "subsection": "",
+    "priority": "must",
+    "description": "Quantity/price/discount overrides require and display attribution fields.",
+    "steps": [
+      "Verify: Quantity/price/discount overrides require and display attribution fields.",
+      "Confirm it matches specs/frontend-checklist.md",
+      "Run feedback loops: cd apps/web && npm run lint && npm run build"
+    ],
+    "passes": false
+  },
+  {
+    "id": "FRONTE-008",
+    "category": "frontend-qa-acceptance-checklist",
+    "section": "Frontend QA Acceptance Checklist",
+    "subsection": "",
+    "priority": "must",
+    "description": "Audit trails are visible on revision detail screens.",
+    "steps": [
+      "Verify: Audit trails are visible on revision detail screens.",
+      "Confirm it matches specs/frontend-checklist.md",
+      "Run feedback loops: cd apps/web && npm run lint && npm run build"
+    ],
+    "passes": false
+  },
+  {
+    "id": "FRONTE-009",
+    "category": "frontend-qa-acceptance-checklist",
+    "section": "Frontend QA Acceptance Checklist",
+    "subsection": "",
+    "priority": "must",
+    "description": "Core EN/ES workflows fully translated.",
+    "steps": [
+      "Verify: Core EN/ES workflows fully translated.",
+      "Confirm it matches specs/frontend-checklist.md",
+      "Run feedback loops: cd apps/web && npm run lint && npm run build"
+    ],
+    "passes": false
+  },
+  {
+    "id": "FRONTE-010",
+    "category": "frontend-qa-acceptance-checklist",
+    "section": "Frontend QA Acceptance Checklist",
+    "subsection": "",
+    "priority": "must",
+    "description": "Generated output language matches selected context.",
+    "steps": [
+      "Verify: Generated output language matches selected context.",
+      "Confirm it matches specs/frontend-checklist.md",
+      "Run feedback loops: cd apps/web && npm run lint && npm run build"
+    ],
+    "passes": false
+  },
+  {
+    "id": "RELEAS-001",
+    "category": "release-gate-frontend",
+    "section": "Release Gate (Frontend)",
+    "subsection": "",
+    "priority": "must",
+    "description": "No blocking TODOs remain in sections 1\u201313 for in-scope features.",
+    "steps": [
+      "Verify: No blocking TODOs remain in sections 1\u201313 for in-scope features.",
+      "Confirm it matches specs/frontend-checklist.md",
+      "Run feedback loops: cd apps/web && npm run lint && npm run build"
+    ],
+    "passes": false
+  },
+  {
+    "id": "RELEAS-002",
+    "category": "release-gate-frontend",
+    "section": "Release Gate (Frontend)",
+    "subsection": "",
+    "priority": "must",
+    "description": "Draft-to-Sent quote flow passes with valid and invalid scenarios.",
+    "steps": [
+      "Verify: Draft-to-Sent quote flow passes with valid and invalid scenarios.",
+      "Confirm it matches specs/frontend-checklist.md",
+      "Run feedback loops: cd apps/web && npm run lint && npm run build"
+    ],
+    "passes": false
+  },
+  {
+    "id": "RELEAS-003",
+    "category": "release-gate-frontend",
+    "section": "Release Gate (Frontend)",
+    "subsection": "",
+    "priority": "must",
+    "description": "Design revision and quote revision immutability verified in UI.",
+    "steps": [
+      "Verify: Design revision and quote revision immutability verified in UI.",
+      "Confirm it matches specs/frontend-checklist.md",
+      "Run feedback loops: cd apps/web && npm run lint && npm run build"
+    ],
+    "passes": false
+  },
+  {
+    "id": "RELEAS-004",
+    "category": "release-gate-frontend",
+    "section": "Release Gate (Frontend)",
+    "subsection": "",
+    "priority": "must",
+    "description": "BOM traceability drilldown works both directions.",
+    "steps": [
+      "Verify: BOM traceability drilldown works both directions.",
+      "Confirm it matches specs/frontend-checklist.md",
+      "Run feedback loops: cd apps/web && npm run lint && npm run build"
+    ],
+    "passes": false
+  },
+  {
+    "id": "RELEAS-005",
+    "category": "release-gate-frontend",
+    "section": "Release Gate (Frontend)",
+    "subsection": "",
+    "priority": "must",
+    "description": "EN/ES smoke test completed.",
+    "steps": [
+      "Verify: EN/ES smoke test completed.",
+      "Confirm it matches specs/frontend-checklist.md",
+      "Run feedback loops: cd apps/web && npm run lint && npm run build"
+    ],
+    "passes": false
+  },
+  {
+    "id": "RELEAS-006",
+    "category": "release-gate-frontend",
+    "section": "Release Gate (Frontend)",
+    "subsection": "",
+    "priority": "must",
+    "description": "Export/PDF flows validated against revision context.",
+    "steps": [
+      "Verify: Export/PDF flows validated against revision context.",
+      "Confirm it matches specs/frontend-checklist.md",
+      "Run feedback loops: cd apps/web && npm run lint && npm run build"
+    ],
+    "passes": false
+  }
+]
