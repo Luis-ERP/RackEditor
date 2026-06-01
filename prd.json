@@ -139,7 +139,7 @@
       "Falls back to old cadQuoteTransfer key on first load so existing data is not lost",
       "No other internals of QuoterPage are changed"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "three-d-placeholder",
