@@ -1,5 +1,5 @@
-import QuoterPage from '@/src/apps/quoter/components/QuoterPage';
+import { redirect } from 'next/navigation';
 
 export default function QuoterRoutePage() {
-  return <QuoterPage />;
+  redirect('/projects');
 }
