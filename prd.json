@@ -1,0 +1,223 @@
+[
+  {
+    "id": "project-registry-logic",
+    "category": "infrastructure",
+    "description": "Create projectRegistry.js — pure localStorage CRUD for the projects list",
+    "priority": 1,
+    "steps": [
+      "File exists at apps/web/src/core/project/projectRegistry.js",
+      "Exports listProjects() returning an array of { id, name, createdAt, updatedAt } objects from localStorage key 'rack-editor:projects-registry'",
+      "Exports createProject(name?) that generates a crypto.randomUUID() id, writes to registry, and returns the new project",
+      "Exports updateProject(id, fields) that merges fields into the existing entry and updates updatedAt",
+      "Exports deleteProject(id) that removes the registry entry (does not touch the CAD cache key)",
+      "No React imports — this is a pure utility module"
+    ],
+    "passes": false
+  },
+  {
+    "id": "use-project-registry-hook",
+    "category": "infrastructure",
+    "description": "Create useProjectRegistry.js — React hook that subscribes to the projects list with cross-tab sync",
+    "priority": 2,
+    "steps": [
+      "File exists at apps/web/src/core/project/useProjectRegistry.js",
+      "Hook returns { projects, createProject, updateProject, deleteProject }",
+      "Uses useState and a 'storage' event listener so the list re-renders when another tab creates or deletes a project",
+      "Calls listProjects() from projectRegistry.js on mount and on storage events",
+      "No direct localStorage access — delegates to projectRegistry.js functions"
+    ],
+    "passes": false
+  },
+  {
+    "id": "projects-list-page-component",
+    "category": "feature",
+    "description": "Create ProjectsListPage.js — the /projects UI with project cards, new project button, and empty state",
+    "priority": 3,
+    "steps": [
+      "File exists at apps/web/src/apps/projects/components/ProjectsListPage.js",
+      "Displays a grid or list of project cards using data from useProjectRegistry",
+      "Each card shows: project name, creation date, and an 'Open' button that navigates to /project/[id]/design",
+      "Each card has a Delete button that calls deleteProject(id) after a confirmation (window.confirm or similar)",
+      "A 'New Project' button calls createProject() and immediately navigates to /project/[id]/design",
+      "When no projects exist, shows an empty state with a prominent 'Create your first project' CTA",
+      "Matches the visual style of the existing workspace (uses existing CSS variables and design tokens)"
+    ],
+    "passes": false
+  },
+  {
+    "id": "projects-route",
+    "category": "routing",
+    "description": "Create app/(workspace)/projects/page.js — the /projects list route",
+    "priority": 4,
+    "steps": [
+      "File exists at apps/web/app/(workspace)/projects/page.js",
+      "Renders <ProjectsListPage /> from apps/projects/components/ProjectsListPage.js",
+      "Navigating to /projects in the browser shows the projects list page",
+      "The page is wrapped by AppWorkspaceLayout (inherited from the (workspace) group layout)"
+    ],
+    "passes": false
+  },
+  {
+    "id": "project-workspace-tabs",
+    "category": "infrastructure",
+    "description": "Create ProjectWorkspaceTabs.js — horizontal tab strip with Design, Quote, and 3D tabs",
+    "priority": 5,
+    "steps": [
+      "File exists at apps/web/src/shared/components/common/ProjectWorkspaceTabs.js",
+      "Accepts props: { projectId, activePath }",
+      "Renders three tab links: Design → /project/[id]/design, Quote → /project/[id]/quote, 3D → /project/[id]/3d",
+      "The active tab is visually distinguished (underline accent or similar) based on activePath",
+      "3D tab is styled as 'coming soon' (e.g. dimmed, with a 'Soon' badge) but still navigable",
+      "Uses Next.js <Link> for navigation — no full page reloads"
+    ],
+    "passes": false
+  },
+  {
+    "id": "project-workspace-layout",
+    "category": "routing",
+    "description": "Create app/(workspace)/project/[id]/layout.js — shared layout that renders the tab bar above project workspace pages",
+    "priority": 6,
+    "steps": [
+      "File exists at apps/web/app/(workspace)/project/[id]/layout.js",
+      "Reads the project id from params",
+      "Reads the project name from useProjectRegistry (falls back to 'Project' if not found)",
+      "Renders <ProjectWorkspaceTabs projectId={id} activePath={pathname} /> above {children}",
+      "Sits inside the (workspace) group layout so AppRailNav is still rendered on the left",
+      "Children fill the remaining vertical height"
+    ],
+    "passes": false
+  },
+  {
+    "id": "design-tab-route",
+    "category": "routing",
+    "description": "Create app/(workspace)/project/[id]/design/page.js — the Design tab route that renders CadWorkspacePage",
+    "priority": 7,
+    "steps": [
+      "File exists at apps/web/app/(workspace)/project/[id]/design/page.js",
+      "Renders <CadWorkspacePage projectId={params.id} />",
+      "Navigating to /project/abc123/design loads the CAD editor for project 'abc123'",
+      "The tab bar is visible above the CAD canvas (from the layout)"
+    ],
+    "passes": false
+  },
+  {
+    "id": "cad-workspace-project-id",
+    "category": "feature",
+    "description": "Update CadWorkspacePage.js to accept a projectId prop and use it as the storage scope key instead of hardcoded 'main'",
+    "priority": 8,
+    "steps": [
+      "CadWorkspacePage accepts a projectId prop",
+      "All calls to loadCachedProjectDocument and cacheProjectDocument use projectId instead of the hardcoded string 'main'",
+      "After each auto-save, calls updateProject(projectId, { updatedAt: new Date().toISOString() }) to touch the registry entry",
+      "Existing behavior is preserved when projectId is 'main' (backward compat)",
+      "No other internals of CadWorkspacePage are changed"
+    ],
+    "passes": false
+  },
+  {
+    "id": "quote-tab-route",
+    "category": "routing",
+    "description": "Create app/(workspace)/project/[id]/quote/page.js — the Quote tab route that renders QuoterPage",
+    "priority": 9,
+    "steps": [
+      "File exists at apps/web/app/(workspace)/project/[id]/quote/page.js",
+      "Renders <QuoterPage projectId={params.id} />",
+      "Navigating to /project/abc123/quote loads the Quoter for project 'abc123'",
+      "The tab bar is visible above the quoter (from the layout)"
+    ],
+    "passes": false
+  },
+  {
+    "id": "quoter-page-project-id",
+    "category": "feature",
+    "description": "Update QuoterPage.js to accept a projectId prop and use project-scoped quote storage with backward compat for cadQuoteTransfer",
+    "priority": 10,
+    "steps": [
+      "QuoterPage accepts a projectId prop",
+      "Quote persistence key is 'rack-editor:project:{projectId}:quote' when projectId is provided",
+      "On first mount for a project, checks for a pending cadQuoteTransfer payload in sessionStorage, consumes and migrates it, then clears the key",
+      "Falls back to old cadQuoteTransfer key on first load so existing data is not lost",
+      "No other internals of QuoterPage are changed"
+    ],
+    "passes": false
+  },
+  {
+    "id": "three-d-placeholder",
+    "category": "feature",
+    "description": "Create ThreeDPlaceholderPage.js — a centered 'Coming Soon' card for the 3D tab",
+    "priority": 11,
+    "steps": [
+      "File exists at apps/web/src/apps/three-d/components/ThreeDPlaceholderPage.js",
+      "Renders a centered card with a 3D/box icon (e.g. Lucide Box icon)",
+      "Displays the heading '3D Renderer — Coming Soon'",
+      "Displays a short description: 'A three-dimensional view of your rack layout will appear here.'",
+      "Matches the visual style of the workspace"
+    ],
+    "passes": false
+  },
+  {
+    "id": "three-d-tab-route",
+    "category": "routing",
+    "description": "Create app/(workspace)/project/[id]/3d/page.js — the 3D tab route",
+    "priority": 12,
+    "steps": [
+      "File exists at apps/web/app/(workspace)/project/[id]/3d/page.js",
+      "Renders <ThreeDPlaceholderPage />",
+      "Navigating to /project/abc123/3d shows the Coming Soon placeholder",
+      "The tab bar is visible above the placeholder (from the layout)"
+    ],
+    "passes": false
+  },
+  {
+    "id": "rail-nav-projects",
+    "category": "feature",
+    "description": "Update AppRailNav.js to replace the CAD and Quoter nav items with a single Projects item",
+    "priority": 13,
+    "steps": [
+      "AppRailNav no longer shows separate CAD and Quoter rail icons",
+      "A single 'Projects' nav item with a folder icon links to /projects",
+      "The Projects item is highlighted (active state) when pathname starts with '/project' or '/projects'",
+      "All other nav items remain unchanged"
+    ],
+    "passes": false
+  },
+  {
+    "id": "legacy-cad-redirect",
+    "category": "routing",
+    "description": "Update app/(workspace)/page.js to redirect to /projects instead of rendering the CAD editor directly",
+    "priority": 14,
+    "steps": [
+      "Navigating to the workspace root (/) redirects to /projects",
+      "Uses Next.js redirect() or a client-side router.replace('/projects')",
+      "Existing direct links to /editor still work (redirected to /projects)",
+      "The CAD editor is now only accessible via /project/[id]/design"
+    ],
+    "passes": false
+  },
+  {
+    "id": "legacy-quoter-redirect",
+    "category": "routing",
+    "description": "Update app/(workspace)/quoter/page.js to redirect to /projects",
+    "priority": 15,
+    "steps": [
+      "Navigating to /quoter redirects to /projects",
+      "Uses Next.js redirect() or a client-side router.replace('/projects')",
+      "app/(workspace)/quoter/[id]/page.js (if it exists) is kept with a @deprecated comment",
+      "The Quoter is now only accessible via /project/[id]/quote"
+    ],
+    "passes": false
+  },
+  {
+    "id": "legacy-data-migration",
+    "category": "feature",
+    "description": "Auto-migrate existing 'main' project data to the registry on first visit to /projects",
+    "priority": 16,
+    "steps": [
+      "On load of the /projects page, if no projects exist in the registry but 'rack-editor:project:main' is present in localStorage, a project named 'My First Project' with id 'main' is automatically created in the registry",
+      "After migration, the project appears in the list and opens correctly via /project/main/design",
+      "Migration runs only once — subsequent visits do not re-migrate",
+      "Users with no prior data see an empty state with the 'Create your first project' CTA"
+    ],
+    "passes": false
+  }
+]

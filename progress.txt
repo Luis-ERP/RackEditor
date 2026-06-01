@@ -1,0 +1,3 @@
+# Ralph Progress Log
+# Each session appends one entry. Delete this file when the sprint is complete.
+# Format: [date] task | decisions | files changed | notes
