@@ -1,8 +1,10 @@
 'use client';
 
+import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { FolderOpen, Plus, Trash2 } from 'lucide-react';
 import useProjectRegistry from '@/src/core/project/useProjectRegistry';
+import { migrateLegacyMainProject } from '@/src/core/project/projectRegistry';
 
 function fmtDate(iso) {
   if (!iso) return '';
@@ -185,6 +187,17 @@ function EmptyState({ onCreate }) {
 export default function ProjectsListPage() {
   const router = useRouter();
   const { projects, createProject, deleteProject } = useProjectRegistry();
+
+  useEffect(() => {
+    if (migrateLegacyMainProject()) {
+      // Same-tab writes don't fire the native 'storage' event, so dispatch
+      // a synthetic one to trigger useProjectRegistry's refresh.
+      window.dispatchEvent(new StorageEvent('storage', {
+        key: 'rack-editor:projects-registry',
+        storageArea: window.localStorage,
+      }));
+    }
+  }, []);
 
   const handleNew = () => {
     const project = createProject('New Project');
