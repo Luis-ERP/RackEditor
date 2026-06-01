@@ -98,7 +98,7 @@
       "Navigating to /project/abc123/design loads the CAD editor for project 'abc123'",
       "The tab bar is visible above the CAD canvas (from the layout)"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "cad-workspace-project-id",
