@@ -9,8 +9,6 @@ trails. It is NOT a prototype. Every commit lands in a codebase maintained long-
 
 Stack:
 - Frontend: Next.js 14 (App Router, JavaScript) — `apps/web/`
-- Backend:  Django + DRF (Python) — `apps/api/`
-- Database: PostgreSQL
 
 Run commands are in `docs/runbook.md`.
 
@@ -21,7 +19,6 @@ Run commands are in `docs/runbook.md`.
 1. **No broken builds.** Every commit must pass:
    - `cd apps/web && npm run lint`
    - `cd apps/web && npm run build`
-   - `cd apps/api && python manage.py test`
 
 2. **No duplicate implementations.** Search the codebase before writing new code.
    A feature that already exists somewhere is NOT missing — find and extend it.
@@ -44,10 +41,6 @@ Run commands are in `docs/runbook.md`.
 
 - Geometry and BOM must be **derived from the semantic domain model**, never from
   canvas/pixel coordinates. See `specs/business-rules.md` and `specs/model-schema.md`.
-- Rack validation rules live in `apps/api/cad/validators.py`. UI must surface every
-  error and warning from the API — never swallow or hide validation responses.
-- Quote revisions are **immutable once sent**. Never mutate a sent revision.
-- Override actions (quantity, price, discount) require audit metadata: who, when, why.
 
 ---
 

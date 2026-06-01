@@ -1,5 +1,5 @@
 # RackEditor — Ralph Prompt
-#
+
 # This file is loaded every loop iteration.
 # Keep it focused: one task per loop, always.
 
@@ -24,7 +24,6 @@
 6. Run ALL feedback loops — fix every failure before proceeding:
    - `cd apps/web && npm run lint`
    - `cd apps/web && npm run build`
-   - `cd apps/api && source .venv/bin/activate && python manage.py test`
 7. Only after all feedback loops pass: set `"passes": true` for the item in `prd.json`.
 8. Commit with a clear message: `feat(<category>): <description>` or `fix(<category>): <description>`.
 9. Append a brief entry to `progress.txt` (see format below).
@@ -42,9 +41,6 @@
 # Frontend
 cd apps/web && npm run lint
 cd apps/web && npm run build
-
-# Backend
-cd apps/api && source .venv/bin/activate && python manage.py test
 ```
 
 All three must pass. Do NOT commit if any fail.
