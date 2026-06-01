@@ -85,7 +85,7 @@
       "Sits inside the (workspace) group layout so AppRailNav is still rendered on the left",
       "Children fill the remaining vertical height"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "design-tab-route",
