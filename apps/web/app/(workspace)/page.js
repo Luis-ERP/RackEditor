@@ -1,5 +1,5 @@
-import CadWorkspacePage from '@/src/apps/cad/CadWorkspacePage';
+import { redirect } from 'next/navigation';
 
 export default function HomePage() {
-  return <CadWorkspacePage />;
+  redirect('/projects');
 }
