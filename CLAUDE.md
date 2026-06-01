@@ -4,88 +4,100 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Commands
 
-All commands run from repo root and proxy into `apps/web/`:
+All commands run from the repo root (monorepo workspace wrapping `apps/web`):
 
 ```bash
 npm run dev      # start Next.js dev server
 npm run build    # production build
-npm run lint     # ESLint
+npm run lint     # ESLint via Next.js
 ```
 
-No test runner is configured at the workspace level. Tests live in `__tests__/` subdirs and use Node's built-in test runner or Jest (check individual test files before adding new ones). Run a single test file directly:
+To run against a backend, set `NEXT_PUBLIC_API_BASE_URL` in `apps/web/.env.local`; omitting it defaults to same-origin (Next.js API routes).
 
-```bash
-node apps/web/src/apps/cad/services/layout/__tests__/rackDomain.test.js
-```
+There is no test runner configured.
 
-## Architecture
+## Architecture Overview
 
-**Monorepo layout**: single workspace (`apps/web/`) using Next.js 14 App Router. No TypeScript — pure JS throughout.
+Single Next.js 14 App Router app inside `apps/web/`. Path alias `@/*` maps to `apps/web/*`.
 
-**Internal path alias**: `@/` resolves to `apps/web/` (configured in Next.js).
+### Routing (`apps/web/app/`)
 
-### Layer structure inside `apps/web/src/`
+- `(workspace)/` — all main tools, wrapped by `AppWorkspaceLayout` which renders `AppRailNav` (icon sidebar) + content area
+- `auth/login/` — login page
+- `docs/` — documentation viewer (separate layout, no sidebar)
+
+### Source layout (`apps/web/src/`)
 
 ```
 src/
-  core/           # cross-cutting singletons
-    api/          # httpClient (axios + JWT interceptors), endpoints, authApi
-    auth/         # tokenStorage (localStorage-based JWT)
-    rack/         # CSV catalog data for frames/beams (imported as raw strings)
-  shared/         # app-wide UI primitives
-    components/   # AppWorkspaceLayout (shell), AppRailNav, common utils
-    theme/        # AppThemeProvider — light/dark via CSS vars, stored in localStorage
-  apps/           # feature modules; each follows components/hooks/scripts/services/styles
-    cad/          # CAD canvas editor (main feature at `/`)
-    quoter/       # quote builder at /quoter
-    catalog/      # product catalog browser
-    crm/          # client management
-    chatbot/      # AI assistant
-    hubspot/      # HubSpot integration
-    quick-cad-bom # simplified BOM view
+  apps/          # one directory per feature app (see below)
+  core/          # shared infrastructure (API client, auth, catalog CSV data)
+  shared/        # cross-app UI components, theme provider, navigation
 ```
+
+### Feature apps (`src/apps/`)
+
+| Directory | Purpose |
+|---|---|
+| `cad/` | Main CAD canvas — place/edit rack modules, walls, columns, notes |
+| `quoter/` | Quote builder — syncs BOM from CAD, manages line items, exports PDF |
+| `catalog/` | Product catalog browser |
+| `tutorials/` | Interactive step-by-step labs overlaid on the CAD canvas |
+| `quick-cad-bom/` | Mobile-friendly one-shot CAD+BOM tool |
+| `chatbot/` | AI assistant |
+| `crm/` | Client management |
+| `hubspot/` | HubSpot integration |
+| `docs/` | Documentation viewer component |
+
+Each app follows the same internal layout: `components/`, `hooks/`, `services/`, `styles/`, `scripts/`.
 
 ### State management pattern
 
-Both CAD and Quoter use the same **framework-agnostic store + React hook** pattern:
+No Redux or Zustand. All stores are hand-rolled pub/sub singletons:
 
-1. **Store factory** (`createLayoutStore`, `createQuoteStore`) — plain JS class-like objects with `subscribe/notify`. Zero React dependency.
-2. **React hook** (`useLayoutStore`, `useQuoteStore`) — wraps the store with `useSyncExternalStore`. One store instance per component tree via `useRef`.
+- Each store is created with a `create*Store()` factory that returns a plain object with `subscribe(listener)` → unsubscribe, plus domain methods.
+- React components connect via `useSyncExternalStore`-based hooks (e.g. `useLayoutStore`, `useWallStore`).
+- Module-level singleton instances live in `src/apps/cad/services/cadStores.js`. They persist across Next.js client-side navigations (CAD ↔ Quoter share the same store instances). SSR gets a fresh instance.
 
-Avoid importing stores directly into components; always go through the hook.
+### CAD data model — two layers
 
-### CAD editor internals (`src/apps/cad/`)
+**Layout layer** (`src/apps/cad/services/layout/`): positions every entity on the canvas.
+- `layoutStore` — Map of entity id → entity; handles CRUD, selection, transform, lock, visibility
+- Entity types: `RACK_MODULE`, `RACK_LINE`, `WALL`, `COLUMN`, `TEXT_NOTE`
+- Coordinate system: 1 world unit = 1 metre (`coordinateSystem.js`); rendered on an HTML Canvas
 
-- **`services/layout/layoutStore.js`** — entity map (racks, walls, notes, columns). CRUD + selection + snapshot/undo.
-- **`services/rack/`** — rack domain: `catalog.js` (defaults), `catalogRegistry.js` (resolves specs from CSV), `rackFactory.js` (creates rack entities), `bomService.js` (BOM extraction), `pricingService.js`.
-- **`services/export/`** — PNG/JPEG (`imageExporter`), PDF (`pdfExporter`), SVG (`svgExporter`), DXF (`dxfExporter`), combined project doc (`projectDocumentExporter`).
-- **`components/cadCanvas/semantics.js`** — serializes the live store into the CAD project JSON format (`documentType: "rack-editor-project"`). This JSON is the interchange format between CAD and Quoter.
+**Rack domain layer** (`src/apps/cad/services/rack/`): business data for rack configurations.
+- `rackDomainSingleton` — module-level `Map<domainId, rackModule>` written by `CADCanvas`, read by `EditorPanel` and `projectStore`
+- Domain models: `frame`, `beam`, `bay`, `beamLevel`, `rackModule`, `rackLine`, `accessory`
+- `rackFactory.js` — builds rack objects from configuration parameters
+- `validation.js` — validates rack lines against all business rules, returns `ValidationState`
+- `bomService.js` — deterministically derives BOM from a rack line (frames, beams, safety pins, anchors, spacers)
+- `catalogRegistry.js` / `catalog.js` — resolves SKUs from CSV data in `src/core/rack/catalog_lists/`
 
-### Quoter internals (`src/apps/quoter/`)
+### Project persistence
 
-- **`services/schemas/`** — pure functional transformers for quote data (immutable updates).
-- **`services/quoteStore.js`** — wraps schemas with the subscribe/notify store pattern. Manages line items, tax rates, discounts, fees, versioning (50-step history), and CAD-BOM sync.
-- **`services/cadImportService.js`** — parses CAD project JSON → BOM snapshot. Uses `CAD_IMPORT_SESSION_KEY` (`quoter:pendingCadImport`) in `sessionStorage` to hand off data from the CAD page to the quoter page.
-- **`services/pdfQuoteGenerator.js`** — jsPDF-based quote PDF export.
+`src/apps/cad/services/project/`:
+- `projectStorage.js` — pure localStorage I/O (schema version 2.0.0); keys prefixed `rack-editor:project:`
+- `projectStore.js` — module-level singleton; subscribes to all CAD+Quote stores, debounces auto-save (500 ms), manages project CRUD
+- `projectDocumentExporter.js` — serialize/restore full project state (layout + rack domain + canvas settings + quote) to/from JSON
 
-### CSV catalog
+### CAD→Quoter bridge
 
-`src/core/rack/catalog_lists/` contains `frames.csv` and `beams.csv`. Webpack is configured (`next.config.mjs`) to import `.csv` files as raw strings. `catalogData.js` parses them at module load time.
+`src/apps/quoter/services/cadImportService.js` reads a project JSON, resolves catalog SKUs, and produces a BOM snapshot compatible with `quoteStore.withSyncedCadBom`. The pending import is passed via `sessionStorage` key `quoter:pendingCadImport`.
 
-### Auth
+### Export formats
 
-`/api/auth/login` and `/api/auth/me` routes exist but return `501 NOT_IMPLEMENTED` — auth is not yet wired to a real backend. JWT is stored in `localStorage` and attached by the axios interceptor.
+`src/apps/cad/services/export/`:
+- `cadDrawingRenderer.js` — renders the canvas to an off-screen `<canvas>` Blob (used by all raster/vector exporters)
+- `imageExporter.js` — PNG/JPEG download
+- `pdfExporter.js` — PDF via jsPDF
+- `svgExporter.js` — SVG
+- `dxfExporter.js` — DXF
 
-### Routing
+### Authentication
 
-Next.js App Router pages at `app/`:
+JWT stored in localStorage (`auth.accessToken`). `src/core/api/httpClient.js` (axios) injects the Bearer token on every request and clears it on 401.
 
-| Route | Feature |
-|-------|---------|
-| `/` | CAD editor |
-| `/quoter` | Quote builder |
-| `/catalog` | Product catalog |
-| `/clients` | CRM |
-| `/chatbot` | AI assistant |
-| `/hubspot` | HubSpot |
-| `/quick-cad-bom` | Quick BOM view |
+### Files with " 2" suffix
+
+Several files like `cadStores 2.js`, `noteStore 2.js` are stale duplicates left in the working tree. The canonical sources are the ones **without** the ` 2` suffix. Do not edit the ` 2` variants.
