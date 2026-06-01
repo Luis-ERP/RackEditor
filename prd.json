@@ -125,7 +125,7 @@
       "Navigating to /project/abc123/quote loads the Quoter for project 'abc123'",
       "The tab bar is visible above the quoter (from the layout)"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "quoter-page-project-id",
