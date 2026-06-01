@@ -205,7 +205,7 @@
       "app/(workspace)/quoter/[id]/page.js (if it exists) is kept with a @deprecated comment",
       "The Quoter is now only accessible via /project/[id]/quote"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "legacy-data-migration",
@@ -218,6 +218,6 @@
       "Migration runs only once — subsequent visits do not re-migrate",
       "Users with no prior data see an empty state with the 'Create your first project' CTA"
     ],
-    "passes": false
+    "passes": true
   }
 ]
