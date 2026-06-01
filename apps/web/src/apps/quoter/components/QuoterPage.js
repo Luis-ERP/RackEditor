@@ -7,10 +7,12 @@ import { DISCOUNT_KIND, ENTRY_TYPE, roundCurrency } from '../services/schemas/co
 import { QUOTE_STATUS } from '../services/quoteStore.js';
 import {
   importCadProjectJson,
+  deriveBomFromCadProject,
   buildCatalogResolver,
   readPendingCadImportFromSession,
   clearPendingCadImportFromSession,
 } from '../services/cadImportService.js';
+import { loadCachedProjectDocument } from '@/src/apps/cad/services/export/projectDocumentExporter';
 import { downloadQuotePdf } from '../services/pdfQuoteGenerator.js';
 import css from '../styles/quoter.module.css';
 
@@ -455,6 +457,22 @@ export default function QuoterPage({ projectId }) {
 
     return unsub;
   }, [projectId, store, applyCadImportText]);
+
+  // ── Auto-BOM sync from saved CAD project ─────────────────────────────────
+
+  useEffect(() => {
+    if (typeof window === 'undefined' || !projectId) return;
+
+    try {
+      const doc = loadCachedProjectDocument(projectId);
+      if (!doc) return;
+      const bom = deriveBomFromCadProject(doc);
+      store.syncFromBom(bom, {
+        resolveCatalog: buildCatalogResolver(bom.items),
+        projectFile: projectId,
+      });
+    } catch { /* silent — quoter shows whatever BOM was already in store */ }
+  }, [projectId, store]);
 
   // ── CAD import ───────────────────────────────────────────────────────────
 
