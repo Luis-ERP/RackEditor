@@ -8,6 +8,8 @@ import { QUOTE_STATUS } from '../services/quoteStore.js';
 import {
   importCadProjectJson,
   buildCatalogResolver,
+  readPendingCadImportFromSession,
+  clearPendingCadImportFromSession,
 } from '../services/cadImportService.js';
 import { downloadQuotePdf } from '../services/pdfQuoteGenerator.js';
 import css from '../styles/quoter.module.css';
@@ -332,7 +334,7 @@ function LineItemRow({ item, onUpdate, onRemove }) {
 
 // ─── Main Page ───────────────────────────────────────────────────────────────
 
-export default function QuoterPage() {
+export default function QuoterPage({ projectId }) {
   const { store, version } = useQuoteStore();
   const [addModalOpen, setAddModalOpen] = useState(false);
   const [compareVersions, setCompareVersions] = useState(null); // { a, b }
@@ -419,6 +421,40 @@ export default function QuoterPage() {
     });
     return true;
   }, [store]);
+
+  // ── Project-scoped quote persistence ─────────────────────────────────────
+
+  useEffect(() => {
+    if (typeof window === 'undefined' || !projectId) return;
+
+    const QUOTE_KEY = `rack-editor:project:${projectId}:quote`;
+
+    // Load persisted quote or fall back to a pending CAD import from sessionStorage
+    let loaded = false;
+    try {
+      const saved = localStorage.getItem(QUOTE_KEY);
+      if (saved) {
+        store.loadQuote(JSON.parse(saved));
+        loaded = true;
+      }
+    } catch { /* corrupt data — start fresh */ }
+
+    if (!loaded) {
+      const pending = readPendingCadImportFromSession(sessionStorage);
+      if (pending) {
+        applyCadImportText(pending.raw, pending.source);
+        clearPendingCadImportFromSession(sessionStorage);
+      }
+    }
+
+    const unsub = store.subscribe(() => {
+      try {
+        localStorage.setItem(QUOTE_KEY, JSON.stringify(store.snapshot()));
+      } catch { /* storage quota exceeded */ }
+    });
+
+    return unsub;
+  }, [projectId, store, applyCadImportText]);
 
   // ── CAD import ───────────────────────────────────────────────────────────
 
