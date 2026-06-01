@@ -179,7 +179,7 @@
       "The Projects item is highlighted (active state) when pathname starts with '/project' or '/projects'",
       "All other nav items remain unchanged"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "legacy-cad-redirect",
