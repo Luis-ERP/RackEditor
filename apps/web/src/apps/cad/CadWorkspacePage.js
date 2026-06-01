@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { useRouter } from 'next/navigation';
 import EditorPanel from './components/EditorPanel';
 import CADCanvas from './components/CADCanvas';
 import useLayoutStore from './hooks/useLayoutStore';
@@ -24,14 +23,23 @@ import {
   setActiveProjectId,
   PROJECT_SCHEMA_VERSION,
 } from './services/project/projectStorage';
-import { updateProject as touchRegistryProject } from '@/src/core/project/projectRegistry';
+import { updateProject as touchRegistryProject, listProjects } from '@/src/core/project/projectRegistry';
 import { downloadDrawingImage } from './services/export/imageExporter';
 import { downloadDrawingPDF } from './services/export/pdfExporter';
 import { downloadDrawingSVG } from './services/export/svgExporter';
 import { downloadDXF } from './services/export/dxfExporter';
 
 export default function CadWorkspacePage({ projectId } = {}) {
-  const router = useRouter();
+  const [projectDisplayName, setProjectDisplayName] = useState(() => {
+    if (typeof window === 'undefined') return '';
+    return listProjects().find((p) => p.id === projectId)?.name ?? '';
+  });
+
+  const handleRenameProject = useCallback((name) => {
+    touchRegistryProject(projectId, { name });
+    setProjectDisplayName(name);
+  }, [projectId]);
+
   const [drawingMode, setDrawingMode] = useState(() => getCanvasState().drawingMode);
   const [rackOrientation, setRackOrientation] = useState(() => getCanvasState().rackOrientation);
   const [wallMode, setWallMode] = useState(() => getCanvasState().wallMode);
@@ -230,12 +238,6 @@ export default function CadWorkspacePage({ projectId } = {}) {
     input.click();
   }, []);
 
-  // ── Send to Quoter ────────────────────────────────────────────────────────
-
-  const handleSendToQuoter = useCallback(() => {
-    router.push('/project/' + projectId + '/quote');
-  }, [projectId, router]);
-
   // ── Drawing export handlers ───────────────────────────────────────────────
 
   const handleExportPNG = useCallback(async () => {
@@ -283,9 +285,11 @@ export default function CadWorkspacePage({ projectId } = {}) {
         noteStoreVersion={noteVer}
         rackDomainRef={rackDomainRef}
         subSelActive={subSel !== null}
+        projectId={projectId}
+        projectName={projectDisplayName}
+        onRenameProject={handleRenameProject}
         onExportProjectDocument={handleExportProjectDocument}
         onImportProjectDocument={handleImportProjectDocument}
-        onSendToQuoter={handleSendToQuoter}
         onExportPNG={handleExportPNG}
         onExportJPEG={handleExportJPEG}
         onExportPDF={handleExportPDF}

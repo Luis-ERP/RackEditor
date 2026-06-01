@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { Pencil, ClipboardList, Settings } from 'lucide-react';
 import RackModuleEditor from './rack/RackModuleEditor.js';
 import {
@@ -39,9 +39,11 @@ export default function EditorPanel({
   noteStoreVersion,
   rackDomainRef,
   subSelActive = false,
+  projectId,
+  projectName,
+  onRenameProject,
   onExportProjectDocument,
   onImportProjectDocument,
-  onSendToQuoter,
   onExportPNG,
   onExportJPEG,
   onExportPDF,
@@ -51,6 +53,10 @@ export default function EditorPanel({
 }) {
   const dk = darkMode;
   const [activeView, setActiveView] = useState('edition');
+  const [localName, setLocalName] = useState(projectName ?? '');
+  const nameRef = useRef(null);
+
+  useEffect(() => { setLocalName(projectName ?? ''); }, [projectName]);
 
   const VIEW_MODES = [
     { key: 'edition',       label: 'Edition',     Icon: Pencil },
@@ -67,45 +73,57 @@ export default function EditorPanel({
       {/* ── View-mode selector ───────────────────────────────── */}
       <div style={{
         display: 'flex',
-        gap: 0,
-        borderBottom: `1px solid ${dk ? '#374151' : '#e5e7eb'}`,
         flexShrink: 0,
-        background: dk ? '#18191c' : '#f9fafb',
+        padding: '8px 10px',
+        borderBottom: `1px solid ${dk ? '#374151' : '#e5e7eb'}`,
+        background: dk ? '#1e1f22' : '#ffffff',
       }}>
-        {VIEW_MODES.map(({ key, label, Icon }) => {
-          const isActive = activeView === key;
-          return (
-            <button
-              key={key}
-              onClick={() => setActiveView(key)}
-              style={{
-                flex: 1,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: 4,
-                padding: '8px 4px',
-                border: 'none',
-                borderBottom: isActive
-                  ? '2px solid #3b82f6'
-                  : '2px solid transparent',
-                background: 'transparent',
-                color: isActive
-                  ? (dk ? '#93c5fd' : '#1d4ed8')
-                  : (dk ? '#6b7280' : '#9ca3af'),
-                fontSize: 11,
-                fontWeight: isActive ? 600 : 500,
-                cursor: 'pointer',
-                transition: 'all 0.15s',
-                userSelect: 'none',
-              }}
-              title={label}
-            >
-              <Icon size={14} strokeWidth={isActive ? 2.2 : 1.8} />
-              <span>{label}</span>
-            </button>
-          );
-        })}
+        <div style={{
+          display: 'flex',
+          flex: 1,
+          background: dk ? '#111213' : '#f1f2f4',
+          borderRadius: 8,
+          padding: 3,
+          gap: 2,
+        }}>
+          {VIEW_MODES.map(({ key, label, Icon }) => {
+            const isActive = activeView === key;
+            return (
+              <button
+                key={key}
+                onClick={() => setActiveView(key)}
+                style={{
+                  flex: 1,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: 4,
+                  padding: '5px 4px',
+                  border: 'none',
+                  borderRadius: 6,
+                  background: isActive
+                    ? (dk ? '#2d2f36' : '#ffffff')
+                    : 'transparent',
+                  boxShadow: isActive
+                    ? (dk ? '0 1px 3px rgba(0,0,0,0.4)' : '0 1px 3px rgba(0,0,0,0.12)')
+                    : 'none',
+                  color: isActive
+                    ? (dk ? '#e5e7eb' : '#111827')
+                    : (dk ? '#6b7280' : '#9ca3af'),
+                  fontSize: 11,
+                  fontWeight: isActive ? 600 : 400,
+                  cursor: 'pointer',
+                  transition: 'background 0.15s, box-shadow 0.15s, color 0.15s',
+                  userSelect: 'none',
+                }}
+                title={label}
+              >
+                <Icon size={13} strokeWidth={isActive ? 2.2 : 1.8} />
+                <span>{label}</span>
+              </button>
+            );
+          })}
+        </div>
       </div>
 
       {/* ── Edition view ─────────────────────────────────────── */}
@@ -196,30 +214,38 @@ export default function EditorPanel({
           }}>Project</div>
           <div style={{ ...sectionBodyStyle }}>
 
-            {/* ── Send to Quoter ─────────────────────────────── */}
-            <div style={{ marginBottom: 16 }}>
-              <div style={{
-                fontSize: 10,
-                fontWeight: 600,
-                textTransform: 'uppercase',
-                letterSpacing: '0.06em',
-                color: dk ? '#6b7280' : '#9ca3af',
-                marginBottom: 6,
-              }}>
-                Quoter
+            {/* ── Project name ────────────────────────────────── */}
+            {projectId && (
+              <div style={{ marginBottom: 16 }}>
+                <div style={{
+                  fontSize: 10, fontWeight: 600, textTransform: 'uppercase',
+                  letterSpacing: '0.06em', color: dk ? '#6b7280' : '#9ca3af', marginBottom: 6,
+                }}>
+                  Name
+                </div>
+                <input
+                  ref={nameRef}
+                  value={localName}
+                  onChange={(e) => setLocalName(e.target.value)}
+                  onBlur={(e) => {
+                    e.target.style.borderColor = dk ? '#374151' : '#e5e7eb';
+                    const trimmed = localName.trim();
+                    if (trimmed && trimmed !== projectName) onRenameProject?.(trimmed);
+                    else setLocalName(projectName ?? '');
+                  }}
+                  onKeyDown={(e) => { if (e.key === 'Enter') nameRef.current?.blur(); }}
+                  style={{
+                    width: '100%', boxSizing: 'border-box',
+                    padding: '6px 10px', borderRadius: 6, fontSize: 12,
+                    border: `1px solid ${dk ? '#374151' : '#e5e7eb'}`,
+                    background: dk ? '#2d2f34' : '#f9fafb',
+                    color: dk ? '#d1d5db' : '#374151',
+                    outline: 'none',
+                  }}
+                  onFocus={(e) => { e.target.style.borderColor = '#3b82f6'; }}
+                />
               </div>
-              <button
-                style={projectBtnStyle(dk, true)}
-                onClick={onSendToQuoter}
-                disabled={!onSendToQuoter}
-                title="Serialize this design and open it as a new quote in the Quoter"
-              >
-                Send to Quoter →
-              </button>
-              <p style={{ margin: '6px 0 0', fontSize: 11, color: dk ? '#6b7280' : '#9ca3af' }}>
-                Opens the Quoter with this design's BOM pre-loaded.
-              </p>
-            </div>
+            )}
 
             {/* ── File operations ────────────────────────────── */}
             <div>

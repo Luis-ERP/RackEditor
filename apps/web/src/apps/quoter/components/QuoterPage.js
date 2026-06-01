@@ -12,7 +12,8 @@ import {
   readPendingCadImportFromSession,
   clearPendingCadImportFromSession,
 } from '../services/cadImportService.js';
-import { loadCachedProjectDocument } from '@/src/apps/cad/services/export/projectDocumentExporter';
+import { loadCachedProjectDocument, serializeProjectDocument } from '@/src/apps/cad/services/export/projectDocumentExporter';
+import { getLayoutStore, getWallStore, getColumnStore, rackDomainSingleton } from '@/src/apps/cad/services/cadStores';
 import { downloadQuotePdf } from '../services/pdfQuoteGenerator.js';
 import css from '../styles/quoter.module.css';
 
@@ -458,20 +459,31 @@ export default function QuoterPage({ projectId }) {
     return unsub;
   }, [projectId, store, applyCadImportText]);
 
-  // ── Auto-BOM sync from saved CAD project ─────────────────────────────────
+  // ── Auto-BOM sync from CAD project ───────────────────────────────────────
+  // Reads live store state to avoid the 500ms auto-save lag; falls back to
+  // localStorage when stores are unpopulated (e.g. direct URL access).
 
   useEffect(() => {
     if (typeof window === 'undefined' || !projectId) return;
 
     try {
-      const doc = loadCachedProjectDocument(projectId);
+      let doc = serializeProjectDocument({
+        layoutStore: getLayoutStore(),
+        wallStore: getWallStore(),
+        columnStore: getColumnStore(),
+        rackDomainRef: { current: rackDomainSingleton },
+        canvas: {},
+      });
+      if (!doc.semantics?.rackDomain?.modules?.length) {
+        doc = loadCachedProjectDocument(projectId);
+      }
       if (!doc) return;
       const bom = deriveBomFromCadProject(doc);
       store.syncFromBom(bom, {
         resolveCatalog: buildCatalogResolver(bom.items),
         projectFile: projectId,
       });
-    } catch { /* silent — quoter shows whatever BOM was already in store */ }
+    } catch { /* silent */ }
   }, [projectId, store]);
 
   // ── CAD import ───────────────────────────────────────────────────────────

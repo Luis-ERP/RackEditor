@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { FolderOpen, Plus, Trash2 } from 'lucide-react';
 import useProjectRegistry from '@/src/core/project/useProjectRegistry';
@@ -184,9 +184,92 @@ function EmptyState({ onCreate }) {
   );
 }
 
+function NewProjectModal({ onConfirm, onCancel }) {
+  const [name, setName] = useState('');
+  const inputRef = useRef(null);
+
+  useEffect(() => { inputRef.current?.focus(); }, []);
+
+  const handleSubmit = () => onConfirm(name.trim() || 'Untitled Project');
+
+  return (
+    <div
+      style={{
+        position: 'fixed', inset: 0, zIndex: 1000,
+        background: 'rgba(0,0,0,0.45)',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+      }}
+      onClick={onCancel}
+    >
+      <div
+        style={{
+          background: 'var(--surface)',
+          border: '1px solid var(--surface-border)',
+          borderRadius: 14,
+          padding: 24,
+          width: 360,
+          boxShadow: '0 24px 64px rgba(0,0,0,0.25)',
+          display: 'flex', flexDirection: 'column', gap: 16,
+        }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--app-text)' }}>
+          New Project
+        </div>
+        <input
+          ref={inputRef}
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') handleSubmit();
+            if (e.key === 'Escape') onCancel();
+          }}
+          placeholder="Project name"
+          style={{
+            width: '100%',
+            padding: '8px 12px',
+            borderRadius: 8,
+            border: '1px solid var(--surface-border)',
+            background: 'var(--app-bg)',
+            color: 'var(--app-text)',
+            fontSize: 14,
+            outline: 'none',
+            boxSizing: 'border-box',
+          }}
+        />
+        <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+          <button
+            type="button"
+            onClick={onCancel}
+            style={{
+              padding: '8px 16px', borderRadius: 8, fontSize: 13, fontWeight: 500,
+              background: 'transparent', border: '1px solid var(--surface-border)',
+              color: 'var(--muted-text)', cursor: 'pointer',
+            }}
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            onClick={handleSubmit}
+            style={{
+              padding: '8px 16px', borderRadius: 8, fontSize: 13, fontWeight: 600,
+              background: 'var(--accent, #3b82f6)', border: 'none',
+              color: '#ffffff', cursor: 'pointer',
+            }}
+          >
+            Create
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function ProjectsListPage() {
   const router = useRouter();
   const { projects, createProject, deleteProject } = useProjectRegistry();
+  const [showModal, setShowModal] = useState(false);
 
   useEffect(() => {
     if (migrateLegacyMainProject()) {
@@ -199,12 +282,17 @@ export default function ProjectsListPage() {
     }
   }, []);
 
-  const handleNew = () => {
-    const project = createProject('New Project');
+  const handleNew = () => setShowModal(true);
+
+  const handleCreate = (name) => {
+    const project = createProject(name);
+    setShowModal(false);
     router.push(`/project/${project.id}/design`);
   };
 
   return (
+    <>
+    {showModal && <NewProjectModal onConfirm={handleCreate} onCancel={() => setShowModal(false)} />}
     <div
       style={{
         display: 'flex',
@@ -284,5 +372,6 @@ export default function ProjectsListPage() {
         </div>
       )}
     </div>
+    </>
   );
 }
