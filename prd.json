@@ -153,7 +153,7 @@
       "Displays a short description: 'A three-dimensional view of your rack layout will appear here.'",
       "Matches the visual style of the workspace"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "three-d-tab-route",
@@ -166,7 +166,7 @@
       "Navigating to /project/abc123/3d shows the Coming Soon placeholder",
       "The tab bar is visible above the placeholder (from the layout)"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "rail-nav-projects",
