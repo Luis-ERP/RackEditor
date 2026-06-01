@@ -9,7 +9,7 @@ const TABS = [
   { key: '3d', label: '3D', Icon: Box, suffix: '/3d', comingSoon: true },
 ];
 
-export default function ProjectWorkspaceTabs({ projectId, activePath }) {
+export default function ProjectWorkspaceTabs({ projectId, activePath, projectName }) {
   return (
     <div
       style={{
@@ -23,6 +23,26 @@ export default function ProjectWorkspaceTabs({ projectId, activePath }) {
         gap: 4,
       }}
     >
+      {projectName && (
+        <span
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            fontSize: 12,
+            fontWeight: 500,
+            color: 'var(--muted-text)',
+            paddingRight: 12,
+            borderRight: '1px solid var(--surface-border)',
+            marginRight: 12,
+            whiteSpace: 'nowrap',
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            maxWidth: 180,
+          }}
+        >
+          {projectName}
+        </span>
+      )}
       {TABS.map(({ key, label, Icon, suffix, comingSoon }) => {
         const href = `/project/${projectId}${suffix}`;
         const isActive = activePath?.endsWith(suffix);
