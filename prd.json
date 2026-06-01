@@ -12,7 +12,7 @@
       "Exports deleteProject(id) that removes the registry entry (does not touch the CAD cache key)",
       "No React imports — this is a pure utility module"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "use-project-registry-hook",
@@ -26,7 +26,7 @@
       "Calls listProjects() from projectRegistry.js on mount and on storage events",
       "No direct localStorage access — delegates to projectRegistry.js functions"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "projects-list-page-component",

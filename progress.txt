@@ -1,3 +1,5 @@
 # Ralph Progress Log
 # Each session appends one entry. Delete this file when the sprint is complete.
 # Format: [date] task | decisions | files changed | notes
+
+[2026-06-01] project-registry-logic + use-project-registry-hook | task 1 was already fully implemented in src/core/project/projectRegistry.js (REGISTRY_KEY, listProjects, createProject, updateProject, deleteProject — no React imports); marked passes:true. task 2: created useProjectRegistry.js with useState+storage event listener for cross-tab sync, delegates all mutations to registry module | files: src/core/project/useProjectRegistry.js (created) | no blockers
