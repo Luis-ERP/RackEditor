@@ -9,17 +9,12 @@ import useWallStore from './hooks/useWallStore';
 import useColumnStore from './hooks/useColumnStore';
 import useNoteStore from './hooks/useNoteStore';
 import { useAppTheme } from '@/src/shared/theme/AppThemeProvider';
-import {
-  downloadProjectDocument,
-  serializeProjectDocument,
-} from './services/export/projectDocumentExporter';
+import { downloadProjectDocument } from './services/export/projectDocumentExporter';
 import {
   rackDomainSingleton,
   getCanvasState,
   setCanvasState,
 } from './services/cadStores';
-import { getQuoteStore } from '@/src/apps/quoter/services/quoteSingleton';
-import { deriveBomFromCadProject, buildCatalogResolver } from '@/src/apps/quoter/services/cadImportService';
 import { projectStore } from './services/project/projectStore';
 import {
   exportProjectToFile,
@@ -235,29 +230,11 @@ export default function CadWorkspacePage({ projectId } = {}) {
     input.click();
   }, []);
 
-  // ── Send to Quoter (direct store sync — no sessionStorage) ────────────────
+  // ── Send to Quoter ────────────────────────────────────────────────────────
 
   const handleSendToQuoter = useCallback(() => {
-    const doc = serializeProjectDocument({
-      layoutStore: store,
-      wallStore: wallSt,
-      columnStore: colSt,
-      rackDomainRef,
-      canvas: { darkMode: isDark, rackOrientation, drawingMode, wallMode, columnMode, showMeasurements },
-    });
-    try {
-      const bom = deriveBomFromCadProject(doc);
-      const resolver = buildCatalogResolver(bom.items);
-      getQuoteStore().syncFromBom(bom, {
-        resolveCatalog: resolver,
-        projectFile: projectStore.getState().activeId ?? 'CAD Project',
-      });
-    } catch (e) {
-      window.alert(`Failed to sync BOM: ${e.message}`);
-      return;
-    }
-    router.push('/quoter');
-  }, [store, wallSt, colSt, isDark, rackOrientation, drawingMode, wallMode, columnMode, showMeasurements, router]);
+    router.push('/project/' + projectId + '/quote');
+  }, [projectId, router]);
 
   // ── Drawing export handlers ───────────────────────────────────────────────
 
