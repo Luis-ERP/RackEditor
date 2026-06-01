@@ -54,16 +54,18 @@ export default function ProjectWorkspaceTabs({ projectId, activePath, projectNam
             style={{
               display: 'inline-flex',
               alignItems: 'center',
+              alignSelf: 'center',
               gap: 6,
-              padding: '0 14px',
+              padding: '0 12px',
+              height: 28,
               textDecoration: 'none',
               fontSize: 13,
               fontWeight: isActive ? 600 : 500,
-              color: isActive ? 'var(--app-text)' : comingSoon ? 'var(--muted-text)' : 'var(--muted-text)',
-              borderBottom: isActive ? '2px solid var(--app-text)' : '2px solid transparent',
+              color: isActive ? '#ffffff' : 'var(--muted-text)',
+              background: isActive ? 'var(--accent, #3b82f6)' : 'transparent',
+              borderRadius: 6,
               opacity: comingSoon && !isActive ? 0.6 : 1,
-              transition: 'color 0.15s, opacity 0.15s',
-              position: 'relative',
+              transition: 'color 0.15s, background 0.15s, opacity 0.15s',
               whiteSpace: 'nowrap',
             }}
           >
