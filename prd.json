@@ -42,7 +42,7 @@
       "When no projects exist, shows an empty state with a prominent 'Create your first project' CTA",
       "Matches the visual style of the existing workspace (uses existing CSS variables and design tokens)"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "projects-route",

@@ -3,3 +3,4 @@
 # Format: [date] task | decisions | files changed | notes
 
 [2026-06-01] project-registry-logic + use-project-registry-hook | task 1 was already fully implemented in src/core/project/projectRegistry.js (REGISTRY_KEY, listProjects, createProject, updateProject, deleteProject — no React imports); marked passes:true. task 2: created useProjectRegistry.js with useState+storage event listener for cross-tab sync, delegates all mutations to registry module | files: src/core/project/useProjectRegistry.js (created) | no blockers
+[2026-06-01] projects-list-page-component | created ProjectsListPage.js; project cards in responsive grid with name, creation date, Open button, Delete with confirm; EmptyState with prominent CTA; New Project button in header; all routing via next/navigation; inline styles using existing CSS vars (--surface, --accent-soft, etc.) to match workspace style | files: src/apps/projects/components/ProjectsListPage.js (created) | no blockers
