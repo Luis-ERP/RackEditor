@@ -70,7 +70,7 @@
       "3D tab is styled as 'coming soon' (e.g. dimmed, with a 'Soon' badge) but still navigable",
       "Uses Next.js <Link> for navigation — no full page reloads"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "project-workspace-layout",
