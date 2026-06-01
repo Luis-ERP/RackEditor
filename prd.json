@@ -112,7 +112,7 @@
       "Existing behavior is preserved when projectId is 'main' (backward compat)",
       "No other internals of CadWorkspacePage are changed"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "quote-tab-route",
