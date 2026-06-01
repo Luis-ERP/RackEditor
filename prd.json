@@ -55,7 +55,7 @@
       "Navigating to /projects in the browser shows the projects list page",
       "The page is wrapped by AppWorkspaceLayout (inherited from the (workspace) group layout)"
     ],
-    "passes": false
+    "passes": true
   },
   {
     "id": "project-workspace-tabs",
