@@ -1,12 +1,13 @@
 'use client';
 
 import Link from 'next/link';
-import { PenLine, Calculator, Box } from 'lucide-react';
+import { PenLine, Calculator, Box, FolderOpen } from 'lucide-react';
 
 const TABS = [
   { key: 'design', label: 'Design', Icon: PenLine, suffix: '/design' },
   { key: 'quote', label: 'Quote', Icon: Calculator, suffix: '/quote' },
   { key: '3d', label: '3D', Icon: Box, suffix: '/3d', comingSoon: true },
+  { key: 'files', label: 'Files', Icon: FolderOpen, suffix: '/files' },
 ];
 
 export default function ProjectWorkspaceTabs({ projectId, activePath, projectName }) {

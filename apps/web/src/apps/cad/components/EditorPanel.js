@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import { Pencil, ClipboardList, Settings } from 'lucide-react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
+import { Pencil, ClipboardList } from 'lucide-react';
 import RackModuleEditor from './rack/RackModuleEditor.js';
 import {
   BEAMS_PER_LEVEL,
@@ -53,15 +53,10 @@ export default function EditorPanel({
 }) {
   const dk = darkMode;
   const [activeView, setActiveView] = useState('edition');
-  const [localName, setLocalName] = useState(projectName ?? '');
-  const nameRef = useRef(null);
-
-  useEffect(() => { setLocalName(projectName ?? ''); }, [projectName]);
 
   const VIEW_MODES = [
-    { key: 'edition',       label: 'Edition',     Icon: Pencil },
-    { key: 'bom',           label: 'BOM & Stats',  Icon: ClipboardList },
-    { key: 'configuration', label: 'Project',       Icon: Settings },
+    { key: 'edition', label: 'Edition',    Icon: Pencil },
+    { key: 'bom',     label: 'BOM & Stats', Icon: ClipboardList },
   ];
 
   return (
@@ -202,141 +197,6 @@ export default function EditorPanel({
           rackDomainRef={rackDomainRef}
           darkMode={dk}
         />
-      )}
-
-      {/* ── Configuration view ───────────────────────────────── */}
-      {activeView === 'configuration' && (
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-          <div style={{
-            ...sectionHeaderStyle,
-            color: dk ? '#9ca3af' : '#6b7280',
-            borderBottomColor: dk ? '#2d2f34' : '#f3f4f6',
-          }}>Project</div>
-          <div style={{ ...sectionBodyStyle }}>
-
-            {/* ── Project name ────────────────────────────────── */}
-            {projectId && (
-              <div style={{ marginBottom: 16 }}>
-                <div style={{
-                  fontSize: 10, fontWeight: 600, textTransform: 'uppercase',
-                  letterSpacing: '0.06em', color: dk ? '#6b7280' : '#9ca3af', marginBottom: 6,
-                }}>
-                  Name
-                </div>
-                <input
-                  ref={nameRef}
-                  value={localName}
-                  onChange={(e) => setLocalName(e.target.value)}
-                  onBlur={(e) => {
-                    e.target.style.borderColor = dk ? '#374151' : '#e5e7eb';
-                    const trimmed = localName.trim();
-                    if (trimmed && trimmed !== projectName) onRenameProject?.(trimmed);
-                    else setLocalName(projectName ?? '');
-                  }}
-                  onKeyDown={(e) => { if (e.key === 'Enter') nameRef.current?.blur(); }}
-                  style={{
-                    width: '100%', boxSizing: 'border-box',
-                    padding: '6px 10px', borderRadius: 6, fontSize: 12,
-                    border: `1px solid ${dk ? '#374151' : '#e5e7eb'}`,
-                    background: dk ? '#2d2f34' : '#f9fafb',
-                    color: dk ? '#d1d5db' : '#374151',
-                    outline: 'none',
-                  }}
-                  onFocus={(e) => { e.target.style.borderColor = '#3b82f6'; }}
-                />
-              </div>
-            )}
-
-            {/* ── File operations ────────────────────────────── */}
-            <div>
-              <div style={{
-                fontSize: 10,
-                fontWeight: 600,
-                textTransform: 'uppercase',
-                letterSpacing: '0.06em',
-                color: dk ? '#6b7280' : '#9ca3af',
-                marginBottom: 6,
-              }}>
-                File
-              </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                <button
-                  style={projectBtnStyle(dk, false)}
-                  onClick={onExportProjectDocument}
-                  disabled={!onExportProjectDocument}
-                  title="Download this project as a .json file"
-                >
-                  Export JSON…
-                </button>
-                <button
-                  style={projectBtnStyle(dk, false)}
-                  onClick={onImportProjectDocument}
-                  disabled={!onImportProjectDocument}
-                  title="Load a previously exported .json project file"
-                >
-                  Import JSON…
-                </button>
-              </div>
-            </div>
-
-            {/* ── Export drawing ──────────────────────────────── */}
-            <div style={{ marginTop: 16 }}>
-              <div style={{
-                fontSize: 10,
-                fontWeight: 600,
-                textTransform: 'uppercase',
-                letterSpacing: '0.06em',
-                color: dk ? '#6b7280' : '#9ca3af',
-                marginBottom: 6,
-              }}>
-                Export Drawing
-              </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                <div style={{ display: 'flex', gap: 6 }}>
-                  <button
-                    style={{ ...exportBtnStyle(dk), flex: 1 }}
-                    onClick={onExportPNG}
-                    title="Download the CAD drawing as a PNG image"
-                  >
-                    PNG
-                  </button>
-                  <button
-                    style={{ ...exportBtnStyle(dk), flex: 1 }}
-                    onClick={onExportJPEG}
-                    title="Download the CAD drawing as a JPEG image"
-                  >
-                    JPEG
-                  </button>
-                  <button
-                    style={{ ...exportBtnStyle(dk), flex: 1 }}
-                    onClick={onExportSVG}
-                    title="Download the CAD drawing as an SVG file"
-                  >
-                    SVG
-                  </button>
-                </div>
-                <button
-                  style={projectBtnStyle(dk, false)}
-                  onClick={onExportPDF}
-                  title="Download a professional PDF with the CAD drawing"
-                >
-                  Export PDF…
-                </button>
-                <button
-                  style={projectBtnStyle(dk, false)}
-                  onClick={onExportDXF}
-                  title="Download as DXF for AutoCAD / CAD software"
-                >
-                  Export DXF…
-                </button>
-              </div>
-              <p style={{ margin: '6px 0 0', fontSize: 11, color: dk ? '#6b7280' : '#9ca3af' }}>
-                Image and PDF exports include rulers, dimensions, and labels.
-              </p>
-            </div>
-
-          </div>
-        </div>
       )}
     </aside>
   );
