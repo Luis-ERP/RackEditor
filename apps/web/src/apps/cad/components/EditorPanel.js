@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useEffect, useCallback, useMemo } from 'react';
-import { Pencil, ClipboardList } from 'lucide-react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import { Pencil, ClipboardList, Bot, Send } from 'lucide-react';
 import RackModuleEditor from './rack/RackModuleEditor.js';
 import {
   BEAMS_PER_LEVEL,
@@ -57,6 +57,7 @@ export default function EditorPanel({
   const VIEW_MODES = [
     { key: 'edition', label: 'Edition',    Icon: Pencil },
     { key: 'bom',     label: 'BOM & Stats', Icon: ClipboardList },
+    { key: 'agent',   label: 'Chat Agent',  Icon: Bot },
   ];
 
   return (
@@ -197,6 +198,11 @@ export default function EditorPanel({
           rackDomainRef={rackDomainRef}
           darkMode={dk}
         />
+      )}
+
+      {/* ── Chat Agent view ───────────────────────────────────── */}
+      {activeView === 'agent' && (
+        <ChatAgentView darkMode={dk} />
       )}
     </aside>
   );
@@ -574,6 +580,133 @@ function BOMView({
   );
 }
 
+// ── ChatAgentView ───────────────────────────────────────────────
+function ChatAgentView({ darkMode }) {
+  const dk = darkMode;
+  const [messages, setMessages] = useState([
+    { role: 'assistant', text: 'Hi! I\'m your CAD drawing assistant. Describe what you\'d like to build and I\'ll help you create it.' },
+  ]);
+  const [input, setInput] = useState('');
+  const bottomRef = useRef(null);
+
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages]);
+
+  function handleSend() {
+    const text = input.trim();
+    if (!text) return;
+    setMessages((prev) => [...prev, { role: 'user', text }]);
+    setInput('');
+    // TODO: wire to LLM agent
+  }
+
+  function handleKeyDown(e) {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleSend();
+    }
+  }
+
+  return (
+    <div style={{
+      display: 'flex',
+      flexDirection: 'column',
+      flex: 1,
+      minHeight: 0,
+      overflow: 'hidden',
+    }}>
+      {/* messages */}
+      <div style={{
+        flex: 1,
+        overflowY: 'auto',
+        padding: '12px 10px',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 8,
+      }}>
+        {messages.map((msg, i) => {
+          const isUser = msg.role === 'user';
+          return (
+            <div key={i} style={{
+              alignSelf: isUser ? 'flex-end' : 'flex-start',
+              maxWidth: '85%',
+              padding: '7px 10px',
+              borderRadius: isUser ? '12px 12px 2px 12px' : '12px 12px 12px 2px',
+              background: isUser
+                ? (dk ? '#2563eb' : '#3b82f6')
+                : (dk ? '#2d2f36' : '#f3f4f6'),
+              color: isUser
+                ? '#ffffff'
+                : (dk ? '#e5e7eb' : '#111827'),
+              fontSize: 12,
+              lineHeight: 1.5,
+              wordBreak: 'break-word',
+            }}>
+              {msg.text}
+            </div>
+          );
+        })}
+        <div ref={bottomRef} />
+      </div>
+
+      {/* input bar */}
+      <div style={{
+        flexShrink: 0,
+        display: 'flex',
+        gap: 6,
+        padding: '8px 10px',
+        borderTop: `1px solid ${dk ? '#374151' : '#e5e7eb'}`,
+        background: dk ? '#1e1f22' : '#ffffff',
+      }}>
+        <textarea
+          value={input}
+          onChange={(e) => setInput(e.target.value)}
+          onKeyDown={handleKeyDown}
+          placeholder="Describe your layout…"
+          rows={2}
+          style={{
+            flex: 1,
+            resize: 'none',
+            border: `1px solid ${dk ? '#374151' : '#d1d5db'}`,
+            borderRadius: 8,
+            padding: '6px 8px',
+            fontSize: 12,
+            lineHeight: 1.5,
+            background: dk ? '#111213' : '#f9fafb',
+            color: dk ? '#e5e7eb' : '#111827',
+            outline: 'none',
+            fontFamily: 'inherit',
+          }}
+        />
+        <button
+          onClick={handleSend}
+          disabled={!input.trim()}
+          style={{
+            flexShrink: 0,
+            width: 32,
+            height: 32,
+            alignSelf: 'flex-end',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            border: 'none',
+            borderRadius: 8,
+            background: input.trim()
+              ? (dk ? '#2563eb' : '#3b82f6')
+              : (dk ? '#374151' : '#e5e7eb'),
+            color: input.trim() ? '#ffffff' : (dk ? '#6b7280' : '#9ca3af'),
+            cursor: input.trim() ? 'pointer' : 'default',
+            transition: 'background 0.15s',
+          }}
+        >
+          <Send size={14} strokeWidth={2} />
+        </button>
+      </div>
+    </div>
+  );
+}
+
 // ── TransformPanel ──────────────────────────────────────────────
 function TransformPanel({ layoutStore, layoutVersion, darkMode }) {
   const dk = darkMode;
@@ -765,7 +898,7 @@ function fmt(v) {
 const panelStyle = {
   width: PANEL_WIDTH,
   minWidth: PANEL_WIDTH,
-  height: '100vh',
+  height: '100%',
   background: '#ffffff',
   borderRight: '1px solid #e5e7eb',
   display: 'flex',
