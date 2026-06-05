@@ -72,8 +72,8 @@ export default function FilesPage({ params }) {
   const handleExportDXF  = useCallback(async () => { try { await downloadDXF(store); } catch (e) { window.alert(e.message); } }, [store]);
 
   return (
-    <div style={{ padding: 32, maxWidth: 480 }}>
-      <h2 style={{ margin: '0 0 24px', fontSize: 18, fontWeight: 600, color: 'var(--text, #111827)' }}>
+    <div style={{ padding: 32, maxWidth: 480, overflowY: 'auto', height: '100%', boxSizing: 'border-box' }}>
+      <h2 style={{ margin: '0 0 24px', fontSize: 18, fontWeight: 600, color: 'var(--app-text, #111827)' }}>
         Project Files
       </h2>
 
@@ -138,8 +138,8 @@ function ActionButton({ onClick, children, style }) {
         display: 'block', width: '100%', padding: '8px 12px',
         borderRadius: 6, fontSize: 13, fontWeight: 400, cursor: 'pointer',
         textAlign: 'left', border: '1px solid var(--surface-border, #e5e7eb)',
-        background: 'var(--surface-secondary, #f9fafb)',
-        color: 'var(--text, #374151)', transition: 'opacity 0.15s',
+        background: 'var(--surface-muted, #f9fafb)',
+        color: 'var(--app-text, #374151)', transition: 'opacity 0.15s',
         ...style,
       }}
     >
@@ -152,6 +152,6 @@ const inputStyle = {
   width: '100%', boxSizing: 'border-box', padding: '8px 12px',
   borderRadius: 6, fontSize: 13,
   border: '1px solid var(--surface-border, #e5e7eb)',
-  background: 'var(--surface-secondary, #f9fafb)',
-  color: 'var(--text, #374151)', outline: 'none',
+  background: 'var(--surface-muted, #f9fafb)',
+  color: 'var(--app-text, #374151)', outline: 'none',
 };

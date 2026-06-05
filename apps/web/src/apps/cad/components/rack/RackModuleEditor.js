@@ -219,7 +219,7 @@ function ModuleEditorInner({ entity, domain, layoutStore, rackDomainRef, darkMod
       </CollapsibleSection>
 
       {/* ── Beam Levels ─────────────────────────────────────────────────── */}
-      <CollapsibleSection label="Beam Levels" dk={dk} c={c} defaultOpen>
+      <CollapsibleSection label="Beam Levels" dk={dk} c={c}>
         {draft.frameSpec && draft.beamLengthIn && (
           <RackFrontView
             draft={draft}
