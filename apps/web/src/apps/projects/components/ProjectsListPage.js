@@ -270,8 +270,10 @@ export default function ProjectsListPage() {
   const router = useRouter();
   const { projects, createProject, deleteProject } = useProjectRegistry();
   const [showModal, setShowModal] = useState(false);
+  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
+    setMounted(true);
     if (migrateLegacyMainProject()) {
       // Same-tab writes don't fire the native 'storage' event, so dispatch
       // a synthetic one to trigger useProjectRegistry's refresh.
@@ -323,7 +325,7 @@ export default function ProjectsListPage() {
         >
           Projects
         </h1>
-        {projects.length > 0 && (
+        {mounted && projects.length > 0 && (
           <button
             type="button"
             onClick={handleNew}
@@ -348,7 +350,7 @@ export default function ProjectsListPage() {
       </div>
 
       {/* Content */}
-      {projects.length === 0 ? (
+      {!mounted ? null : projects.length === 0 ? (
         <EmptyState onCreate={handleNew} />
       ) : (
         <div
