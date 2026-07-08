@@ -221,7 +221,7 @@ function renderQuoteDetails(doc, quote, y) {
     ['Quote Number', quote.order_number || '—'],
     ['Date Issued', fmtShortDate(quote.audit?.createdAt)],
     ['Valid Until', '30 days from issue date'],
-    ['Prepared By', quote.audit?.createdBy || '—'],
+    ['Prepared By', quote.prepared_by || '—'],
   ];
 
   for (const [label, value] of details) {

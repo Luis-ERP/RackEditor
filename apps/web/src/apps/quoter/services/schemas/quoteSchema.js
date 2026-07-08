@@ -162,6 +162,7 @@ export function createQuote({
   quote_format_settings = null,
   versioning = [],
   audit = null,
+  prepared_by = '',
   extras = {},
 
   // Legacy aliases for backwards compat during migration
@@ -246,6 +247,8 @@ export function createQuote({
     ? Object.freeze(versioning.map((v) => Object.freeze({ ...v })))
     : Object.freeze([]);
 
+  const auditFields = createAuditFields(audit ?? {});
+
   return Object.freeze({
     id,
     order_number: resolvedOrderNumber,
@@ -269,7 +272,8 @@ export function createQuote({
     tax_amount,
     total,
 
-    audit: createAuditFields(audit ?? {}),
+    prepared_by: String(prepared_by || auditFields.createdBy || ''),
+    audit: auditFields,
     extras: normalizeExtras(extras),
   });
 }

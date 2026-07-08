@@ -168,6 +168,7 @@ export function createQuoteStore(initialQuoteParams) {
     if (fields.cad !== undefined) allowed.cad = fields.cad;
     if (fields.quote_template !== undefined) allowed.quote_template = fields.quote_template;
     if (fields.quote_format_settings !== undefined) allowed.quote_format_settings = fields.quote_format_settings;
+    if (fields.prepared_by !== undefined) allowed.prepared_by = fields.prepared_by;
     // Legacy compat
     if (fields.quoteNumber !== undefined) allowed.order_number = fields.quoteNumber;
     if (fields.quoteFormatSettings !== undefined) allowed.quote_format_settings = fields.quoteFormatSettings;
@@ -175,6 +176,7 @@ export function createQuoteStore(initialQuoteParams) {
     _setQuote(createQuote({
       ..._quote,
       ...allowed,
+      prepared_by: allowed.prepared_by ?? _quote.prepared_by,
       audit: {
         ..._quote.audit,
         updatedAt: new Date().toISOString(),

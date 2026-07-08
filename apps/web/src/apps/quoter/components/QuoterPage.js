@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useCallback, useMemo, useRef, useEffect, useId } from 'react';
+import React, { useState, useCallback, useMemo, useRef, useEffect } from 'react';
 import { Trash2 } from 'lucide-react';
 import useQuoteStore from '../hooks/useQuoteStore';
 import { DISCOUNT_KIND, ENTRY_TYPE, roundCurrency } from '../services/schemas/common.js';
@@ -343,10 +343,7 @@ export default function QuoterPage({ projectId }) {
   const [compareVersions, setCompareVersions] = useState(null); // { a, b }
   const [importError, setImportError] = useState(null);
   const [isFormatSettingsCollapsed, setIsFormatSettingsCollapsed] = useState(true);
-  const [loadError, setLoadError] = useState(null);
   const [menuOpen, setMenuOpen] = useState(false);
-  const fileInputRef = useRef(null);
-  const quoteFileInputRef = useRef(null);
   const menuRef = useRef(null);
 
   // Close dropdown when clicking outside
@@ -486,66 +483,17 @@ export default function QuoterPage({ projectId }) {
     } catch { /* silent */ }
   }, [projectId, store]);
 
-  // ── CAD import ───────────────────────────────────────────────────────────
-
-  const handleCadFileChange = useCallback(async (e) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    setImportError(null);
-    try {
-      const text = await file.text();
-      applyCadImportText(text, file.name);
-    } catch (err) {
-      setImportError(err.message);
-    } finally {
-      e.target.value = '';
-    }
-  }, [applyCadImportText]);
-
   // ── Versioning ───────────────────────────────────────────────────────────
 
   const handleSaveVersion = useCallback(() => store.saveVersion(), [store]);
   const handleSwitchToVersion = useCallback(
     (versionId) => store.switchToVersion(versionId), [store]);
 
-  // ── Quote JSON export / import ───────────────────────────────────────────
+  // ── PDF export ───────────────────────────────────────────────────────────
 
   const handleDownloadPdf = useCallback(() => {
     downloadQuotePdf(quote);
   }, [quote]);
-
-  const handleDownloadJson = useCallback(() => {
-    const data = {
-      _schema: 'rack-editor-quote',
-      _version: 1,
-      exportedAt: new Date().toISOString(),
-      quote: store.snapshot(),
-    };
-    const slug = (quote.order_number || 'quote').replace(/[^a-zA-Z0-9_-]/g, '_');
-    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `${slug}.json`;
-    a.click();
-    URL.revokeObjectURL(url);
-  }, [store, quote.order_number]);
-
-  const handleLoadJsonFile = useCallback(async (e) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    setLoadError(null);
-    try {
-      const text = await file.text();
-      const parsed = JSON.parse(text);
-      const quoteData = parsed._schema === 'rack-editor-quote' ? parsed.quote : parsed;
-      store.loadQuote(quoteData);
-    } catch (err) {
-      setLoadError(`Failed to load quote: ${err.message}`);
-    } finally {
-      e.target.value = '';
-    }
-  }, [store]);
 
   // ─────────────────────────────────────────────────────────────────────────
 
@@ -599,49 +547,16 @@ export default function QuoterPage({ projectId }) {
                 <button
                   className={css.menuItem}
                   role="menuitem"
-                  onClick={() => { store.resetQuote({}); setMenuOpen(false); }}
-                >
-                  New Quote
-                </button>
-                <div className={css.menuDivider} />
-                <button
-                  className={css.menuItem}
-                  role="menuitem"
                   onClick={() => { handleDownloadPdf(); setMenuOpen(false); }}
                 >
                   Download PDF
-                </button>
-                <button
-                  className={css.menuItem}
-                  role="menuitem"
-                  onClick={() => { handleDownloadJson(); setMenuOpen(false); }}
-                >
-                  Download JSON
-                </button>
-                <button
-                  className={css.menuItem}
-                  role="menuitem"
-                  onClick={() => { quoteFileInputRef.current?.click(); setMenuOpen(false); }}
-                >
-                  Load JSON
                 </button>
               </div>
             )}
           </div>
 
-          <input
-            ref={quoteFileInputRef}
-            type="file"
-            accept=".json"
-            style={{ display: 'none' }}
-            onChange={handleLoadJsonFile}
-          />
         </div>
       </div>
-      {loadError && (
-        <div className={css.errorBanner} style={{ borderRadius: 0 }}>{loadError}</div>
-      )}
-
       {/* ── Content ──────────────────────────────────────────────────────── */}
       <div className={css.content}>
 
@@ -659,8 +574,8 @@ export default function QuoterPage({ projectId }) {
                   readOnly />
                 <InlineField label="Updated" value={fmtDate(quote.audit.updatedAt)}
                   readOnly />
-                <InlineField label="Created By" value={quote.audit.createdBy ?? ''}
-                  onChange={(v) => store.updateQuoteFields({ audit: { ...quote.audit, createdBy: v } })}
+                <InlineField label="Created By" value={quote.prepared_by ?? ''}
+                  onChange={(v) => store.updateQuoteFields({ prepared_by: v })}
                   placeholder="Name…" />
               </div>
             </div>
@@ -691,17 +606,9 @@ export default function QuoterPage({ projectId }) {
         <div className={`${css.section} ${css.sectionExpand}`}>
           <div className={css.sectionHeader}>
             <span className={css.sectionTitle}>CAD Design</span>
-            <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-              {quote.cad?.project_file && (
-                <span className={css.cadFileBadge}>{quote.cad.project_file}</span>
-              )}
-              <button className={`${css.btn} ${css.btnSmall}`}
-                onClick={() => fileInputRef.current?.click()}>
-                Import CAD JSON
-              </button>
-              <input ref={fileInputRef} type="file" accept=".json" style={{ display: 'none' }}
-                onChange={handleCadFileChange} />
-            </div>
+            {quote.cad?.project_file && (
+              <span className={css.cadFileBadge}>{quote.cad.project_file}</span>
+            )}
           </div>
           {importError && (
             <div className={css.errorBanner}>{importError}</div>
@@ -738,7 +645,7 @@ export default function QuoterPage({ projectId }) {
           )}
           {cadItems.length === 0 && (
             <div className={css.sectionBody}>
-              <span className={css.emptyText}>No CAD design linked. Import a .json project file to generate line items.</span>
+              <span className={css.emptyText}>No rack modules in the design. Open the Design tab and add racks to see items here.</span>
             </div>
           )}
         </div>
@@ -754,7 +661,7 @@ export default function QuoterPage({ projectId }) {
           </div>
           {quote.line_items.length === 0 ? (
             <div className={css.lineItemsEmpty}>
-              <span className={css.lineItemsEmptyText}>No line items yet. Import a CAD design or add items manually.</span>
+              <span className={css.lineItemsEmptyText}>No line items yet. Add racks in the Design tab or add items manually.</span>
             </div>
           ) : (
             <div className={css.tableWrapFit}>
