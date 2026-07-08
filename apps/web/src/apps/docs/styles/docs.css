@@ -53,7 +53,9 @@ body {
 /* ─── Shell ─── */
 .docs-shell {
   display: flex;
-  min-height: 100vh;
+  height: 100vh;
+  height: 100dvh;
+  overflow: hidden;
 }
 
 /* ─── Sidebar ─── */
@@ -62,9 +64,7 @@ body {
   min-width: var(--docs-sidebar-width);
   background: var(--docs-surface);
   border-right: 1px solid var(--docs-border);
-  position: sticky;
-  top: 0;
-  height: 100vh;
+  height: 100%;
   overflow-y: auto;
   display: flex;
   flex-direction: column;
@@ -171,8 +171,11 @@ body {
 .docs-content {
   flex: 1;
   min-width: 0;
+  min-height: 0;
   padding: 48px 64px;
   overflow-y: auto;
+  overscroll-behavior: contain;
+  scroll-behavior: smooth;
 }
 
 .docs-section {
@@ -501,8 +504,8 @@ body {
 
   .docs-sidebar {
     width: 100%;
-    height: auto;
-    position: relative;
+    min-width: 0;
+    max-height: 40vh;
     border-right: none;
     border-bottom: 1px solid var(--docs-border);
   }

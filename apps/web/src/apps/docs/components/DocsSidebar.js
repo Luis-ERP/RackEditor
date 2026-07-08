@@ -54,29 +54,55 @@ const NAV_SECTIONS = [
   },
 ];
 
+const ALL_IDS = NAV_SECTIONS.flatMap((g) => g.links.map((l) => l.id));
+
 export default function DocsSidebar() {
   const [active, setActive] = useState('overview');
 
   useEffect(() => {
-    const ids = NAV_SECTIONS.flatMap((g) => g.links.map((l) => l.id));
+    const container = document.querySelector('.docs-content');
+    if (!container) return undefined;
+
     const observer = new IntersectionObserver(
       (entries) => {
         const visible = entries.filter((e) => e.isIntersecting);
-        if (visible.length > 0) {
-          const topmost = visible.sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top)[0];
-          setActive(topmost.target.id);
-        }
+        if (visible.length === 0) return;
+        const topmost = visible.sort(
+          (a, b) => a.boundingClientRect.top - b.boundingClientRect.top,
+        )[0];
+        setActive(topmost.target.id);
       },
-      { rootMargin: '-20% 0px -60% 0px' },
+      { root: container, rootMargin: '0px 0px -70% 0px', threshold: 0 },
     );
 
-    ids.forEach((id) => {
+    ALL_IDS.forEach((id) => {
       const el = document.getElementById(id);
       if (el) observer.observe(el);
     });
 
+    // If the URL has a hash on first load, scroll the container to it.
+    const initialHash = window.location.hash.slice(1);
+    if (initialHash && ALL_IDS.includes(initialHash)) {
+      const target = document.getElementById(initialHash);
+      if (target) {
+        target.scrollIntoView({ block: 'start' });
+        setActive(initialHash);
+      }
+    }
+
     return () => observer.disconnect();
   }, []);
+
+  const handleClick = (event, id) => {
+    event.preventDefault();
+    const target = document.getElementById(id);
+    if (!target) return;
+    target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    setActive(id);
+    if (window.history?.replaceState) {
+      window.history.replaceState(null, '', `#${id}`);
+    }
+  };
 
   return (
     <aside className="docs-sidebar">
@@ -97,7 +123,7 @@ export default function DocsSidebar() {
                 key={link.id}
                 href={`#${link.id}`}
                 className={`docs-nav-link${active === link.id ? ' active' : ''}`}
-                onClick={() => setActive(link.id)}
+                onClick={(e) => handleClick(e, link.id)}
               >
                 {link.label}
               </a>
